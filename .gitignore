@@ -1,93 +1,31 @@
-# ==============================================================================
-# Dependencies & Package Managers
-# ==============================================================================
-node_modules/
-/pnpm-lock.yaml
-/package-lock.json
-/yarn.lock
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# ==============================================================================
-# Ionic & Web Build Outputs
-# ==============================================================================
-/www/
-/dist/
-/.cache/
-/.sass-cache/
-/.sourcemaps/
-/tmp/
-/temp/
-/.tmp/
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
 
-# ==============================================================================
-# Capacitor & Cordova Mobile Artifacts
-# ==============================================================================
-# Ignore native platform build directories (they should be generated locally)
-/platforms/
-/plugins/
-/plugins/ios.json
-/plugins/android.json
+# testing
+/coverage
 
-# iOS-specific build and user-state artifacts
-App/**/xcuserdata/
-App/**/DerivedData/
-App/**/Build/
-App/**/build/
-*.xcworkspace/
-/ios/App/Pods/
-/ios/App/Podfile.lock
+# production
+/dist
 
-# Android-specific build and credentials
-/android/.gradle/
-/android/app/build/
-/android/local.properties
-*.apk
-*.aar
-*.keystore
-!debug.keystore
-
-# ==============================================================================
-# Environment Variables & Sensitive Secrets
-# ==============================================================================
-.env
+# misc
+.DS_Store
 .env.local
-.env.*.local
 .env.development.local
 .env.test.local
 .env.production.local
-
-# ==============================================================================
-# Testing & Code Coverage
-# ==============================================================================
-/coverage/
-/.nyc_output/
-/playwright-report/
-/test-results/
-
-# ==============================================================================
-# Editors, IDEs & System Files
-# ==============================================================================
-# macOS
-.DS_Store
-.AppleDouble
-.LSOverride
-
-# Windows
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-$RECYCLE.BIN/
-
-# JetBrains (WebStorm, IntelliJ)
-/.idea/
-*.iml
-
-# VS Code
-/.vscode/
+/.nx
+/.nx/cache
+/.vscode/*
 !/.vscode/extensions.json
+.idea
 
-# Local Logs
-*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-pnpm-debug.log*
+
+# Optional eslint cache
+.eslintcache
