@@ -1,0 +1,24 @@
+.courts-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.courts-page__header {
+  flex: 0 0 auto;
+  padding-bottom: 12px;
+}
+
+.courts-page__header .pc-subtitle {
+  margin-bottom: 12px;
+}
+
+.courts-page__segment {
+  --background: var(--pc-card-bg);
+  border-radius: 10px;
+}
+
+.courts-page__map {
+  flex: 1 1 auto;
+  min-height: 240px;
+}
