@@ -26,9 +26,51 @@ import { SAMPLE_COURTS } from '../data/sampleCourts';
 import { auth } from '../services/firebase';
 import { CheckinService, type ActiveCheckIn } from '../services/CheckinService';
 import type { Court } from '../types/types';
+import './CourtsDetailPage.css';
 
 const DISTANCE_WARNING_METERS = 150;
 const FEEDBACK_PROMPT_KEY = 'peachcourt-checkin-feedback-asked';
+
+function toLocalDateValue(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function minutesToTimeValue(minutes: number): string {
+  const hours = String(Math.floor(minutes / 60)).padStart(2, '0');
+  const remainingMinutes = String(minutes % 60).padStart(2, '0');
+  return `${hours}:${remainingMinutes}`;
+}
+
+function parseParkHours(hours: string): { openMinutes: number; closeMinutes: number } | null {
+  const matches = [...hours.matchAll(/(\d{1,2})(?::(\d{2}))?\s*(AM|PM)/gi)];
+  if (matches.length < 2) {
+    return null;
+  }
+
+  const toMinutes = (match: RegExpMatchArray): number => {
+    const hour = Number(match[1]) % 12 + (match[3].toUpperCase() === 'PM' ? 12 : 0);
+    return hour * 60 + Number(match[2] ?? 0);
+  };
+
+  return {
+    openMinutes: toMinutes(matches[0]),
+    closeMinutes: toMinutes(matches[matches.length - 1]),
+  };
+}
+
+function localDateTimeMillis(dateValue: string, timeValue: string): number {
+  const [year, month, day] = dateValue.split('-').map(Number);
+  const [hours, minutes] = timeValue.split(':').map(Number);
+  return new Date(year, month - 1, day, hours, minutes).getTime();
+}
+
+function addDays(dateValue: string, days: number): string {
+  const [year, month, day] = dateValue.split('-').map(Number);
+  return toLocalDateValue(new Date(year, month - 1, day + days));
+}
 
 function distanceBetweenMeters(
   latitude1: number,
@@ -53,14 +95,33 @@ const CourtDetailPage: React.FC = () => {
   const [uid, setUid] = useState<string | null>(auth.currentUser?.uid ?? null);
   const [activeCheckIn, setActiveCheckIn] = useState<ActiveCheckIn | null>(null);
   const [playerCount, setPlayerCount] = useState(1);
-  const [arrivalTime, setArrivalTime] = useState(() => new Date().toISOString());
+  const [arrivalDate, setArrivalDate] = useState(() => toLocalDateValue(new Date()));
+  const [arrivalTime, setArrivalTime] = useState('00:00');
+  const [hasSelectedArrivalTime, setHasSelectedArrivalTime] = useState(false);
+  const [isTimePickerOpen, setIsTimePickerOpen] = useState(false);
   const [durationMinutes, setDurationMinutes] = useState(90);
   const [now, setNow] = useState(() => Date.now());
   const [isBusy, setIsBusy] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
-  const arrivalTimeMs = new Date(arrivalTime).getTime();
-  const isFutureArrival = arrivalTimeMs > now;
+  const arrivalTimeMs = localDateTimeMillis(arrivalDate, arrivalTime);
+  const currentMinute = Math.floor(now / 60_000) * 60_000;
+  const isCurrentArrival =
+    hasSelectedArrivalTime &&
+    arrivalDate === toLocalDateValue(new Date(now)) &&
+    Math.abs(arrivalTimeMs - now) < 60_000;
+  const isFutureArrival = !isCurrentArrival && arrivalTimeMs > now;
+  const today = toLocalDateValue(new Date(now));
+  const maxArrivalDate = addDays(today, 30);
+  const parkHours = court ? parseParkHours(court.hours) : null;
+  const currentDate = new Date(now);
+  const currentMinuteOfDay = currentDate.getHours() * 60 + currentDate.getMinutes();
+  const openingMinutes = parkHours?.openMinutes ?? 0;
+  const closingMinutes = parkHours?.closeMinutes ?? 23 * 60 + 59;
+  const minimumTimeMinutes = Math.max(currentMinuteOfDay, openingMinutes);
+  const minimumTime = minutesToTimeValue(minimumTimeMinutes);
+  const closingTime = minutesToTimeValue(closingMinutes);
+  const hasAvailableArrivalTime = minimumTimeMinutes <= closingMinutes;
   const validActiveCheckIn =
     activeCheckIn && activeCheckIn.expiresAt.toMillis() > now ? activeCheckIn : null;
 
@@ -118,6 +179,21 @@ const CourtDetailPage: React.FC = () => {
   };
 
   const handleCheckIn = async (selectedCourt: Court) => {
+    if (!hasSelectedArrivalTime) {
+      setToastMessage('Select an arrival time before continuing.');
+      return;
+    }
+    const selectedTimeMinutes =
+      Number(arrivalTime.slice(0, 2)) * 60 + Number(arrivalTime.slice(3, 5));
+    if (
+      !hasAvailableArrivalTime ||
+      selectedTimeMinutes < minimumTimeMinutes ||
+      selectedTimeMinutes > closingMinutes
+    ) {
+      setToastMessage('Choose an arrival time between now and the park closing time.');
+      return;
+    }
+
     setIsBusy(true);
     const requestStartedAt = performance.now();
     let distance: number | null = null;
@@ -151,7 +227,7 @@ const CourtDetailPage: React.FC = () => {
         playerCount,
         distance,
         requestStartedAt,
-        arrivalTimeMs,
+        isCurrentArrival ? Date.now() : arrivalTimeMs,
         durationMinutes,
       );
       const scheduledMessage = arrivalTimeMs > Date.now()
@@ -260,53 +336,104 @@ const CourtDetailPage: React.FC = () => {
               ) : (
                 <>
                   <IonItem>
-                    <IonLabel>
-                      {isFutureArrival
-                        ? 'How many players are expected?'
-                        : 'How many players are here right now?'}
-                    </IonLabel>
-                    <IonSelect
-                      aria-label={
-                        isFutureArrival
-                          ? 'How many players are expected?'
-                          : 'How many players are here right now?'
-                      }
-                      value={playerCount}
-                      interface="popover"
-                      onIonChange={(event) => setPlayerCount(Number(event.detail.value))}
-                    >
-                      {Array.from({ length: 20 }, (_, index) => index + 1).map((count) => (
-                        <IonSelectOption key={count} value={count}>
-                          {count}
-                        </IonSelectOption>
-                      ))}
-                    </IonSelect>
-                  </IonItem>
-                  <IonItem>
-                    <IonLabel>Arrival time</IonLabel>
-                    <IonDatetimeButton datetime="arrival-time" />
+                    <IonLabel>Arrival date</IonLabel>
+                    <IonDatetimeButton datetime="arrival-date" />
                   </IonItem>
                   <IonModal keepContentsMounted>
                     <IonDatetime
-                      id="arrival-time"
-                      presentation="date-time"
-                      value={arrivalTime}
-                      min={new Date(now).toISOString()}
-                      max={new Date(now + 30 * 24 * 60 * 60 * 1000).toISOString()}
+                      id="arrival-date"
+                      presentation="date"
+                      value={arrivalDate}
+                      min={today}
+                      max={maxArrivalDate}
                       showDefaultButtons
                       onIonChange={(event) => {
                         if (typeof event.detail.value === 'string') {
-                          setArrivalTime(event.detail.value);
+                          const selectedDate = event.detail.value.slice(0, 10);
+                          setArrivalDate(
+                            hasSelectedArrivalTime &&
+                              selectedDate === today &&
+                              localDateTimeMillis(selectedDate, arrivalTime) < currentMinute
+                              ? addDays(selectedDate, 1)
+                              : selectedDate,
+                          );
                         }
                       }}
                     />
                   </IonModal>
                   <IonItem>
+                    <IonLabel>Arrival time</IonLabel>
+                    <IonButton
+                      fill="clear"
+                      onClick={() => {
+                        const currentDate = new Date(now);
+                        const roundedCurrentTime =
+                          currentDate.getSeconds() > 0 || currentDate.getMilliseconds() > 0
+                            ? currentMinuteOfDay + 1
+                            : currentMinuteOfDay;
+                        const initialTime = Math.max(
+                          minimumTimeMinutes,
+                          Math.min(roundedCurrentTime, closingMinutes),
+                        );
+                        setArrivalTime(minutesToTimeValue(initialTime));
+                        setHasSelectedArrivalTime(true);
+                        setIsTimePickerOpen(true);
+                      }}
+                    >
+                      {arrivalTime}
+                    </IonButton>
+                  </IonItem>
+                  <IonModal
+                    isOpen={isTimePickerOpen}
+                    keepContentsMounted
+                    onDidDismiss={() => setIsTimePickerOpen(false)}
+                  >
+                    <IonDatetime
+                      id="arrival-time"
+                      presentation="time"
+                      value={`${arrivalDate}T${arrivalTime}:00`}
+                      min={`${arrivalDate}T${minimumTime}:00`}
+                      max={`${arrivalDate}T${closingTime}:00`}
+                      showDefaultButtons
+                      onIonChange={(event) => {
+                        if (typeof event.detail.value === 'string') {
+                          const selectedTime = event.detail.value.slice(11, 16);
+                          setArrivalTime(selectedTime);
+                          setHasSelectedArrivalTime(true);
+                        }
+                      }}
+                    />
+                  </IonModal>
+                  {isCurrentArrival && (
+                    <IonItem className="checkin-form-row">
+                      <IonLabel className="checkin-form-row__label">
+                        How many people are there right now?
+                      </IonLabel>
+                      <IonSelect
+                        className="checkin-form-row__select"
+                        slot="end"
+                        aria-label="How many people are there right now?"
+                        value={playerCount}
+                        interface="popover"
+                        onIonChange={(event) => setPlayerCount(Number(event.detail.value))}
+                      >
+                        {Array.from({ length: 20 }, (_, index) => index + 1).map((count) => (
+                          <IonSelectOption key={count} value={count}>
+                            {count}
+                          </IonSelectOption>
+                        ))}
+                      </IonSelect>
+                    </IonItem>
+                  )}
+                  <IonItem className="checkin-form-row">
                     <IonLabel>Duration</IonLabel>
                     <IonSelect
+                      className="checkin-form-row__select checkin-form-row__select--duration"
+                      slot="end"
                       aria-label="Check-in duration"
                       value={durationMinutes}
                       interface="popover"
+                      justify="end"
                       onIonChange={(event) => setDurationMinutes(Number(event.detail.value))}
                     >
                       {[30, 60, 90, 120, 180, 240].map((minutes) => (
@@ -318,17 +445,24 @@ const CourtDetailPage: React.FC = () => {
                   </IonItem>
                   <IonButton
                     expand="block"
-                    disabled={isBusy || !uid}
+                    disabled={
+                      isBusy || !uid || !hasSelectedArrivalTime || !hasAvailableArrivalTime
+                    }
                     onClick={() => void handleCheckIn(court)}
                   >
                     {isBusy
                       ? 'Checking In…'
                       : !uid
                         ? 'Starting guest session…'
-                        : isFutureArrival
-                          ? 'Schedule Check-In'
-                          : 'Check In'}
+                        : !hasSelectedArrivalTime
+                          ? 'Select Arrival Time'
+                          : isFutureArrival
+                            ? 'Schedule Check-In'
+                            : 'Check In'}
                   </IonButton>
+                  {!hasAvailableArrivalTime && (
+                    <p role="status">This park is closed for the rest of today.</p>
+                  )}
                   {!uid && (
                     <p role="status">
                       Starting a guest session so you can check in.
