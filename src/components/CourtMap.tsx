@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
+import { Link } from 'react-router-dom';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { Court, OccupancyStatus } from '../types/types.ts';
@@ -60,6 +61,9 @@ const CourtMap: React.FC<CourtMapProps> = ({ items }) => (
           <div className="court-popup__status">
             {players} playing · {STATUS_LABEL[status]}
           </div>
+          <Link className="court-popup__link" to={`/courts/${court.id}`}>
+            View court
+          </Link>
         </Popup>
       </Marker>
     ))}

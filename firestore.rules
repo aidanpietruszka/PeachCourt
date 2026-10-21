@@ -1,0 +1,88 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedInAs(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    match /checkins/{checkinId} {
+      allow create: if request.auth != null
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.courtId is string
+        && request.resource.data.playerCount is int
+        && request.resource.data.playerCount >= 1
+        && request.resource.data.playerCount <= 20
+        && request.resource.data.checkedInAt is timestamp
+        && request.resource.data.expiresAt is timestamp
+        && request.resource.data.active == true
+        && (
+          request.resource.data.distance is number
+          || request.resource.data.distance == null
+        )
+        && request.resource.data.timeToCheckIn is number;
+
+      allow read: if request.auth != null
+        && (resource.data.active == true || resource.data.uid == request.auth.uid);
+
+      allow update: if request.auth != null
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['active', 'checkedOutAt'])
+        && request.resource.data.active == false
+        && request.resource.data.checkedOutAt is timestamp;
+
+      allow delete: if false;
+    }
+
+    match /activeCheckins/{uid} {
+      allow read: if signedInAs(uid);
+      allow create, update: if signedInAs(uid)
+        && request.resource.data.uid == uid
+        && request.resource.data.checkinId is string
+        && request.resource.data.courtId is string
+        && request.resource.data.playerCount is int
+        && request.resource.data.playerCount >= 1
+        && request.resource.data.playerCount <= 20
+        && request.resource.data.checkedInAt is timestamp
+        && request.resource.data.expiresAt is timestamp;
+      allow delete: if signedInAs(uid);
+    }
+
+    match /events/{eventId} {
+      allow create: if request.auth != null
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.timestamp is timestamp
+        && (
+          (
+            request.resource.data.eventName == 'check_in'
+            && request.resource.data.courtId is string
+            && request.resource.data.playerCount is int
+            && request.resource.data.timeToCheckIn is number
+            && (
+              request.resource.data.distance is number
+              || request.resource.data.distance == null
+            )
+          )
+          || (
+            request.resource.data.eventName == 'check_out'
+            && request.resource.data.courtId is string
+            && request.resource.data.timeToCheckIn is number
+            && (
+              request.resource.data.distance is number
+              || request.resource.data.distance == null
+            )
+          )
+          || (
+            request.resource.data.eventName == 'checkin_feedback'
+            && request.resource.data.answer in [
+              'forgot',
+              'too_much_effort',
+              'privacy',
+              'nobody_else_uses_it'
+            ]
+          )
+        );
+      allow read, update, delete: if false;
+    }
+  }
+}

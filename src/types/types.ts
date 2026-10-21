@@ -21,12 +21,17 @@ export interface Court {
   reservationInfo: string;  // e.g. "$3–$5/hr · take priority"
 }
 
-/** One check-in. Stored in the Firestore `checkIns` collection. */
+/** One check-in. Stored in the Firestore `checkins` collection. */
 export interface CheckIn {
   id?: string;              // Firestore document id (added when read)
-  userId: string;
+  uid: string;
   courtId: string;
+  playerCount: number;
   checkedInAt: Timestamp;
+  expiresAt: Timestamp;
+  checkedOutAt?: Timestamp;
+  distance: number | null;
+  timeToCheckIn: number;
   active: boolean;
 }
 

@@ -1,22 +1,69 @@
-import { useMemo, useState } from 'react';
-import { IonContent, IonPage, IonSegment, IonSegmentButton, IonLabel } from '@ionic/react';
+import { useEffect, useMemo, useState } from 'react';
+import { IonContent, IonLabel, IonPage, IonSegment, IonSegmentButton, IonToast } from '@ionic/react';
+import {
+  collection,
+  onSnapshot,
+  query,
+  Timestamp,
+  type QueryDocumentSnapshot,
+  where,
+} from 'firebase/firestore';
 import CourtMap, { CourtMapItem } from '../components/CourtMap';
-import { PLACEHOLDER_PLAYERS, SAMPLE_COURTS } from '../data/sampleCourts';
-// import { estimateStatus } from '../services/occupancy';
+import { SAMPLE_COURTS } from '../data/sampleCourts';
+import { db } from '../services/firebase';
 import type { Sport } from '../types/types.ts';
 import './CourtsPage.css';
 
 const CourtsPage: React.FC = () => {
   const [sport, setSport] = useState<Sport>('pickleball');
+  const [playersByCourt, setPlayersByCourt] = useState<Record<string, number>>({});
+  const [toastMessage, setToastMessage] = useState('');
+
+  useEffect(() => {
+    const activeCheckinsQuery = query(collection(db, 'checkins'), where('active', '==', true));
+    let latestDocs: QueryDocumentSnapshot[] = [];
+    const recalculateCounts = () => {
+      const counts: Record<string, number> = {};
+      latestDocs.forEach((snapshot) => {
+        const checkin = snapshot.data();
+        if (
+          checkin.expiresAt instanceof Timestamp &&
+          checkin.expiresAt.toMillis() > Date.now() &&
+          typeof checkin.courtId === 'string' &&
+          typeof checkin.playerCount === 'number'
+        ) {
+          counts[checkin.courtId] = (counts[checkin.courtId] ?? 0) + checkin.playerCount;
+        }
+      });
+      setPlayersByCourt(counts);
+    };
+
+    const unsubscribe = onSnapshot(
+      activeCheckinsQuery,
+      (snapshots) => {
+        latestDocs = snapshots.docs;
+        recalculateCounts();
+      },
+      (error) => {
+        console.error('Unable to load live check-in counts', error);
+        setToastMessage('Live player counts are unavailable right now.');
+      },
+    );
+    const expiryTimer = window.setInterval(recalculateCounts, 30_000);
+
+    return () => {
+      unsubscribe();
+      window.clearInterval(expiryTimer);
+    };
+  }, []);
 
   const items: CourtMapItem[] = useMemo(
     () =>
       SAMPLE_COURTS.filter((c) => c.sports.includes(sport)).map((court) => {
-        const players = PLACEHOLDER_PLAYERS[court.id] ?? 0;
-        // const status = estimateStatus(players, court.numberOfCourts);
-        return { court, players, status: 'open' }; // Placeholder status
+        const players = playersByCourt[court.id] ?? 0;
+        return { court, players, status: 'open' };
       }),
-    [sport]
+    [sport, playersByCourt]
   );
 
   return (
@@ -46,6 +93,12 @@ const CourtsPage: React.FC = () => {
           </div>
         </div>
       </IonContent>
+      <IonToast
+        isOpen={toastMessage.length > 0}
+        message={toastMessage}
+        duration={3500}
+        onDidDismiss={() => setToastMessage('')}
+      />
     </IonPage>
   );
 };

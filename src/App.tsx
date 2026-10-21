@@ -1,19 +1,12 @@
 import { Navigate, Route } from 'react-router-dom';
 import {
   IonApp,
-  IonIcon,
-  IonLabel,
   IonRouterOutlet,
-  IonTabBar,
-  IonTabButton,
-  IonTabs,
   setupIonicReact
 } from '@ionic/react';
 import { IonReactRouter } from '@ionic/react-router';
-import { ellipse, square, triangle } from 'ionicons/icons';
 import CourtsPage from './pages/Courtspage';
 import CourtDetailPage from './pages/CourtsDetailPage';
-import CheckInPage from './pages/CheckInPage';
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/react/css/core.css';
@@ -54,7 +47,6 @@ const App: React.FC = () => (
       <IonRouterOutlet>
         <Route path="/courts" element={<CourtsPage />} />
         <Route path="/courts/:courtId" element={<CourtDetailPage />} />
-        <Route path="/courts/:courtId/checked-in" element={<CheckInPage />} />
         <Route path="/" element={<Navigate to="/courts" replace />} />
       </IonRouterOutlet>
     </IonReactRouter>
