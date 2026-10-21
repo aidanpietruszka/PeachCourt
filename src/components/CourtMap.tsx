@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
 import { Link } from 'react-router-dom';
 import L from 'leaflet';
@@ -15,6 +15,11 @@ export interface CourtMapItem {
 
 interface CourtMapProps {
   items: CourtMapItem[];
+  userLocation: [number, number] | null;
+}
+
+interface CenterOnUserProps {
+  position: [number, number] | null;
 }
 
 const STATUS_LABEL: Record<OccupancyStatus, string> = {
@@ -34,6 +39,20 @@ const FixSize: React.FC = () => {
   return null;
 };
 
+const CenterOnUser: React.FC<CenterOnUserProps> = ({ position }) => {
+  const map = useMap();
+  const hasCentered = useRef(false);
+
+  useEffect(() => {
+    if (position && !hasCentered.current) {
+      map.setView(position, map.getZoom(), { animate: true });
+      hasCentered.current = true;
+    }
+  }, [map, position]);
+
+  return null;
+};
+
 const pinIcon = (status: OccupancyStatus) =>
   L.divIcon({
     className: '',
@@ -43,13 +62,27 @@ const pinIcon = (status: OccupancyStatus) =>
     popupAnchor: [0, -12],
   });
 
-const CourtMap: React.FC<CourtMapProps> = ({ items }) => (
+const userLocationIcon = L.divIcon({
+  className: '',
+  html: '<div class="user-location-pin"><span></span></div>',
+  iconSize: [28, 28],
+  iconAnchor: [14, 14],
+  popupAnchor: [0, -14],
+});
+
+const CourtMap: React.FC<CourtMapProps> = ({ items, userLocation }) => (
   <MapContainer center={PIEDMONT_PARK} zoom={13} className="court-map" zoomControl={false}>
     <TileLayer
       attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
     />
     <FixSize />
+    <CenterOnUser position={userLocation} />
+    {userLocation && (
+      <Marker position={userLocation} icon={userLocationIcon} zIndexOffset={1000}>
+        <Popup>Your location</Popup>
+      </Marker>
+    )}
     {items.map(({ court, players, status }) => (
       <Marker
         key={court.id}

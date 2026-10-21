@@ -28,6 +28,8 @@ export interface CheckIn {
   courtId: string;
   playerCount: number;
   checkedInAt: Timestamp;
+  scheduledArrivalAt: Timestamp;
+  durationMinutes: number;
   expiresAt: Timestamp;
   checkedOutAt?: Timestamp;
   distance: number | null;

@@ -10,13 +10,15 @@ import {
 } from 'firebase/firestore';
 import { auth, db } from './firebase';
 
-const CHECK_IN_DURATION_MS = 90 * 60 * 1000;
+const ALLOWED_DURATIONS_MINUTES = [30, 60, 90, 120, 180, 240] as const;
 
 export interface ActiveCheckIn {
   checkinId: string;
   courtId: string;
   playerCount: number;
   expiresAt: Timestamp;
+  scheduledArrivalAt: Timestamp;
+  durationMinutes: number;
 }
 
 const activeCheckInRef = (uid: string) => doc(db, 'activeCheckins', uid);
@@ -37,7 +39,16 @@ export const CheckinService = {
     playerCount: number,
     distance: number | null,
     requestStartedAt: number,
+    requestedArrivalAt: number,
+    durationMinutes: number,
   ): Promise<void> {
+    if (!ALLOWED_DURATIONS_MINUTES.includes(durationMinutes as (typeof ALLOWED_DURATIONS_MINUTES)[number])) {
+      throw new Error('Choose a valid check-in duration.');
+    }
+    if (!Number.isFinite(requestedArrivalAt) || requestedArrivalAt < 0) {
+      throw new Error('Choose a valid arrival time.');
+    }
+
     const uid = await getUid();
     const activeRef = activeCheckInRef(uid);
     const newCheckinRef = doc(collection(db, 'checkins'));
@@ -51,7 +62,10 @@ export const CheckinService = {
       const now = Date.now();
       const timeToCheckIn = Math.max(0, Math.round(performance.now() - requestStartedAt));
       const checkedInAt = Timestamp.fromMillis(now);
-      const expiresAt = Timestamp.fromMillis(now + CHECK_IN_DURATION_MS);
+      const scheduledArrivalAt = Timestamp.fromMillis(Math.max(now, requestedArrivalAt));
+      const expiresAt = Timestamp.fromMillis(
+        scheduledArrivalAt.toMillis() + durationMinutes * 60 * 1000,
+      );
 
       if (previousRef && previousSnapshot?.exists() && previousSnapshot.data().active) {
         const previous = previousSnapshot.data();
@@ -75,6 +89,8 @@ export const CheckinService = {
         uid,
         playerCount,
         checkedInAt,
+        scheduledArrivalAt,
+        durationMinutes,
         expiresAt,
         distance,
         timeToCheckIn,
@@ -86,6 +102,8 @@ export const CheckinService = {
         courtId,
         playerCount,
         checkedInAt,
+        scheduledArrivalAt,
+        durationMinutes,
         expiresAt,
       });
       transaction.set(checkInEventRef, {
@@ -93,6 +111,8 @@ export const CheckinService = {
         uid,
         courtId,
         timestamp: checkedInAt,
+        scheduledArrivalAt,
+        durationMinutes,
         timeToCheckIn,
         distance,
         playerCount,
@@ -156,6 +176,12 @@ export const CheckinService = {
           courtId: data.courtId as string,
           playerCount: data.playerCount as number,
           expiresAt: data.expiresAt,
+          scheduledArrivalAt:
+            data.scheduledArrivalAt instanceof Timestamp
+              ? data.scheduledArrivalAt
+              : data.checkedInAt as Timestamp,
+          durationMinutes:
+            typeof data.durationMinutes === 'number' ? data.durationMinutes : 90,
         });
       },
       onError,

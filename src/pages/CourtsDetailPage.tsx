@@ -5,10 +5,13 @@ import {
   IonButton,
   IonButtons,
   IonContent,
+  IonDatetime,
+  IonDatetimeButton,
   IonHeader,
   IonItem,
   IonLabel,
   IonList,
+  IonModal,
   IonPage,
   IonSelect,
   IonSelectOption,
@@ -50,9 +53,21 @@ const CourtDetailPage: React.FC = () => {
   const [uid, setUid] = useState<string | null>(auth.currentUser?.uid ?? null);
   const [activeCheckIn, setActiveCheckIn] = useState<ActiveCheckIn | null>(null);
   const [playerCount, setPlayerCount] = useState(1);
+  const [arrivalTime, setArrivalTime] = useState(() => new Date().toISOString());
+  const [durationMinutes, setDurationMinutes] = useState(90);
+  const [now, setNow] = useState(() => Date.now());
   const [isBusy, setIsBusy] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const arrivalTimeMs = new Date(arrivalTime).getTime();
+  const isFutureArrival = arrivalTimeMs > now;
+  const validActiveCheckIn =
+    activeCheckIn && activeCheckIn.expiresAt.toMillis() > now ? activeCheckIn : null;
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 5_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     return onAuthStateChanged(
@@ -108,29 +123,41 @@ const CourtDetailPage: React.FC = () => {
     let distance: number | null = null;
     let locationNotice = '';
 
-    try {
-      const position = await Geolocation.getCurrentPosition({
-        enableHighAccuracy: false,
-        maximumAge: 15_000,
-        timeout: 1_500,
-      });
-      distance = distanceBetweenMeters(
-        position.coords.latitude,
-        position.coords.longitude,
-        selectedCourt.latitude,
-        selectedCourt.longitude,
-      );
-      if (distance > DISTANCE_WARNING_METERS) {
-        locationNotice = `You're about ${Math.round(distance)} m away. Your check-in was still recorded.`;
+    if (arrivalTimeMs <= Date.now()) {
+      try {
+        const position = await Geolocation.getCurrentPosition({
+          enableHighAccuracy: false,
+          maximumAge: 15_000,
+          timeout: 1_500,
+        });
+        distance = distanceBetweenMeters(
+          position.coords.latitude,
+          position.coords.longitude,
+          selectedCourt.latitude,
+          selectedCourt.longitude,
+        );
+        if (distance > DISTANCE_WARNING_METERS) {
+          locationNotice = `You're about ${Math.round(distance)} m away. Your check-in was still recorded.`;
+        }
+      } catch (error) {
+        console.warn('Unable to verify check-in location; continuing without it', error);
+        locationNotice = 'Location was unavailable; your check-in was still recorded.';
       }
-    } catch (error) {
-      console.warn('Unable to verify check-in location; continuing without it', error);
-      locationNotice = 'Location was unavailable; your check-in was still recorded.';
     }
 
     try {
-      await CheckinService.checkIn(selectedCourt.id, playerCount, distance, requestStartedAt);
-      setToastMessage(locationNotice || `Checked in with ${playerCount} player${playerCount === 1 ? '' : 's'}.`);
+      await CheckinService.checkIn(
+        selectedCourt.id,
+        playerCount,
+        distance,
+        requestStartedAt,
+        arrivalTimeMs,
+        durationMinutes,
+      );
+      const scheduledMessage = arrivalTimeMs > Date.now()
+        ? `Check-in scheduled for ${new Date(arrivalTimeMs).toLocaleString()}.`
+        : `Checked in with ${playerCount} player${playerCount === 1 ? '' : 's'}.`;
+      setToastMessage(locationNotice || scheduledMessage);
       try {
         if (localStorage.getItem(FEEDBACK_PROMPT_KEY) !== 'true') {
           localStorage.setItem(FEEDBACK_PROMPT_KEY, 'true');
@@ -166,7 +193,11 @@ const CourtDetailPage: React.FC = () => {
     }
   };
 
-  const checkedInHere = activeCheckIn?.courtId === courtId;
+  const currentCheckIn =
+    validActiveCheckIn?.courtId === courtId ? validActiveCheckIn : null;
+  const checkedInHere = currentCheckIn !== null;
+  const isScheduledHere =
+    currentCheckIn !== null && currentCheckIn.scheduledArrivalAt.toMillis() > now;
 
   return (
     <IonPage>
@@ -207,27 +238,39 @@ const CourtDetailPage: React.FC = () => {
                 </IonItem>
               </IonList>
 
-              {activeCheckIn && !checkedInHere && (
+              {validActiveCheckIn && !checkedInHere && (
                 <p role="status">
-                  You&apos;re checked in at another court. Checking in here will check you out there.
+                  You have a check-in at another court. Scheduling here will check it out now.
                 </p>
               )}
-              {checkedInHere ? (
+              {currentCheckIn ? (
                 <>
                   <p role="status">
-                    You&apos;re checked in here with {activeCheckIn?.playerCount} player
-                    {activeCheckIn?.playerCount === 1 ? '' : 's'}.
+                    {isScheduledHere
+                      ? `Check-in scheduled for ${currentCheckIn.scheduledArrivalAt.toDate().toLocaleString()} with ${currentCheckIn.playerCount} player${currentCheckIn.playerCount === 1 ? '' : 's'}.`
+                      : `You're checked in here with ${currentCheckIn.playerCount} player${currentCheckIn.playerCount === 1 ? '' : 's'}.`}
+                  </p>
+                  <p>
+                    Duration: {currentCheckIn.durationMinutes} minutes
                   </p>
                   <IonButton expand="block" color="medium" disabled={isBusy} onClick={handleCheckOut}>
-                    {isBusy ? 'Please wait…' : 'Check Out'}
+                    {isBusy ? 'Please wait…' : isScheduledHere ? 'Cancel Scheduled Check-In' : 'Check Out'}
                   </IonButton>
                 </>
               ) : (
                 <>
                   <IonItem>
-                    <IonLabel>How many players are here right now?</IonLabel>
+                    <IonLabel>
+                      {isFutureArrival
+                        ? 'How many players are expected?'
+                        : 'How many players are here right now?'}
+                    </IonLabel>
                     <IonSelect
-                      aria-label="How many players are here right now?"
+                      aria-label={
+                        isFutureArrival
+                          ? 'How many players are expected?'
+                          : 'How many players are here right now?'
+                      }
                       value={playerCount}
                       interface="popover"
                       onIonChange={(event) => setPlayerCount(Number(event.detail.value))}
@@ -239,12 +282,52 @@ const CourtDetailPage: React.FC = () => {
                       ))}
                     </IonSelect>
                   </IonItem>
+                  <IonItem>
+                    <IonLabel>Arrival time</IonLabel>
+                    <IonDatetimeButton datetime="arrival-time" />
+                  </IonItem>
+                  <IonModal keepContentsMounted>
+                    <IonDatetime
+                      id="arrival-time"
+                      presentation="date-time"
+                      value={arrivalTime}
+                      min={new Date(now).toISOString()}
+                      max={new Date(now + 30 * 24 * 60 * 60 * 1000).toISOString()}
+                      showDefaultButtons
+                      onIonChange={(event) => {
+                        if (typeof event.detail.value === 'string') {
+                          setArrivalTime(event.detail.value);
+                        }
+                      }}
+                    />
+                  </IonModal>
+                  <IonItem>
+                    <IonLabel>Duration</IonLabel>
+                    <IonSelect
+                      aria-label="Check-in duration"
+                      value={durationMinutes}
+                      interface="popover"
+                      onIonChange={(event) => setDurationMinutes(Number(event.detail.value))}
+                    >
+                      {[30, 60, 90, 120, 180, 240].map((minutes) => (
+                        <IonSelectOption key={minutes} value={minutes}>
+                          {minutes < 60 ? `${minutes} minutes` : `${minutes / 60} hour${minutes === 60 ? '' : 's'}`}
+                        </IonSelectOption>
+                      ))}
+                    </IonSelect>
+                  </IonItem>
                   <IonButton
                     expand="block"
                     disabled={isBusy || !uid}
                     onClick={() => void handleCheckIn(court)}
                   >
-                    {isBusy ? 'Checking In…' : uid ? 'Check In' : 'Starting guest session…'}
+                    {isBusy
+                      ? 'Checking In…'
+                      : !uid
+                        ? 'Starting guest session…'
+                        : isFutureArrival
+                          ? 'Schedule Check-In'
+                          : 'Check In'}
                   </IonButton>
                   {!uid && (
                     <p role="status">
