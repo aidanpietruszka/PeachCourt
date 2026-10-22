@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  IonButton,
   IonContent,
   IonItem,
   IonLabel,
@@ -7,59 +8,43 @@ import {
   IonPage,
   IonSegment,
   IonSegmentButton,
-  IonText,
   IonToast,
 } from "@ionic/react";
 import { Geolocation } from "@capacitor/geolocation";
-import {
-  collection,
-  onSnapshot,
-  query,
-  Timestamp,
-  type QueryDocumentSnapshot,
-  where,
-} from "firebase/firestore";
+import { useNavigate } from "react-router-dom";
 import CourtMap, { CourtMapItem } from "../components/CourtMap";
+import { useAuth } from "../components/useAuth";
+import {
+  EMPTY_ACTIVITY,
+  useLiveCourtData,
+} from "../components/useLiveCourtData";
+import { logout } from "../services/auth";
+import { CheckinService, type ActiveCheckIn } from "../services/CheckinService";
 import { CourtService } from "../services/CourtService";
-import { db } from "../services/firebase";
 import type { Court, Sport } from "../types/types.ts";
+import {
+  distanceBetweenMeters,
+  formatActivity,
+  formatDistance,
+} from "../utils/geo";
 import "./Courtspage.css";
 
-function distanceBetweenMeters(
-  latitude1: number,
-  longitude1: number,
-  latitude2: number,
-  longitude2: number,
-): number {
-  const radians = (degrees: number) => (degrees * Math.PI) / 180;
-  const latitudeDelta = radians(latitude2 - latitude1);
-  const longitudeDelta = radians(longitude2 - longitude1);
-  const value =
-    Math.sin(latitudeDelta / 2) ** 2 +
-    Math.cos(radians(latitude1)) *
-      Math.cos(radians(latitude2)) *
-      Math.sin(longitudeDelta / 2) ** 2;
-  return 6_371_000 * 2 * Math.atan2(Math.sqrt(value), Math.sqrt(1 - value));
-}
-
-function formatDistance(meters: number): string {
-  const miles = meters / 1609.344;
-  return miles < 0.1
-    ? `${Math.max(1, Math.round(meters * 3.28084))} ft`
-    : `${miles.toFixed(1)} mi`;
-}
-
 const CourtsPage: React.FC = () => {
-  const [sport, setSport] = useState<Sport>("pickleball");
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const uid = user?.uid ?? null;
+  const [sport, setSport] = useState<Sport>("tennis");
   const [courts, setCourts] = useState<Court[]>([]);
-  const [playersByCourt, setPlayersByCourt] = useState<Record<string, number>>(
-    {},
-  );
   const [userLocation, setUserLocation] = useState<[number, number] | null>(
     null,
   );
+  const [activeCheckIn, setActiveCheckIn] = useState<ActiveCheckIn | null>(
+    null,
+  );
+  const [isBusy, setIsBusy] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const hasLocation = useRef(false);
+  const activity = useLiveCourtData();
 
   useEffect(() => {
     return CourtService.subscribeToCourts(setCourts, (error) => {
@@ -69,53 +54,18 @@ const CourtsPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const activeCheckinsQuery = query(
-      collection(db, "checkins"),
-      where("active", "==", true),
-    );
-    let latestDocs: QueryDocumentSnapshot[] = [];
-    const recalculateCounts = () => {
-      const now = Date.now();
-      const counts: Record<string, number> = {};
-      latestDocs.forEach((snapshot) => {
-        const checkin = snapshot.data();
-        const arrival =
-          checkin.scheduledArrivalAt instanceof Timestamp
-            ? checkin.scheduledArrivalAt
-            : checkin.checkedInAt;
-        if (
-          arrival instanceof Timestamp &&
-          arrival.toMillis() <= now &&
-          checkin.expiresAt instanceof Timestamp &&
-          checkin.expiresAt.toMillis() > now &&
-          typeof checkin.courtId === "string" &&
-          typeof checkin.playerCount === "number"
-        ) {
-          counts[checkin.courtId] =
-            (counts[checkin.courtId] ?? 0) + checkin.playerCount;
-        }
-      });
-      setPlayersByCourt(counts);
-    };
-
-    const unsubscribe = onSnapshot(
-      activeCheckinsQuery,
-      (snapshots) => {
-        latestDocs = snapshots.docs;
-        recalculateCounts();
-      },
+    if (!uid) {
+      setActiveCheckIn(null);
+      return;
+    }
+    return CheckinService.subscribeToActiveCheckIn(
+      uid,
+      setActiveCheckIn,
       (error) => {
-        console.error("Unable to load live check-in counts", error);
-        setToastMessage("Live player counts are unavailable right now.");
+        console.error("Unable to load your active check-in", error);
       },
     );
-    const expiryTimer = window.setInterval(recalculateCounts, 5_000);
-
-    return () => {
-      unsubscribe();
-      window.clearInterval(expiryTimer);
-    };
-  }, []);
+  }, [uid]);
 
   useEffect(() => {
     let isDisposed = false;
@@ -131,11 +81,6 @@ const CourtsPage: React.FC = () => {
       (position, error) => {
         if (error) {
           console.warn("Unable to update device location", error);
-          if (!isDisposed && !hasLocation.current) {
-            setToastMessage(
-              "Your location is unavailable. Allow location access to show your blue map pin.",
-            );
-          }
           return;
         }
 
@@ -159,11 +104,6 @@ const CourtsPage: React.FC = () => {
       })
       .catch((error: unknown) => {
         console.error("Unable to start device location updates", error);
-        if (!isDisposed) {
-          setToastMessage(
-            "Your location is unavailable. Allow location access to show your blue map pin.",
-          );
-        }
       });
 
     return () => {
@@ -176,60 +116,116 @@ const CourtsPage: React.FC = () => {
     };
   }, []);
 
-  const items: CourtMapItem[] = useMemo(
-    () =>
-      courts
-        .filter((court) => court.sports.includes(sport))
-        .map((court) => ({
-          court,
-          players: playersByCourt[court.id] ?? 0,
-          status: "open",
-        })),
-    [courts, sport, playersByCourt],
-  );
-
-  const nearbyCourts = useMemo(() => {
+  const rows = useMemo(() => {
     const sportCourts = courts
       .filter((court) => court.sports.includes(sport))
-      .map((court) => ({
-        court,
-        distance: userLocation
-          ? distanceBetweenMeters(
-              userLocation[0],
-              userLocation[1],
-              court.latitude,
-              court.longitude,
-            )
-          : null,
-      }));
+      .map((court) => {
+        const courtActivity = activity[court.id] ?? EMPTY_ACTIVITY;
+        return {
+          court,
+          reported: courtActivity.reported,
+          openGames: courtActivity.openGames,
+          distance: userLocation
+            ? distanceBetweenMeters(
+                userLocation[0],
+                userLocation[1],
+                court.latitude,
+                court.longitude,
+              )
+            : null,
+        };
+      });
 
-    if (userLocation) {
-      sportCourts.sort(
-        (first, second) => (first.distance ?? 0) - (second.distance ?? 0),
+    return sportCourts.sort((first, second) => {
+      if (first.distance !== null && second.distance !== null) {
+        return first.distance - second.distance;
+      }
+      const activityDifference =
+        (second.reported ?? 0) +
+        second.openGames -
+        ((first.reported ?? 0) + first.openGames);
+      return activityDifference !== 0
+        ? activityDifference
+        : first.court.name.localeCompare(second.court.name);
+    });
+  }, [courts, sport, activity, userLocation]);
+
+  const items: CourtMapItem[] = rows.map(({ court, reported, openGames }) => ({
+    court,
+    reported,
+    openGames,
+  }));
+
+  const checkedInCourt = activeCheckIn
+    ? courts.find((court) => court.id === activeCheckIn.courtId)
+    : undefined;
+
+  const handleCheckOut = async () => {
+    setIsBusy(true);
+    try {
+      await CheckinService.checkOut();
+      setToastMessage("You are checked out.");
+    } catch (error) {
+      console.error("Unable to check out", error);
+      setToastMessage(
+        `Check-out failed: ${error instanceof Error ? error.message : "Please try again."}`,
       );
+    } finally {
+      setIsBusy(false);
     }
+  };
 
-    return sportCourts;
-  }, [courts, sport, userLocation]);
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate("/", { replace: true });
+    } catch (error) {
+      console.error("Unable to log out", error);
+      setToastMessage("Log out failed. Please try again.");
+    }
+  };
 
   return (
     <IonPage>
       <IonContent scrollY={false}>
         <div className="courts-page">
           <div className="pc-screen courts-page__header">
-            <h1 className="pc-title">Courts near you</h1>
-            <p className="pc-subtitle">Near Piedmont Park, Midtown Atlanta</p>
+            <div className="courts-page__title-row">
+              <h1 className="pc-title">Courts near you</h1>
+              <IonButton
+                fill="clear"
+                size="small"
+                onClick={() => void handleLogout()}
+              >
+                Log out
+              </IonButton>
+            </div>
+            <p className="pc-subtitle">Atlanta</p>
+
+            {activeCheckIn && (
+              <div className="courts-page__checked-in">
+                <span>Checked in at {checkedInCourt?.name ?? "a court"}</span>
+                <IonButton
+                  size="small"
+                  fill="outline"
+                  disabled={isBusy}
+                  onClick={() => void handleCheckOut()}
+                >
+                  Check out
+                </IonButton>
+              </div>
+            )}
 
             <IonSegment
               value={sport}
               onIonChange={(event) => setSport(event.detail.value as Sport)}
               className="courts-page__segment"
             >
-              <IonSegmentButton value="pickleball">
-                <IonLabel>Pickleball</IonLabel>
-              </IonSegmentButton>
               <IonSegmentButton value="tennis">
                 <IonLabel>Tennis</IonLabel>
+              </IonSegmentButton>
+              <IonSegmentButton value="pickleball">
+                <IonLabel>Pickleball</IonLabel>
               </IonSegmentButton>
             </IonSegment>
           </div>
@@ -243,7 +239,7 @@ const CourtsPage: React.FC = () => {
             aria-labelledby="nearby-courts-heading"
           >
             <h2 id="nearby-courts-heading" className="pc-section-heading">
-              Nearby courts
+              {userLocation ? "Nearest courts" : "Most active courts"}
             </h2>
             {!userLocation && (
               <p className="courts-page__location-note">
@@ -251,7 +247,7 @@ const CourtsPage: React.FC = () => {
               </p>
             )}
             <IonList inset>
-              {nearbyCourts.map(({ court, distance }) => (
+              {rows.map(({ court, reported, openGames, distance }) => (
                 <IonItem
                   key={court.id}
                   button
@@ -261,19 +257,22 @@ const CourtsPage: React.FC = () => {
                 >
                   <IonLabel>
                     <h3>{court.name}</h3>
-                    <p>{court.address}</p>
+                    <p
+                      className={
+                        reported !== null || openGames > 0
+                          ? "courts-page__activity courts-page__activity--active"
+                          : "courts-page__activity"
+                      }
+                    >
+                      {distance === null
+                        ? ""
+                        : `${formatDistance(distance)} · `}
+                      {formatActivity(reported, openGames)}
+                    </p>
                     <p>
-                      {court.numberOfCourts} courts ·{" "}
-                      {court.sports
-                        .map((courtSport) =>
-                          courtSport === "pickleball" ? "Pickleball" : "Tennis",
-                        )
-                        .join(", ")}
+                      {court.numberOfCourts} courts · {court.address}
                     </p>
                   </IonLabel>
-                  <IonText slot="end" className="courts-page__distance">
-                    {distance === null ? "—" : formatDistance(distance)}
-                  </IonText>
                 </IonItem>
               ))}
             </IonList>

@@ -1,14 +1,15 @@
-import { signInAnonymously } from 'firebase/auth';
+import { signInAnonymously } from "firebase/auth";
 import {
   addDoc,
   collection,
   doc,
   onSnapshot,
   runTransaction,
+  serverTimestamp,
   Timestamp,
   type Unsubscribe,
-} from 'firebase/firestore';
-import { auth, db } from './firebase';
+} from "firebase/firestore";
+import { auth, db } from "./firebase";
 
 const ALLOWED_DURATIONS_MINUTES = [30, 60, 90, 120, 180, 240] as const;
 
@@ -21,7 +22,7 @@ export interface ActiveCheckIn {
   durationMinutes: number;
 }
 
-const activeCheckInRef = (uid: string) => doc(db, 'activeCheckins', uid);
+const activeCheckInRef = (uid: string) => doc(db, "activeCheckins", uid);
 
 async function getUid(): Promise<string> {
   await auth.authStateReady();
@@ -42,40 +43,59 @@ export const CheckinService = {
     requestedArrivalAt: number,
     durationMinutes: number,
   ): Promise<void> {
-    if (!ALLOWED_DURATIONS_MINUTES.includes(durationMinutes as (typeof ALLOWED_DURATIONS_MINUTES)[number])) {
-      throw new Error('Choose a valid check-in duration.');
+    if (
+      !ALLOWED_DURATIONS_MINUTES.includes(
+        durationMinutes as (typeof ALLOWED_DURATIONS_MINUTES)[number],
+      )
+    ) {
+      throw new Error("Choose a valid check-in duration.");
     }
     if (!Number.isFinite(requestedArrivalAt) || requestedArrivalAt < 0) {
-      throw new Error('Choose a valid arrival time.');
+      throw new Error("Choose a valid arrival time.");
     }
 
     const uid = await getUid();
     const activeRef = activeCheckInRef(uid);
-    const newCheckinRef = doc(collection(db, 'checkins'));
-    const checkInEventRef = doc(collection(db, 'events'));
+    const newCheckinRef = doc(collection(db, "checkins"));
+    const checkInEventRef = doc(collection(db, "events"));
 
     await runTransaction(db, async (transaction) => {
       const activeSnapshot = await transaction.get(activeRef);
-      const previousCheckinId = activeSnapshot.data()?.checkinId as string | undefined;
-      const previousRef = previousCheckinId ? doc(db, 'checkins', previousCheckinId) : null;
-      const previousSnapshot = previousRef ? await transaction.get(previousRef) : null;
+      const previousCheckinId = activeSnapshot.data()?.checkinId as
+        | string
+        | undefined;
+      const previousRef = previousCheckinId
+        ? doc(db, "checkins", previousCheckinId)
+        : null;
+      const previousSnapshot = previousRef
+        ? await transaction.get(previousRef)
+        : null;
       const now = Date.now();
-      const timeToCheckIn = Math.max(0, Math.round(performance.now() - requestStartedAt));
+      const timeToCheckIn = Math.max(
+        0,
+        Math.round(performance.now() - requestStartedAt),
+      );
       const checkedInAt = Timestamp.fromMillis(now);
-      const scheduledArrivalAt = Timestamp.fromMillis(Math.max(now, requestedArrivalAt));
+      const scheduledArrivalAt = Timestamp.fromMillis(
+        Math.max(now, requestedArrivalAt),
+      );
       const expiresAt = Timestamp.fromMillis(
         scheduledArrivalAt.toMillis() + durationMinutes * 60 * 1000,
       );
 
-      if (previousRef && previousSnapshot?.exists() && previousSnapshot.data().active) {
+      if (
+        previousRef &&
+        previousSnapshot?.exists() &&
+        previousSnapshot.data().active
+      ) {
         const previous = previousSnapshot.data();
-        const checkoutEventRef = doc(collection(db, 'events'));
+        const checkoutEventRef = doc(collection(db, "events"));
         transaction.update(previousRef, {
           active: false,
           checkedOutAt: checkedInAt,
         });
         transaction.set(checkoutEventRef, {
-          eventName: 'check_out',
+          eventName: "check_out",
           uid,
           courtId: previous.courtId,
           timestamp: checkedInAt,
@@ -106,8 +126,13 @@ export const CheckinService = {
         durationMinutes,
         expiresAt,
       });
+      transaction.set(doc(db, "courtStatus", courtId), {
+        playerCount,
+        reportedBy: uid,
+        reportedAt: serverTimestamp(),
+      });
       transaction.set(checkInEventRef, {
-        eventName: 'check_in',
+        eventName: "check_in",
         uid,
         courtId,
         timestamp: checkedInAt,
@@ -123,7 +148,7 @@ export const CheckinService = {
   async checkOut(): Promise<boolean> {
     const uid = await getUid();
     const activeRef = activeCheckInRef(uid);
-    const checkOutEventRef = doc(collection(db, 'events'));
+    const checkOutEventRef = doc(collection(db, "events"));
 
     return runTransaction(db, async (transaction) => {
       const activeSnapshot = await transaction.get(activeRef);
@@ -132,7 +157,7 @@ export const CheckinService = {
       }
 
       const active = activeSnapshot.data();
-      const checkinRef = doc(db, 'checkins', active.checkinId as string);
+      const checkinRef = doc(db, "checkins", active.checkinId as string);
       const checkinSnapshot = await transaction.get(checkinRef);
       const checkedOutAt = Timestamp.now();
 
@@ -143,7 +168,7 @@ export const CheckinService = {
           checkedOutAt,
         });
         transaction.set(checkOutEventRef, {
-          eventName: 'check_out',
+          eventName: "check_out",
           uid,
           courtId: checkin.courtId,
           timestamp: checkedOutAt,
@@ -166,7 +191,11 @@ export const CheckinService = {
       activeCheckInRef(uid),
       (snapshot) => {
         const data = snapshot.data();
-        if (!data || !(data.expiresAt instanceof Timestamp) || data.expiresAt.toMillis() <= Date.now()) {
+        if (
+          !data ||
+          !(data.expiresAt instanceof Timestamp) ||
+          data.expiresAt.toMillis() <= Date.now()
+        ) {
           onChange(null);
           return;
         }
@@ -179,9 +208,11 @@ export const CheckinService = {
           scheduledArrivalAt:
             data.scheduledArrivalAt instanceof Timestamp
               ? data.scheduledArrivalAt
-              : data.checkedInAt as Timestamp,
+              : (data.checkedInAt as Timestamp),
           durationMinutes:
-            typeof data.durationMinutes === 'number' ? data.durationMinutes : 90,
+            typeof data.durationMinutes === "number"
+              ? data.durationMinutes
+              : 90,
         });
       },
       onError,
@@ -190,8 +221,8 @@ export const CheckinService = {
 
   async recordFeedback(answer: string): Promise<void> {
     const uid = await getUid();
-    await addDoc(collection(db, 'events'), {
-      eventName: 'checkin_feedback',
+    await addDoc(collection(db, "events"), {
+      eventName: "checkin_feedback",
       uid,
       answer,
       timestamp: Timestamp.now(),

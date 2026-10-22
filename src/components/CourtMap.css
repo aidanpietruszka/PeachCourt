@@ -3,7 +3,6 @@
   height: 100%;
 }
 
-/* Colored dot markers (avoids Leaflet's default-icon bundler problems) */
 .court-pin {
   width: 22px;
   height: 22px;
@@ -12,9 +11,8 @@
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 
-.court-pin--open { background: var(--pc-open-text); }
-.court-pin--busy { background: #d98a1c; }
-.court-pin--full { background: var(--pc-full-text); }
+.court-pin--active { background: var(--pc-green); }
+.court-pin--idle { background: var(--pc-text-muted); }
 
 .user-location-pin {
   width: 24px;
