@@ -1,0 +1,73 @@
+.welcome {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 0 16px 24px;
+}
+
+.welcome__hero {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.welcome__icon {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: var(--pc-green-light);
+  color: var(--pc-green);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 44px;
+  margin-bottom: 24px;
+}
+
+.welcome__title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--pc-text);
+  margin: 0 0 8px;
+}
+
+.welcome__tagline {
+  font-size: 14px;
+  color: var(--pc-text-muted);
+  max-width: 280px;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.welcome__actions {
+  flex: 0 0 auto;
+}
+
+.welcome__actions ion-button {
+  --border-radius: 12px;
+  height: 50px;
+  font-weight: 600;
+  margin: 0 0 10px;
+}
+
+.welcome__actions ion-button.welcome__secondary {
+  --background: var(--pc-card-bg);
+  --background-activated: var(--pc-border);
+  --color: var(--pc-text);
+}
+
+.welcome__guest {
+  display: block;
+  width: 100%;
+  border: none;
+  background: none;
+  padding: 10px 0 0;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--pc-green);
+  cursor: pointer;
+}

@@ -1,0 +1,63 @@
+.auth-page {
+  display: flex;
+  flex-direction: column;
+  padding-top: 8px;
+}
+
+.auth-field {
+  background: var(--pc-card-bg);
+  border-radius: 12px;
+  padding: 0 14px;
+  margin-bottom: 10px;
+}
+
+.auth-field ion-input {
+  --padding-start: 0;
+  --padding-end: 0;
+  min-height: 48px;
+  font-size: 15px;
+}
+
+.auth-error {
+  color: var(--pc-full-text);
+  font-size: 13px;
+  margin: 4px 0 10px;
+}
+
+.auth-page ion-button {
+  --border-radius: 12px;
+  height: 50px;
+  font-weight: 600;
+  margin: 6px 0 0;
+}
+
+.auth-page ion-button.auth-secondary {
+  --background: var(--pc-card-bg);
+  --background-activated: var(--pc-border);
+  --color: var(--pc-text);
+}
+
+.auth-divider {
+  text-align: center;
+  font-size: 12px;
+  color: var(--pc-text-muted);
+  margin: 16px 0 10px;
+}
+
+.auth-switch {
+  text-align: center;
+  font-size: 13px;
+  color: var(--pc-text-muted);
+  margin-top: 24px;
+}
+
+.auth-link {
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pc-green);
+  cursor: pointer;
+}
