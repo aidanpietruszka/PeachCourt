@@ -7,7 +7,6 @@ import {
 import { IonReactRouter } from '@ionic/react-router';
 import CourtsPage from './pages/Courtspage';
 import CourtDetailPage from './pages/CourtsDetailPage';
-import CheckInPage from './pages/CheckInPage';
 import WelcomePage from './pages/WelcomePage';
 import LoginPage from './pages/LoginPage';
 import SignUpPage from './pages/SignUpPage';
@@ -56,11 +55,7 @@ const App: React.FC = () => (
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignUpPage />} />
           <Route path="/courts" element={<ProtectedRoute><CourtsPage /></ProtectedRoute>} />
-            <Route path="/courts/:courtId" element={<ProtectedRoute><CourtDetailPage /></ProtectedRoute>} />
-            <Route
-              path="/courts/:courtId/checked-in"
-              element={<ProtectedRoute><CheckInPage /></ProtectedRoute>}
-            />
+          <Route path="/courts/:courtId" element={<ProtectedRoute><CourtDetailPage /></ProtectedRoute>} />
         </IonRouterOutlet>
       </IonReactRouter>
     </AuthProvider>
