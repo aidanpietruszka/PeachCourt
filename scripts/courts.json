@@ -1,0 +1,934 @@
+[
+  {
+    "id": "adair-park-ii",
+    "name": "Adair Park II",
+    "address": "Gillette Avenue Southwest, Atlanta, GA 30310",
+    "latitude": 33.732561,
+    "longitude": -84.411827,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 2,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "bagley-park",
+    "name": "Bagley Park",
+    "address": "Bagley Street Northeast, Atlanta, GA 30305",
+    "latitude": 33.836022,
+    "longitude": -84.37367,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 4,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "bitsy-grant-tennis-center",
+    "name": "Bitsy Grant Tennis Center",
+    "address": "384 Woodward Way Northwest, Atlanta, GA 30305",
+    "latitude": 33.813924,
+    "longitude": -84.406074,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 29,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "booker-t-washington-high-school",
+    "name": "Booker T. Washington High School",
+    "address": "Beckwith Street Southwest, Atlanta, GA 30314",
+    "latitude": 33.752918,
+    "longitude": -84.421707,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 3,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "brownwood-park",
+    "name": "Brownwood Park",
+    "address": "Pendleton Street Southeast, Atlanta, GA 30316",
+    "latitude": 33.737178,
+    "longitude": -84.346796,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 3,
+    "surface": "Unknown",
+    "hasLights": false,
+    "hours": "6 AM–11 PM daily",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "butler-park-recreation-center",
+    "name": "Butler Park Recreation Center",
+    "address": "Tanner Street Southeast, Atlanta, GA 30312",
+    "latitude": 33.753395,
+    "longitude": -84.376356,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 2,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "candler-park",
+    "name": "Candler Park",
+    "address": "Callan Circle Northeast, Atlanta, GA 30307",
+    "latitude": 33.766588,
+    "longitude": -84.336267,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 4,
+    "surface": "Concrete",
+    "hasLights": true,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "central-park",
+    "name": "Central Park",
+    "address": "Central Park Place Northeast, Atlanta, GA 30308",
+    "latitude": 33.768188,
+    "longitude": -84.377359,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 4,
+    "surface": "Paved",
+    "hasLights": true,
+    "hours": "6 AM–10 PM daily",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "chosewood-park",
+    "name": "Chosewood Park",
+    "address": "Eric Street Southeast, Atlanta, GA 30315",
+    "latitude": 33.718421,
+    "longitude": -84.374566,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 1,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Free",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "coan-park",
+    "name": "Coan Park",
+    "address": "Anniston Avenue Southeast, Atlanta, GA 30317",
+    "latitude": 33.752679,
+    "longitude": -84.337054,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 4,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "courts-on-26th-street-northwest",
+    "name": "Courts on 26th Street Northwest",
+    "address": "26th Street Northwest, Atlanta, GA 30309",
+    "latitude": 33.80143,
+    "longitude": -84.398099,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 2,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "courts-on-beatie-avenue-southwest",
+    "name": "Courts on Beatie Avenue Southwest",
+    "address": "Beatie Avenue Southwest, Atlanta, GA 30310",
+    "latitude": 33.712466,
+    "longitude": -84.411761,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 6,
+    "surface": "Unknown",
+    "hasLights": true,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "courts-on-beverly-road-northeast",
+    "name": "Courts on Beverly Road Northeast",
+    "address": "Beverly Road Northeast, Atlanta, GA 30309",
+    "latitude": 33.796029,
+    "longitude": -84.380134,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 1,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "courts-on-buckhead-avenue-northeast",
+    "name": "Courts on Buckhead Avenue Northeast",
+    "address": "Buckhead Avenue Northeast, Atlanta, GA 30305",
+    "latitude": 33.838438,
+    "longitude": -84.376947,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 1,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "courts-on-collier-road-northwest",
+    "name": "Courts on Collier Road Northwest",
+    "address": "Collier Road Northwest, Atlanta, GA 30363",
+    "latitude": 33.809379,
+    "longitude": -84.415304,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 1,
+    "surface": "Paved",
+    "hasLights": true,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "courts-on-cross-creek-parkway-northwest",
+    "name": "Courts on Cross Creek Parkway Northwest",
+    "address": "1211 Cross Creek Parkway Northwest, Atlanta, GA 30327",
+    "latitude": 33.821046,
+    "longitude": -84.428234,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 2,
+    "surface": "Unknown",
+    "hasLights": true,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "courts-on-howell-mill-road-northwest",
+    "name": "Courts on Howell Mill Road Northwest",
+    "address": "Howell Mill Road Northwest, Atlanta, GA 30305",
+    "latitude": 33.827526,
+    "longitude": -84.415318,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 1,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "courts-on-lake-drive-southeast",
+    "name": "Courts on Lake Drive Southeast",
+    "address": "Lake Drive Southeast, GA 30316",
+    "latitude": 33.715296,
+    "longitude": -84.331187,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 2,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "courts-on-larkin-street-southwest",
+    "name": "Courts on Larkin Street Southwest",
+    "address": "Larkin Street Southwest, Atlanta, GA 30314",
+    "latitude": 33.748614,
+    "longitude": -84.407614,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 8,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "courts-on-nawench-drive-northwest",
+    "name": "Courts on Nawench Drive Northwest",
+    "address": "Nawench Drive Northwest, Atlanta, GA 30327",
+    "latitude": 33.831045,
+    "longitude": -84.423994,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 4,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "courts-on-oakland-drive-southwest",
+    "name": "Courts on Oakland Drive Southwest",
+    "address": "Oakland Drive Southwest, Atlanta, GA 30310",
+    "latitude": 33.719798,
+    "longitude": -84.42783,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 2,
+    "surface": "Asphalt",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "courts-on-paschal-boulevard-northwest",
+    "name": "Courts on Paschal Boulevard Northwest",
+    "address": "Paschal Boulevard Northwest, Atlanta, GA 30313",
+    "latitude": 33.75747,
+    "longitude": -84.413483,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 1,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "courts-on-pharr-court-s-northwest",
+    "name": "Courts on Pharr Court S Northwest",
+    "address": "Pharr Court S Northwest, Atlanta, GA 30305",
+    "latitude": 33.833736,
+    "longitude": -84.385289,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 1,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "courts-on-pine-heights-drive-northeast",
+    "name": "Courts on Pine Heights Drive Northeast",
+    "address": "Pine Heights Drive Northeast, Atlanta, GA 30324",
+    "latitude": 33.831184,
+    "longitude": -84.357312,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 1,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "courts-on-rumson-road-northeast",
+    "name": "Courts on Rumson Road Northeast",
+    "address": "Rumson Road Northeast, Atlanta, GA 30305",
+    "latitude": 33.830601,
+    "longitude": -84.384913,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 1,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "courts-on-sidney-marcus-boulevard-northeast",
+    "name": "Courts on Sidney Marcus Boulevard Northeast",
+    "address": "Sidney Marcus Boulevard Northeast, Atlanta, GA 30324",
+    "latitude": 33.825661,
+    "longitude": -84.357098,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 2,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "courts-on-south-fork-confluence-trail",
+    "name": "Courts on South Fork Confluence Trail",
+    "address": "South Fork Confluence Trail, Atlanta, GA 30324",
+    "latitude": 33.815838,
+    "longitude": -84.362106,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 1,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "courts-on-summit-north-drive",
+    "name": "Courts on Summit North Drive",
+    "address": "Summit North Drive, Atlanta, GA 30324",
+    "latitude": 33.828436,
+    "longitude": -84.361234,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 1,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "courts-on-walker-avenue-southwest",
+    "name": "Courts on Walker Avenue Southwest",
+    "address": "Walker Avenue Southwest, Atlanta, GA 30310",
+    "latitude": 33.708774,
+    "longitude": -84.432119,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 2,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "courts-on-wylie-street-southeast",
+    "name": "Courts on Wylie Street Southeast",
+    "address": "Wylie Street Southeast, Atlanta, GA 30316",
+    "latitude": 33.751995,
+    "longitude": -84.354995,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 1,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "dale-way-park",
+    "name": "Dale Way Park",
+    "address": "Huntington Road Northeast, Atlanta, GA 30309",
+    "latitude": 33.807278,
+    "longitude": -84.388363,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 2,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "freedom-park",
+    "name": "Freedom Park",
+    "address": "Euclid Avenue Northeast, Atlanta, GA 30307",
+    "latitude": 33.769916,
+    "longitude": -84.343238,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 2,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "georgia-tech",
+    "name": "Georgia Tech",
+    "address": "Brittain Drive Northwest, Atlanta, GA 30313",
+    "latitude": 33.775307,
+    "longitude": -84.39368,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 4,
+    "surface": "Concrete",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "georgia-tech-courts",
+    "name": "Georgia Tech Campus Courts",
+    "address": "Georgia Tech Campus, Atlanta, GA 30332",
+    "latitude": 33.7788,
+    "longitude": -84.4048,
+    "sports": [
+      "tennis",
+      "pickleball"
+    ],
+    "numberOfCourts": 6,
+    "surface": "Hard",
+    "hasLights": true,
+    "hours": "7 AM–10 PM daily",
+    "walkOnRules": "Georgia Tech affiliates only",
+    "reservationInfo": "None"
+  },
+  {
+    "id": "grant-park",
+    "name": "Grant Park",
+    "address": "Sydney Street Southeast, Atlanta, GA 30312",
+    "latitude": 33.740572,
+    "longitude": -84.371302,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 4,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "grove-park",
+    "name": "Grove Park",
+    "address": "Hortense Place Northwest, Atlanta, GA 30318",
+    "latitude": 33.774283,
+    "longitude": -84.439967,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 5,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "hanover-west-tennis-courts",
+    "name": "Hanover West Tennis Courts",
+    "address": "Hanover West Drive Northwest, Atlanta, GA 30327",
+    "latitude": 33.823016,
+    "longitude": -84.433437,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 2,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "knight-park",
+    "name": "Knight Park",
+    "address": "Church Street Northwest, Atlanta, GA 30318",
+    "latitude": 33.783984,
+    "longitude": -84.42626,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 1,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "lucius-d-simon-sr-memorial-park",
+    "name": "Lucius D. Simon, Sr. Memorial Park",
+    "address": "Gammon Street Southeast, Atlanta, GA 30315",
+    "latitude": 33.717781,
+    "longitude": -84.38779,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 2,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "maddox-park",
+    "name": "Maddox Park",
+    "address": "Donald Lee Hollowell Parkway Northwest, Atlanta, GA 30314",
+    "latitude": 33.771493,
+    "longitude": -84.427368,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 1,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "martin-luther-king-jr-national-historic-site",
+    "name": "Martin Luther King Jr. National Historic Site",
+    "address": "Boulevard Northeast, Atlanta, GA 30312",
+    "latitude": 33.758419,
+    "longitude": -84.372547,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 1,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "maynard-h-jackson-high-school",
+    "name": "Maynard H. Jackson High School",
+    "address": "Chester Avenue Southeast, Atlanta, GA 30316",
+    "latitude": 33.737973,
+    "longitude": -84.359871,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 1,
+    "surface": "Paved",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "midtown-high-school",
+    "name": "Midtown High School",
+    "address": "10th Street Northeast, Atlanta, GA 30308",
+    "latitude": 33.781507,
+    "longitude": -84.370784,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 3,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "morehouse-college",
+    "name": "Morehouse College",
+    "address": "Parsons Street Southwest, Atlanta, GA 30314",
+    "latitude": 33.746947,
+    "longitude": -84.416955,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 6,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "moseley-park",
+    "name": "Moseley Park",
+    "address": "Lionel Hampton PATH Trail, Atlanta, GA 30314",
+    "latitude": 33.754515,
+    "longitude": -84.439268,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 2,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "peachtree-hills-park",
+    "name": "Peachtree Hills Park",
+    "address": "Peachtree Hills Avenue Northeast, Atlanta, GA 30305",
+    "latitude": 33.818085,
+    "longitude": -84.37591,
+    "sports": [
+      "tennis",
+      "pickleball"
+    ],
+    "numberOfCourts": 11,
+    "surface": "Unknown",
+    "hasLights": true,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "phoenix-ii-park",
+    "name": "Phoenix II Park",
+    "address": "Martin Street Southeast, Atlanta, GA 30315",
+    "latitude": 33.735897,
+    "longitude": -84.383789,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 2,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "piedmont-park",
+    "name": "Piedmont Park",
+    "address": "Piedmont Avenue Northeast, Atlanta, GA 30305",
+    "latitude": 33.789931,
+    "longitude": -84.375874,
+    "sports": [
+      "tennis",
+      "pickleball"
+    ],
+    "numberOfCourts": 13,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "rawson-washington-park",
+    "name": "Rawson-Washington Park",
+    "address": "Kelly Street Southeast, Atlanta, GA 30312",
+    "latitude": 33.744963,
+    "longitude": -84.380742,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 1,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "rosa-l-burney-park",
+    "name": "Rosa L. Burney Park",
+    "address": "Windsor Street Southwest, Atlanta, GA 30310",
+    "latitude": 33.740128,
+    "longitude": -84.398625,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 2,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "shady-valley-park",
+    "name": "Shady Valley Park",
+    "address": "Judith Way Northeast, Atlanta, GA 30324",
+    "latitude": 33.830192,
+    "longitude": -84.352389,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 1,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "sharon-e-lester-tennis-center",
+    "name": "Sharon E. Lester Tennis Center",
+    "address": "Active Oval, Atlanta, GA 30361",
+    "latitude": 33.787315,
+    "longitude": -84.37386,
+    "sports": [
+      "tennis",
+      "pickleball"
+    ],
+    "numberOfCourts": 20,
+    "surface": "Paved",
+    "hasLights": true,
+    "hours": "9 AM–10 PM daily",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "spelman-college",
+    "name": "Spelman College",
+    "address": "Chapel Street Southwest, Atlanta, GA 30310",
+    "latitude": 33.743656,
+    "longitude": -84.410253,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 4,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "sutton-middle-school",
+    "name": "Sutton Middle School",
+    "address": "Northside Drive Northwest, Atlanta, GA 30327",
+    "latitude": 33.83374,
+    "longitude": -84.406939,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 3,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "underwood-hills-park",
+    "name": "Underwood Hills Park",
+    "address": "Harper Way Northwest, Atlanta, GA 30363",
+    "latitude": 33.805193,
+    "longitude": -84.41617,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 2,
+    "surface": "Acrylic",
+    "hasLights": false,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "walker-park",
+    "name": "Walker Park",
+    "address": "East Side Avenue Southeast, Atlanta, GA 30316",
+    "latitude": 33.746393,
+    "longitude": -84.340059,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 1,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "washington-park",
+    "name": "Washington Park",
+    "address": "Atlanta Beltline Westside Trail, Atlanta, GA 30314",
+    "latitude": 33.758032,
+    "longitude": -84.424333,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 8,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "Unknown",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  },
+  {
+    "id": "west-end-park",
+    "name": "West End Park",
+    "address": "Lucile Avenue Southwest, Atlanta, GA 30310",
+    "latitude": 33.741916,
+    "longitude": -84.424052,
+    "sports": [
+      "tennis"
+    ],
+    "numberOfCourts": 2,
+    "surface": "Unknown",
+    "hasLights": null,
+    "hours": "6 AM–11 PM daily",
+    "walkOnRules": "Unknown",
+    "reservationInfo": "Unknown"
+  }
+]
