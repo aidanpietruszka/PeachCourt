@@ -28,6 +28,7 @@ yarn-debug.log*
 yarn-error.log*
 
 scripts/serviceAccountKey.json
+*/serviceAccountKey.json
 
 # Optional eslint cache
 .eslintcache

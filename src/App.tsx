@@ -14,6 +14,11 @@ import { ellipse, square, triangle } from 'ionicons/icons';
 import CourtsPage from './pages/Courtspage';
 import CourtDetailPage from './pages/CourtsDetailPage';
 import CheckInPage from './pages/CheckInPage';
+import WelcomePage from './pages/WelcomePage';
+import LoginPage from './pages/LoginPage';
+import SignUpPage from './pages/SignUpPage';
+import ProtectedRoute from './components/protectedRoute';
+import { AuthProvider } from './components/useAuth';
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/react/css/core.css';
@@ -50,14 +55,21 @@ setupIonicReact();
 
 const App: React.FC = () => (
   <IonApp>
-    <IonReactRouter>
-      <IonRouterOutlet>
-        <Route path="/courts" element={<CourtsPage />} />
-        <Route path="/courts/:courtId" element={<CourtDetailPage />} />
-        <Route path="/courts/:courtId/checked-in" element={<CheckInPage />} />
-        <Route path="/" element={<Navigate to="/courts" replace />} />
-      </IonRouterOutlet>
-    </IonReactRouter>
+    <AuthProvider>  
+      <IonReactRouter>
+        <IonRouterOutlet>
+          <Route path="/" element={<WelcomePage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignUpPage />} />
+          <Route path="/courts" element={<ProtectedRoute><CourtsPage /></ProtectedRoute>} />
+            <Route path="/courts/:courtId" element={<ProtectedRoute><CourtDetailPage /></ProtectedRoute>} />
+            <Route
+              path="/courts/:courtId/checked-in"
+              element={<ProtectedRoute><CheckInPage /></ProtectedRoute>}
+            />
+        </IonRouterOutlet>
+      </IonReactRouter>
+    </AuthProvider>
   </IonApp>
 );
 
