@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   IonContent,
   IonItem,
@@ -9,8 +9,8 @@ import {
   IonSegmentButton,
   IonText,
   IonToast,
-} from '@ionic/react';
-import { Geolocation } from '@capacitor/geolocation';
+} from "@ionic/react";
+import { Geolocation } from "@capacitor/geolocation";
 import {
   collection,
   onSnapshot,
@@ -18,12 +18,12 @@ import {
   Timestamp,
   type QueryDocumentSnapshot,
   where,
-} from 'firebase/firestore';
-import CourtMap, { CourtMapItem } from '../components/CourtMap';
-import { SAMPLE_COURTS } from '../data/sampleCourts';
-import { db } from '../services/firebase';
-import type { Sport } from '../types/types.ts';
-import './Courtspage.css';
+} from "firebase/firestore";
+import CourtMap, { CourtMapItem } from "../components/CourtMap";
+import { CourtService } from "../services/CourtService";
+import { db } from "../services/firebase";
+import type { Court, Sport } from "../types/types.ts";
+import "./Courtspage.css";
 
 function distanceBetweenMeters(
   latitude1: number,
@@ -50,32 +50,49 @@ function formatDistance(meters: number): string {
 }
 
 const CourtsPage: React.FC = () => {
-  const [sport, setSport] = useState<Sport>('pickleball');
-  const [playersByCourt, setPlayersByCourt] = useState<Record<string, number>>({});
-  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
-  const [toastMessage, setToastMessage] = useState('');
+  const [sport, setSport] = useState<Sport>("pickleball");
+  const [courts, setCourts] = useState<Court[]>([]);
+  const [playersByCourt, setPlayersByCourt] = useState<Record<string, number>>(
+    {},
+  );
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(
+    null,
+  );
+  const [toastMessage, setToastMessage] = useState("");
   const hasLocation = useRef(false);
 
   useEffect(() => {
-    const activeCheckinsQuery = query(collection(db, 'checkins'), where('active', '==', true));
+    return CourtService.subscribeToCourts(setCourts, (error) => {
+      console.error("Unable to load courts", error);
+      setToastMessage("Courts are unavailable right now.");
+    });
+  }, []);
+
+  useEffect(() => {
+    const activeCheckinsQuery = query(
+      collection(db, "checkins"),
+      where("active", "==", true),
+    );
     let latestDocs: QueryDocumentSnapshot[] = [];
     const recalculateCounts = () => {
       const now = Date.now();
       const counts: Record<string, number> = {};
       latestDocs.forEach((snapshot) => {
         const checkin = snapshot.data();
-        const arrival = checkin.scheduledArrivalAt instanceof Timestamp
-          ? checkin.scheduledArrivalAt
-          : checkin.checkedInAt;
+        const arrival =
+          checkin.scheduledArrivalAt instanceof Timestamp
+            ? checkin.scheduledArrivalAt
+            : checkin.checkedInAt;
         if (
           arrival instanceof Timestamp &&
           arrival.toMillis() <= now &&
           checkin.expiresAt instanceof Timestamp &&
           checkin.expiresAt.toMillis() > now &&
-          typeof checkin.courtId === 'string' &&
-          typeof checkin.playerCount === 'number'
+          typeof checkin.courtId === "string" &&
+          typeof checkin.playerCount === "number"
         ) {
-          counts[checkin.courtId] = (counts[checkin.courtId] ?? 0) + checkin.playerCount;
+          counts[checkin.courtId] =
+            (counts[checkin.courtId] ?? 0) + checkin.playerCount;
         }
       });
       setPlayersByCourt(counts);
@@ -88,8 +105,8 @@ const CourtsPage: React.FC = () => {
         recalculateCounts();
       },
       (error) => {
-        console.error('Unable to load live check-in counts', error);
-        setToastMessage('Live player counts are unavailable right now.');
+        console.error("Unable to load live check-in counts", error);
+        setToastMessage("Live player counts are unavailable right now.");
       },
     );
     const expiryTimer = window.setInterval(recalculateCounts, 5_000);
@@ -113,32 +130,39 @@ const CourtsPage: React.FC = () => {
       },
       (position, error) => {
         if (error) {
-          console.warn('Unable to update device location', error);
+          console.warn("Unable to update device location", error);
           if (!isDisposed && !hasLocation.current) {
-            setToastMessage('Your location is unavailable. Allow location access to show your blue map pin.');
+            setToastMessage(
+              "Your location is unavailable. Allow location access to show your blue map pin.",
+            );
           }
           return;
         }
 
         if (position && !isDisposed) {
           hasLocation.current = true;
-          setUserLocation([position.coords.latitude, position.coords.longitude]);
+          setUserLocation([
+            position.coords.latitude,
+            position.coords.longitude,
+          ]);
         }
       },
     )
       .then((id) => {
         if (isDisposed) {
           void Geolocation.clearWatch({ id }).catch((error: unknown) => {
-            console.error('Unable to stop the location watcher', error);
+            console.error("Unable to stop the location watcher", error);
           });
         } else {
           watchId = id;
         }
       })
       .catch((error: unknown) => {
-        console.error('Unable to start device location updates', error);
+        console.error("Unable to start device location updates", error);
         if (!isDisposed) {
-          setToastMessage('Your location is unavailable. Allow location access to show your blue map pin.');
+          setToastMessage(
+            "Your location is unavailable. Allow location access to show your blue map pin.",
+          );
         }
       });
 
@@ -146,7 +170,7 @@ const CourtsPage: React.FC = () => {
       isDisposed = true;
       if (watchId) {
         void Geolocation.clearWatch({ id: watchId }).catch((error: unknown) => {
-          console.error('Unable to stop the location watcher', error);
+          console.error("Unable to stop the location watcher", error);
         });
       }
     };
@@ -154,33 +178,39 @@ const CourtsPage: React.FC = () => {
 
   const items: CourtMapItem[] = useMemo(
     () =>
-      SAMPLE_COURTS.filter((court) => court.sports.includes(sport)).map((court) => ({
-        court,
-        players: playersByCourt[court.id] ?? 0,
-        status: 'open',
-      })),
-    [sport, playersByCourt],
+      courts
+        .filter((court) => court.sports.includes(sport))
+        .map((court) => ({
+          court,
+          players: playersByCourt[court.id] ?? 0,
+          status: "open",
+        })),
+    [courts, sport, playersByCourt],
   );
 
   const nearbyCourts = useMemo(() => {
-    const courts = SAMPLE_COURTS.filter((court) => court.sports.includes(sport)).map((court) => ({
-      court,
-      distance: userLocation
-        ? distanceBetweenMeters(
-            userLocation[0],
-            userLocation[1],
-            court.latitude,
-            court.longitude,
-          )
-        : null,
-    }));
+    const sportCourts = courts
+      .filter((court) => court.sports.includes(sport))
+      .map((court) => ({
+        court,
+        distance: userLocation
+          ? distanceBetweenMeters(
+              userLocation[0],
+              userLocation[1],
+              court.latitude,
+              court.longitude,
+            )
+          : null,
+      }));
 
     if (userLocation) {
-      courts.sort((first, second) => (first.distance ?? 0) - (second.distance ?? 0));
+      sportCourts.sort(
+        (first, second) => (first.distance ?? 0) - (second.distance ?? 0),
+      );
     }
 
-    return courts;
-  }, [sport, userLocation]);
+    return sportCourts;
+  }, [courts, sport, userLocation]);
 
   return (
     <IonPage>
@@ -208,7 +238,10 @@ const CourtsPage: React.FC = () => {
             <CourtMap items={items} userLocation={userLocation} />
           </div>
 
-          <section className="courts-page__list" aria-labelledby="nearby-courts-heading">
+          <section
+            className="courts-page__list"
+            aria-labelledby="nearby-courts-heading"
+          >
             <h2 id="nearby-courts-heading" className="pc-section-heading">
               Nearby courts
             </h2>
@@ -230,16 +263,16 @@ const CourtsPage: React.FC = () => {
                     <h3>{court.name}</h3>
                     <p>{court.address}</p>
                     <p>
-                      {court.numberOfCourts} courts ·{' '}
+                      {court.numberOfCourts} courts ·{" "}
                       {court.sports
                         .map((courtSport) =>
-                          courtSport === 'pickleball' ? 'Pickleball' : 'Tennis',
+                          courtSport === "pickleball" ? "Pickleball" : "Tennis",
                         )
-                        .join(', ')}
+                        .join(", ")}
                     </p>
                   </IonLabel>
                   <IonText slot="end" className="courts-page__distance">
-                    {distance === null ? '—' : formatDistance(distance)}
+                    {distance === null ? "—" : formatDistance(distance)}
                   </IonText>
                 </IonItem>
               ))}
@@ -251,7 +284,7 @@ const CourtsPage: React.FC = () => {
         isOpen={toastMessage.length > 0}
         message={toastMessage}
         duration={4000}
-        onDidDismiss={() => setToastMessage('')}
+        onDidDismiss={() => setToastMessage("")}
       />
     </IonPage>
   );

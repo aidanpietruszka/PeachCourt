@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 import {
   IonAlert,
   IonBackButton,
@@ -18,40 +18,43 @@ import {
   IonText,
   IonToast,
   IonToolbar,
-} from '@ionic/react';
-import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
-import { Geolocation } from '@capacitor/geolocation';
-import { useParams } from 'react-router-dom';
-import { SAMPLE_COURTS } from '../data/sampleCourts';
-import { auth } from '../services/firebase';
-import { CheckinService, type ActiveCheckIn } from '../services/CheckinService';
-import type { Court } from '../types/types';
-import './CourtsDetailPage.css';
+} from "@ionic/react";
+import { onAuthStateChanged, signInAnonymously } from "firebase/auth";
+import { Geolocation } from "@capacitor/geolocation";
+import { useParams } from "react-router-dom";
+import { auth } from "../services/firebase";
+import { CheckinService, type ActiveCheckIn } from "../services/CheckinService";
+import { CourtService } from "../services/CourtService";
+import type { Court } from "../types/types";
+import "./CourtsDetailPage.css";
 
 const DISTANCE_WARNING_METERS = 150;
-const FEEDBACK_PROMPT_KEY = 'peachcourt-checkin-feedback-asked';
+const FEEDBACK_PROMPT_KEY = "peachcourt-checkin-feedback-asked";
 
 function toLocalDateValue(date: Date): string {
   const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
 
 function minutesToTimeValue(minutes: number): string {
-  const hours = String(Math.floor(minutes / 60)).padStart(2, '0');
-  const remainingMinutes = String(minutes % 60).padStart(2, '0');
+  const hours = String(Math.floor(minutes / 60)).padStart(2, "0");
+  const remainingMinutes = String(minutes % 60).padStart(2, "0");
   return `${hours}:${remainingMinutes}`;
 }
 
-function parseParkHours(hours: string): { openMinutes: number; closeMinutes: number } | null {
+function parseParkHours(
+  hours: string,
+): { openMinutes: number; closeMinutes: number } | null {
   const matches = [...hours.matchAll(/(\d{1,2})(?::(\d{2}))?\s*(AM|PM)/gi)];
   if (matches.length < 2) {
     return null;
   }
 
   const toMinutes = (match: RegExpMatchArray): number => {
-    const hour = Number(match[1]) % 12 + (match[3].toUpperCase() === 'PM' ? 12 : 0);
+    const hour =
+      (Number(match[1]) % 12) + (match[3].toUpperCase() === "PM" ? 12 : 0);
     return hour * 60 + Number(match[2] ?? 0);
   };
 
@@ -62,13 +65,13 @@ function parseParkHours(hours: string): { openMinutes: number; closeMinutes: num
 }
 
 function localDateTimeMillis(dateValue: string, timeValue: string): number {
-  const [year, month, day] = dateValue.split('-').map(Number);
-  const [hours, minutes] = timeValue.split(':').map(Number);
+  const [year, month, day] = dateValue.split("-").map(Number);
+  const [hours, minutes] = timeValue.split(":").map(Number);
   return new Date(year, month - 1, day, hours, minutes).getTime();
 }
 
 function addDays(dateValue: string, days: number): string {
-  const [year, month, day] = dateValue.split('-').map(Number);
+  const [year, month, day] = dateValue.split("-").map(Number);
   return toLocalDateValue(new Date(year, month - 1, day + days));
 }
 
@@ -91,18 +94,22 @@ function distanceBetweenMeters(
 
 const CourtDetailPage: React.FC = () => {
   const { courtId } = useParams<{ courtId: string }>();
-  const court = SAMPLE_COURTS.find((item) => item.id === courtId);
+  const [court, setCourt] = useState<Court | null | undefined>(undefined);
   const [uid, setUid] = useState<string | null>(auth.currentUser?.uid ?? null);
-  const [activeCheckIn, setActiveCheckIn] = useState<ActiveCheckIn | null>(null);
+  const [activeCheckIn, setActiveCheckIn] = useState<ActiveCheckIn | null>(
+    null,
+  );
   const [playerCount, setPlayerCount] = useState(1);
-  const [arrivalDate, setArrivalDate] = useState(() => toLocalDateValue(new Date()));
-  const [arrivalTime, setArrivalTime] = useState('00:00');
+  const [arrivalDate, setArrivalDate] = useState(() =>
+    toLocalDateValue(new Date()),
+  );
+  const [arrivalTime, setArrivalTime] = useState("00:00");
   const [hasSelectedArrivalTime, setHasSelectedArrivalTime] = useState(false);
   const [isTimePickerOpen, setIsTimePickerOpen] = useState(false);
   const [durationMinutes, setDurationMinutes] = useState(90);
   const [now, setNow] = useState(() => Date.now());
   const [isBusy, setIsBusy] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
+  const [toastMessage, setToastMessage] = useState("");
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const arrivalTimeMs = localDateTimeMillis(arrivalDate, arrivalTime);
   const currentMinute = Math.floor(now / 60_000) * 60_000;
@@ -115,7 +122,8 @@ const CourtDetailPage: React.FC = () => {
   const maxArrivalDate = addDays(today, 30);
   const parkHours = court ? parseParkHours(court.hours) : null;
   const currentDate = new Date(now);
-  const currentMinuteOfDay = currentDate.getHours() * 60 + currentDate.getMinutes();
+  const currentMinuteOfDay =
+    currentDate.getHours() * 60 + currentDate.getMinutes();
   const openingMinutes = parkHours?.openMinutes ?? 0;
   const closingMinutes = parkHours?.closeMinutes ?? 23 * 60 + 59;
   const minimumTimeMinutes = Math.max(currentMinuteOfDay, openingMinutes);
@@ -123,7 +131,22 @@ const CourtDetailPage: React.FC = () => {
   const closingTime = minutesToTimeValue(closingMinutes);
   const hasAvailableArrivalTime = minimumTimeMinutes <= closingMinutes;
   const validActiveCheckIn =
-    activeCheckIn && activeCheckIn.expiresAt.toMillis() > now ? activeCheckIn : null;
+    activeCheckIn && activeCheckIn.expiresAt.toMillis() > now
+      ? activeCheckIn
+      : null;
+
+  useEffect(() => {
+    if (!courtId) {
+      setCourt(null);
+      return;
+    }
+
+    setCourt(undefined);
+    return CourtService.subscribeToCourt(courtId, setCourt, (error) => {
+      console.error("Unable to load this court", error);
+      setCourt(null);
+    });
+  }, [courtId]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 5_000);
@@ -141,13 +164,13 @@ const CourtDetailPage: React.FC = () => {
 
         setUid(null);
         void signInAnonymously(auth).catch((error: unknown) => {
-          console.error('Unable to start an anonymous Firebase session', error);
-          setToastMessage('Unable to start a guest session. Please try again.');
+          console.error("Unable to start an anonymous Firebase session", error);
+          setToastMessage("Unable to start a guest session. Please try again.");
         });
       },
       (error) => {
-        console.error('Unable to observe Firebase authentication state', error);
-        setToastMessage('Unable to connect to your account. Please try again.');
+        console.error("Unable to observe Firebase authentication state", error);
+        setToastMessage("Unable to connect to your account. Please try again.");
       },
     );
   }, []);
@@ -162,8 +185,10 @@ const CourtDetailPage: React.FC = () => {
       uid,
       setActiveCheckIn,
       (error) => {
-        console.error('Unable to load your active check-in', error);
-        setToastMessage('Unable to load your check-in status. Please try again.');
+        console.error("Unable to load your active check-in", error);
+        setToastMessage(
+          "Unable to load your check-in status. Please try again.",
+        );
       },
     );
   }, [uid]);
@@ -171,16 +196,18 @@ const CourtDetailPage: React.FC = () => {
   const submitFeedback = async (answer: string) => {
     try {
       await CheckinService.recordFeedback(answer);
-      setToastMessage('Thanks for sharing your feedback.');
+      setToastMessage("Thanks for sharing your feedback.");
     } catch (error) {
-      console.error('Unable to save check-in feedback', error);
-      setToastMessage('Your check-in was saved, but the feedback could not be recorded.');
+      console.error("Unable to save check-in feedback", error);
+      setToastMessage(
+        "Your check-in was saved, but the feedback could not be recorded.",
+      );
     }
   };
 
   const handleCheckIn = async (selectedCourt: Court) => {
     if (!hasSelectedArrivalTime) {
-      setToastMessage('Select an arrival time before continuing.');
+      setToastMessage("Select an arrival time before continuing.");
       return;
     }
     const selectedTimeMinutes =
@@ -190,14 +217,16 @@ const CourtDetailPage: React.FC = () => {
       selectedTimeMinutes < minimumTimeMinutes ||
       selectedTimeMinutes > closingMinutes
     ) {
-      setToastMessage('Choose an arrival time between now and the park closing time.');
+      setToastMessage(
+        "Choose an arrival time between now and the park closing time.",
+      );
       return;
     }
 
     setIsBusy(true);
     const requestStartedAt = performance.now();
     let distance: number | null = null;
-    let locationNotice = '';
+    let locationNotice = "";
 
     if (arrivalTimeMs <= Date.now()) {
       try {
@@ -216,8 +245,12 @@ const CourtDetailPage: React.FC = () => {
           locationNotice = `You're about ${Math.round(distance)} m away. Your check-in was still recorded.`;
         }
       } catch (error) {
-        console.warn('Unable to verify check-in location; continuing without it', error);
-        locationNotice = 'Location was unavailable; your check-in was still recorded.';
+        console.warn(
+          "Unable to verify check-in location; continuing without it",
+          error,
+        );
+        locationNotice =
+          "Location was unavailable; your check-in was still recorded.";
       }
     }
 
@@ -230,24 +263,30 @@ const CourtDetailPage: React.FC = () => {
         isCurrentArrival ? Date.now() : arrivalTimeMs,
         durationMinutes,
       );
-      const scheduledMessage = arrivalTimeMs > Date.now()
-        ? `Check-in scheduled for ${new Date(arrivalTimeMs).toLocaleString()}.`
-        : `Checked in with ${playerCount} player${playerCount === 1 ? '' : 's'}.`;
+      const scheduledMessage =
+        arrivalTimeMs > Date.now()
+          ? `Check-in scheduled for ${new Date(arrivalTimeMs).toLocaleString()}.`
+          : `Checked in with ${playerCount} player${playerCount === 1 ? "" : "s"}.`;
       setToastMessage(locationNotice || scheduledMessage);
       try {
-        if (localStorage.getItem(FEEDBACK_PROMPT_KEY) !== 'true') {
-          localStorage.setItem(FEEDBACK_PROMPT_KEY, 'true');
+        if (localStorage.getItem(FEEDBACK_PROMPT_KEY) !== "true") {
+          localStorage.setItem(FEEDBACK_PROMPT_KEY, "true");
           setIsFeedbackOpen(true);
         }
       } catch (error) {
-        console.warn('Unable to remember whether the feedback prompt was shown', error);
+        console.warn(
+          "Unable to remember whether the feedback prompt was shown",
+          error,
+        );
       }
     } catch (error) {
-      console.error('Unable to check in', error);
+      console.error("Unable to check in", error);
       setToastMessage(
-        error instanceof Error && 'code' in error && error.code === 'permission-denied'
-          ? 'Check-in was blocked by Firebase permissions. Enable Anonymous sign-in and confirm the published Firestore rules allow it.'
-          : `Check-in failed: ${error instanceof Error ? error.message : 'Please try again.'}`,
+        error instanceof Error &&
+          "code" in error &&
+          error.code === "permission-denied"
+          ? "Check-in was blocked by Firebase permissions. Enable Anonymous sign-in and confirm the published Firestore rules allow it."
+          : `Check-in failed: ${error instanceof Error ? error.message : "Please try again."}`,
       );
     } finally {
       setIsBusy(false);
@@ -258,11 +297,11 @@ const CourtDetailPage: React.FC = () => {
     setIsBusy(true);
     try {
       await CheckinService.checkOut();
-      setToastMessage('You are checked out.');
+      setToastMessage("You are checked out.");
     } catch (error) {
-      console.error('Unable to check out', error);
+      console.error("Unable to check out", error);
       setToastMessage(
-        `Check-out failed: ${error instanceof Error ? error.message : 'Please try again.'}`,
+        `Check-out failed: ${error instanceof Error ? error.message : "Please try again."}`,
       );
     } finally {
       setIsBusy(false);
@@ -273,7 +312,8 @@ const CourtDetailPage: React.FC = () => {
     validActiveCheckIn?.courtId === courtId ? validActiveCheckIn : null;
   const checkedInHere = currentCheckIn !== null;
   const isScheduledHere =
-    currentCheckIn !== null && currentCheckIn.scheduledArrivalAt.toMillis() > now;
+    currentCheckIn !== null &&
+    currentCheckIn.scheduledArrivalAt.toMillis() > now;
 
   return (
     <IonPage>
@@ -286,7 +326,9 @@ const CourtDetailPage: React.FC = () => {
       </IonHeader>
       <IonContent>
         <div className="pc-screen">
-          {court ? (
+          {court === undefined ? (
+            <p className="pc-subtitle">Loading court…</p>
+          ) : court ? (
             <>
               <h1 className="pc-title">{court.name}</h1>
               <p className="pc-subtitle">{court.address}</p>
@@ -296,8 +338,10 @@ const CourtDetailPage: React.FC = () => {
                   <IonLabel>Sport</IonLabel>
                   <IonText>
                     {court.sports
-                      .map((sport) => (sport === 'pickleball' ? 'Pickleball' : 'Tennis'))
-                      .join(', ')}
+                      .map((sport) =>
+                        sport === "pickleball" ? "Pickleball" : "Tennis",
+                      )
+                      .join(", ")}
                   </IonText>
                 </IonItem>
                 <IonItem>
@@ -316,21 +360,29 @@ const CourtDetailPage: React.FC = () => {
 
               {validActiveCheckIn && !checkedInHere && (
                 <p role="status">
-                  You have a check-in at another court. Scheduling here will check it out now.
+                  You have a check-in at another court. Scheduling here will
+                  check it out now.
                 </p>
               )}
               {currentCheckIn ? (
                 <>
                   <p role="status">
                     {isScheduledHere
-                      ? `Check-in scheduled for ${currentCheckIn.scheduledArrivalAt.toDate().toLocaleString()} with ${currentCheckIn.playerCount} player${currentCheckIn.playerCount === 1 ? '' : 's'}.`
-                      : `You're checked in here with ${currentCheckIn.playerCount} player${currentCheckIn.playerCount === 1 ? '' : 's'}.`}
+                      ? `Check-in scheduled for ${currentCheckIn.scheduledArrivalAt.toDate().toLocaleString()} with ${currentCheckIn.playerCount} player${currentCheckIn.playerCount === 1 ? "" : "s"}.`
+                      : `You're checked in here with ${currentCheckIn.playerCount} player${currentCheckIn.playerCount === 1 ? "" : "s"}.`}
                   </p>
-                  <p>
-                    Duration: {currentCheckIn.durationMinutes} minutes
-                  </p>
-                  <IonButton expand="block" color="medium" disabled={isBusy} onClick={handleCheckOut}>
-                    {isBusy ? 'Please wait…' : isScheduledHere ? 'Cancel Scheduled Check-In' : 'Check Out'}
+                  <p>Duration: {currentCheckIn.durationMinutes} minutes</p>
+                  <IonButton
+                    expand="block"
+                    color="medium"
+                    disabled={isBusy}
+                    onClick={handleCheckOut}
+                  >
+                    {isBusy
+                      ? "Please wait…"
+                      : isScheduledHere
+                        ? "Cancel Scheduled Check-In"
+                        : "Check Out"}
                   </IonButton>
                 </>
               ) : (
@@ -348,12 +400,13 @@ const CourtDetailPage: React.FC = () => {
                       max={maxArrivalDate}
                       showDefaultButtons
                       onIonChange={(event) => {
-                        if (typeof event.detail.value === 'string') {
+                        if (typeof event.detail.value === "string") {
                           const selectedDate = event.detail.value.slice(0, 10);
                           setArrivalDate(
                             hasSelectedArrivalTime &&
                               selectedDate === today &&
-                              localDateTimeMillis(selectedDate, arrivalTime) < currentMinute
+                              localDateTimeMillis(selectedDate, arrivalTime) <
+                                currentMinute
                               ? addDays(selectedDate, 1)
                               : selectedDate,
                           );
@@ -368,7 +421,8 @@ const CourtDetailPage: React.FC = () => {
                       onClick={() => {
                         const currentDate = new Date(now);
                         const roundedCurrentTime =
-                          currentDate.getSeconds() > 0 || currentDate.getMilliseconds() > 0
+                          currentDate.getSeconds() > 0 ||
+                          currentDate.getMilliseconds() > 0
                             ? currentMinuteOfDay + 1
                             : currentMinuteOfDay;
                         const initialTime = Math.max(
@@ -396,7 +450,7 @@ const CourtDetailPage: React.FC = () => {
                       max={`${arrivalDate}T${closingTime}:00`}
                       showDefaultButtons
                       onIonChange={(event) => {
-                        if (typeof event.detail.value === 'string') {
+                        if (typeof event.detail.value === "string") {
                           const selectedTime = event.detail.value.slice(11, 16);
                           setArrivalTime(selectedTime);
                           setHasSelectedArrivalTime(true);
@@ -415,9 +469,14 @@ const CourtDetailPage: React.FC = () => {
                         aria-label="How many people are there right now?"
                         value={playerCount}
                         interface="popover"
-                        onIonChange={(event) => setPlayerCount(Number(event.detail.value))}
+                        onIonChange={(event) =>
+                          setPlayerCount(Number(event.detail.value))
+                        }
                       >
-                        {Array.from({ length: 20 }, (_, index) => index + 1).map((count) => (
+                        {Array.from(
+                          { length: 20 },
+                          (_, index) => index + 1,
+                        ).map((count) => (
                           <IonSelectOption key={count} value={count}>
                             {count}
                           </IonSelectOption>
@@ -434,11 +493,15 @@ const CourtDetailPage: React.FC = () => {
                       value={durationMinutes}
                       interface="popover"
                       justify="end"
-                      onIonChange={(event) => setDurationMinutes(Number(event.detail.value))}
+                      onIonChange={(event) =>
+                        setDurationMinutes(Number(event.detail.value))
+                      }
                     >
                       {[30, 60, 90, 120, 180, 240].map((minutes) => (
                         <IonSelectOption key={minutes} value={minutes}>
-                          {minutes < 60 ? `${minutes} minutes` : `${minutes / 60} hour${minutes === 60 ? '' : 's'}`}
+                          {minutes < 60
+                            ? `${minutes} minutes`
+                            : `${minutes / 60} hour${minutes === 60 ? "" : "s"}`}
                         </IonSelectOption>
                       ))}
                     </IonSelect>
@@ -446,22 +509,27 @@ const CourtDetailPage: React.FC = () => {
                   <IonButton
                     expand="block"
                     disabled={
-                      isBusy || !uid || !hasSelectedArrivalTime || !hasAvailableArrivalTime
+                      isBusy ||
+                      !uid ||
+                      !hasSelectedArrivalTime ||
+                      !hasAvailableArrivalTime
                     }
                     onClick={() => void handleCheckIn(court)}
                   >
                     {isBusy
-                      ? 'Checking In…'
+                      ? "Checking In…"
                       : !uid
-                        ? 'Starting guest session…'
+                        ? "Starting guest session…"
                         : !hasSelectedArrivalTime
-                          ? 'Select Arrival Time'
+                          ? "Select Arrival Time"
                           : isFutureArrival
-                            ? 'Schedule Check-In'
-                            : 'Check In'}
+                            ? "Schedule Check-In"
+                            : "Check In"}
                   </IonButton>
                   {!hasAvailableArrivalTime && (
-                    <p role="status">This park is closed for the rest of today.</p>
+                    <p role="status">
+                      This park is closed for the rest of today.
+                    </p>
                   )}
                   {!uid && (
                     <p role="status">
@@ -484,11 +552,17 @@ const CourtDetailPage: React.FC = () => {
         header="Quick question"
         message="What would stop you doing this every time you arrive?"
         buttons={[
-          { text: 'Forgot', handler: () => void submitFeedback('forgot') },
-          { text: 'Too much effort', handler: () => void submitFeedback('too_much_effort') },
-          { text: 'Privacy', handler: () => void submitFeedback('privacy') },
-          { text: 'Nobody else uses it', handler: () => void submitFeedback('nobody_else_uses_it') },
-          { text: 'Not now', role: 'cancel' },
+          { text: "Forgot", handler: () => void submitFeedback("forgot") },
+          {
+            text: "Too much effort",
+            handler: () => void submitFeedback("too_much_effort"),
+          },
+          { text: "Privacy", handler: () => void submitFeedback("privacy") },
+          {
+            text: "Nobody else uses it",
+            handler: () => void submitFeedback("nobody_else_uses_it"),
+          },
+          { text: "Not now", role: "cancel" },
         ]}
         onDidDismiss={() => setIsFeedbackOpen(false)}
       />
@@ -496,7 +570,7 @@ const CourtDetailPage: React.FC = () => {
         isOpen={toastMessage.length > 0}
         message={toastMessage}
         duration={3500}
-        onDidDismiss={() => setToastMessage('')}
+        onDidDismiss={() => setToastMessage("")}
       />
     </IonPage>
   );
