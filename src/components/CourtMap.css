@@ -16,6 +16,24 @@
 .court-pin--busy { background: #d98a1c; }
 .court-pin--full { background: var(--pc-full-text); }
 
+.user-location-pin {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgb(0 122 255 / 20%);
+}
+
+.user-location-pin span {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #007aff;
+  box-shadow: 0 1px 5px rgb(0 0 0 / 55%);
+}
+
 .court-popup__name {
   font-weight: 700;
   font-size: 13px;

@@ -1,23 +1,17 @@
 import { Navigate, Route } from 'react-router-dom';
 import {
   IonApp,
-  IonIcon,
-  IonLabel,
   IonRouterOutlet,
-  IonTabBar,
-  IonTabButton,
-  IonTabs,
   setupIonicReact
 } from '@ionic/react';
 import { IonReactRouter } from '@ionic/react-router';
-import { ellipse, square, triangle } from 'ionicons/icons';
 import CourtsPage from './pages/Courtspage';
 import CourtDetailPage from './pages/CourtsDetailPage';
 import CheckInPage from './pages/CheckInPage';
 import WelcomePage from './pages/WelcomePage';
 import LoginPage from './pages/LoginPage';
 import SignUpPage from './pages/SignUpPage';
-import ProtectedRoute from './components/protectedRoute';
+import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './components/useAuth';
 
 /* Core CSS required for Ionic components to work properly */
