@@ -5,6 +5,12 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == uid;
     }
 
+    function validSkill(sport, skill) {
+      return skill == 'any'
+        || (sport == 'tennis' && skill in [1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7])
+        || (sport == 'pickleball' && skill in [2, 2.5, 3, 3.5, 4, 4.5, 5]);
+    }
+
     match /courts/{courtId} {
       allow read: if true;
       allow write: if false;
@@ -57,6 +63,76 @@ service cloud.firestore {
       allow delete: if signedInAs(uid);
     }
 
+    match /courtStatus/{courtId} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null
+        && request.resource.data.keys().hasOnly(['playerCount', 'reportedBy', 'reportedAt'])
+        && request.resource.data.reportedBy == request.auth.uid
+        && request.resource.data.playerCount is int
+        && request.resource.data.playerCount >= 1
+        && request.resource.data.playerCount <= 20
+        && request.resource.data.reportedAt == request.time
+        && getAfter(/databases/$(database)/documents/activeCheckins/$(request.auth.uid)).data.courtId == courtId;
+      allow delete: if false;
+    }
+
+    match /matches/{matchId} {
+      allow read: if request.auth != null;
+
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly([
+          'courtId', 'sport', 'hostUid', 'hostName', 'format', 'startAt', 'skillLevel',
+          'spotsTotal', 'playerUids', 'playerNames', 'status', 'createdAt'
+        ])
+        && request.resource.data.hostUid == request.auth.uid
+        && request.resource.data.courtId is string
+        && request.resource.data.hostName is string
+        && request.resource.data.hostName.size() > 0
+        && request.resource.data.hostName.size() <= 40
+        && (
+          (request.resource.data.format == 'singles' && request.resource.data.spotsTotal == 1)
+          || (request.resource.data.format == 'doubles' && request.resource.data.spotsTotal == 3)
+        )
+        && request.resource.data.sport in ['tennis', 'pickleball']
+        && validSkill(request.resource.data.sport, request.resource.data.skillLevel)
+        && request.resource.data.startAt is timestamp
+        && request.resource.data.startAt > request.time
+        && request.resource.data.playerUids.size() == 0
+        && request.resource.data.playerNames.size() == 0
+        && request.resource.data.status == 'open'
+        && request.resource.data.createdAt is timestamp;
+
+      allow update: if request.auth != null
+        && resource.data.startAt > request.time
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['playerUids', 'playerNames', 'status'])
+        && request.resource.data.playerNames.size() == request.resource.data.playerUids.size()
+        && (
+          (
+            resource.data.hostUid != request.auth.uid
+            && !(request.auth.uid in resource.data.playerUids)
+            && resource.data.playerUids.size() < resource.data.spotsTotal
+            && request.resource.data.playerUids == resource.data.playerUids.concat([request.auth.uid])
+            && request.resource.data.playerNames[request.resource.data.playerNames.size() - 1] is string
+            && request.resource.data.playerNames[request.resource.data.playerNames.size() - 1].size() > 0
+            && request.resource.data.playerNames[request.resource.data.playerNames.size() - 1].size() <= 40
+            && (
+              (request.resource.data.playerUids.size() == resource.data.spotsTotal
+                && request.resource.data.status == 'full')
+              || (request.resource.data.playerUids.size() < resource.data.spotsTotal
+                && request.resource.data.status == 'open')
+            )
+          )
+          || (
+            request.auth.uid in resource.data.playerUids
+            && request.resource.data.playerUids == resource.data.playerUids.removeAll([request.auth.uid])
+            && request.resource.data.status == 'open'
+          )
+        );
+
+      allow delete: if false;
+    }
+
     match /events/{eventId} {
       allow create: if request.auth != null
         && request.resource.data.uid == request.auth.uid
@@ -91,6 +167,27 @@ service cloud.firestore {
               'privacy',
               'nobody_else_uses_it'
             ]
+          )
+          || (
+            request.resource.data.eventName == 'match_posted'
+            && request.resource.data.courtId is string
+            && request.resource.data.matchId is string
+            && request.resource.data.sport in ['tennis', 'pickleball']
+            && request.resource.data.format in ['singles', 'doubles']
+            && validSkill(request.resource.data.sport, request.resource.data.skillLevel)
+            && request.resource.data.spotsTotal in [1, 3]
+          )
+          || (
+            request.resource.data.eventName == 'match_joined'
+            && request.resource.data.courtId is string
+            && request.resource.data.matchId is string
+            && request.resource.data.minutesToJoin is int
+          )
+          || (
+            request.resource.data.eventName == 'trust_rating'
+            && request.resource.data.courtId is string
+            && request.resource.data.rating in [1, 2, 3, 4, 5]
+            && request.resource.data.liveCount is int
           )
         );
       allow read, update, delete: if false;

@@ -1,0 +1,78 @@
+.match-board {
+  margin: 24px 0;
+}
+
+.match-board__heading {
+  margin: 0 0 12px;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--pc-text);
+}
+
+.match-board__empty,
+.match-board__note {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: var(--pc-text-muted);
+}
+
+.match-card {
+  margin-bottom: 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--pc-card-bg);
+}
+
+.match-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.match-card__title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--pc-text);
+}
+
+.match-card__spots {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--pc-open-bg);
+  color: var(--pc-open-text);
+}
+
+.match-card__spots--full {
+  background: var(--pc-full-bg);
+  color: var(--pc-full-text);
+}
+
+.match-card__detail,
+.match-card__players {
+  margin: 6px 0 0;
+  font-size: 15px;
+  color: var(--pc-text);
+}
+
+.match-card__players {
+  font-size: 13px;
+  color: var(--pc-text-muted);
+}
+
+.match-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.match-card__status {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pc-green);
+}
