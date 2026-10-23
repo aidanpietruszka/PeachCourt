@@ -52,6 +52,10 @@ function lightsLabel(hasLights: boolean | null): string {
   return hasLights ? "Yes" : "No";
 }
 
+function isSkip(role: string | undefined): boolean {
+  return role === "cancel" || role === "backdrop";
+}
+
 function sessionFlag(key: string): boolean {
   try {
     return sessionStorage.getItem(key) === "true";
@@ -98,6 +102,8 @@ const CourtDetailPage: React.FC = () => {
       ? activeCheckIn
       : null;
   const checkedInHere = validActiveCheckIn?.courtId === courtId;
+  const courtLoaded = Boolean(court);
+  const hasReport = courtActivity.reported !== null;
   const distance =
     court && userLocation
       ? distanceBetweenMeters(
@@ -154,7 +160,16 @@ const CourtDetailPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!court || sessionFlag(TRUST_PROMPT_KEY)) {
+    if (!courtId || !courtLoaded || !uid) {
+      return;
+    }
+    EventService.recordCourtView(courtId).catch((error: unknown) =>
+      console.error("Unable to log court view", error),
+    );
+  }, [courtId, courtLoaded, uid]);
+
+  useEffect(() => {
+    if (!courtLoaded || !hasReport || sessionFlag(TRUST_PROMPT_KEY)) {
       return;
     }
     const timer = window.setTimeout(() => {
@@ -162,7 +177,7 @@ const CourtDetailPage: React.FC = () => {
       setIsTrustOpen(true);
     }, TRUST_PROMPT_DELAY_MS);
     return () => window.clearTimeout(timer);
-  }, [court]);
+  }, [courtLoaded, hasReport]);
 
   const startCheckIn = () => {
     setCheckInStartedAt(performance.now());
@@ -239,6 +254,28 @@ const CourtDetailPage: React.FC = () => {
       setToastMessage("Thanks for sharing your feedback.");
     } catch (error) {
       console.error("Unable to save check-in feedback", error);
+    }
+  };
+
+  const skipFeedback = async () => {
+    try {
+      await EventService.recordFeedbackSkipped();
+    } catch (error) {
+      console.error("Unable to log skipped feedback", error);
+    }
+  };
+
+  const skipTrust = async () => {
+    if (!courtId) {
+      return;
+    }
+    try {
+      await EventService.recordTrustSkipped(
+        courtId,
+        courtActivity.reported ?? 0,
+      );
+    } catch (error) {
+      console.error("Unable to log skipped trust rating", error);
     }
   };
 
@@ -443,7 +480,12 @@ const CourtDetailPage: React.FC = () => {
           },
           { text: "Not now", role: "cancel" },
         ]}
-        onDidDismiss={() => setIsFeedbackOpen(false)}
+        onDidDismiss={(event) => {
+          setIsFeedbackOpen(false);
+          if (isSkip(event.detail.role)) {
+            void skipFeedback();
+          }
+        }}
       />
 
       <IonAlert
@@ -457,7 +499,12 @@ const CourtDetailPage: React.FC = () => {
           })),
           { text: "Skip", role: "cancel" },
         ]}
-        onDidDismiss={() => setIsTrustOpen(false)}
+        onDidDismiss={(event) => {
+          setIsTrustOpen(false);
+          if (isSkip(event.detail.role)) {
+            void skipTrust();
+          }
+        }}
       />
 
       <IonToast

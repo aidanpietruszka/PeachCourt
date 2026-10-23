@@ -189,6 +189,20 @@ service cloud.firestore {
             && request.resource.data.rating in [1, 2, 3, 4, 5]
             && request.resource.data.liveCount is int
           )
+          || (
+            request.resource.data.eventName == 'trust_skipped'
+            && request.resource.data.courtId is string
+            && request.resource.data.liveCount is int
+          )
+          || (
+            request.resource.data.eventName == 'court_viewed'
+            && request.resource.data.courtId is string
+            && (
+              request.resource.data.reportedCount is int
+              || request.resource.data.reportedCount == null
+            )
+          )
+          || request.resource.data.eventName == 'feedback_skipped'
         );
       allow read, update, delete: if false;
     }
