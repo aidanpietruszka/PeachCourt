@@ -114,6 +114,58 @@ export async function resetData() {
   }
 }
 
+export async function seedReport(courtId: string, playerCount: number) {
+  const response = await fetch(
+    `${FIRESTORE}/v1/projects/${PROJECT_ID}/databases/(default)/documents/courtStatus?documentId=${courtId}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer owner",
+      },
+      body: JSON.stringify({
+        fields: {
+          playerCount: { integerValue: String(playerCount) },
+          reportedBy: { stringValue: "seed" },
+          reportedAt: { timestampValue: new Date().toISOString() },
+        },
+      }),
+    },
+  );
+  expect(response.ok).toBe(true);
+}
+
+type StoredValue = {
+  stringValue?: string;
+  integerValue?: string;
+  nullValue?: null;
+};
+
+export async function loggedEvents(
+  eventName: string,
+): Promise<Array<Record<string, string | number | null>>> {
+  const response = await fetch(
+    `${FIRESTORE}/v1/projects/${PROJECT_ID}/databases/(default)/documents/events?pageSize=500`,
+    { headers: { Authorization: "Bearer owner" } },
+  );
+  expect(response.ok).toBe(true);
+  const body = (await response.json()) as {
+    documents?: Array<{ fields: Record<string, StoredValue> }>;
+  };
+  return (body.documents ?? [])
+    .map(({ fields }) =>
+      Object.fromEntries(
+        Object.entries(fields).map(([key, value]) => [
+          key,
+          value.integerValue !== undefined
+            ? Number(value.integerValue)
+            : (value.stringValue ?? null),
+        ]),
+      ),
+    )
+    .filter((event) => event.eventName === eventName);
+}
+
 export async function newUser(
   browser: Browser,
   name: string,

@@ -644,6 +644,9 @@ describe("events", () => {
     ],
     ["match_joined", { courtId: "court-1", matchId: "m1", minutesToJoin: 12 }],
     ["trust_rating", { courtId: "court-1", rating: 4, liveCount: 2 }],
+    ["trust_skipped", { courtId: "court-1", liveCount: 2 }],
+    ["court_viewed", { courtId: "court-1", reportedCount: 3 }],
+    ["feedback_skipped", {}],
   ];
 
   for (const [name, fields] of valid) {
@@ -714,5 +717,42 @@ describe("events", () => {
       eventData("alice", "checkin_feedback", { answer: "forgot" }),
     );
     await assertFails(getDoc(doc(asUser("alice"), "events/e1")));
+  });
+
+  it("R-50 a court view without a recent report is allowed", async () => {
+    await assertSucceeds(
+      addDoc(
+        collection(asUser("alice"), "events"),
+        eventData("alice", "court_viewed", {
+          courtId: "court-1",
+          reportedCount: null,
+        }),
+      ),
+    );
+  });
+
+  it("R-51 new events reject bad values", async () => {
+    const db = asUser("alice");
+    await assertFails(
+      addDoc(
+        collection(db, "events"),
+        eventData("alice", "court_viewed", {
+          courtId: "court-1",
+          reportedCount: "3",
+        }),
+      ),
+    );
+    await assertFails(
+      addDoc(
+        collection(db, "events"),
+        eventData("alice", "court_viewed", { reportedCount: 3 }),
+      ),
+    );
+    await assertFails(
+      addDoc(
+        collection(db, "events"),
+        eventData("alice", "trust_skipped", { courtId: "court-1" }),
+      ),
+    );
   });
 });

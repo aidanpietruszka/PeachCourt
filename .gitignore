@@ -39,3 +39,6 @@ scripts/serviceAccountKey.json
 /playwright-report
 firebase-debug.log
 firestore-debug.log
+
+# Export
+/exports

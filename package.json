@@ -11,7 +11,8 @@
     "test.unit": "vitest run",
     "test.rules": "firebase emulators:exec --only firestore --project demo-peachcourt \"vitest run --config vitest.rules.config.ts\"",
     "test.e2e": "firebase emulators:exec --only auth,firestore --project demo-peachcourt \"playwright test\"",
-    "lint": "eslint"
+    "lint": "eslint",
+    "export": "node scripts/exportEvents.mjs"
   },
   "dependencies": {
     "@capacitor/app": "8.1.2",
