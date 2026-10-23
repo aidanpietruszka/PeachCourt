@@ -1,0 +1,273 @@
+import {
+  expect,
+  type Browser,
+  type BrowserContext,
+  type Locator,
+  type Page,
+} from "@playwright/test";
+
+export const APP_URL = "http://127.0.0.1:5174";
+export const PIEDMONT_PARK = { latitude: 33.7851, longitude: -84.3738 };
+
+const PROJECT_ID = "demo-peachcourt";
+const FIRESTORE = "http://127.0.0.1:8080";
+const AUTH = "http://127.0.0.1:9099";
+
+export const COURTS = {
+  alpha: {
+    id: "court-alpha",
+    name: "Alpha Tennis Center",
+    address: "1 Test St NE, Atlanta",
+    latitude: 33.7853,
+    longitude: -84.3735,
+    sports: ["tennis"],
+    numberOfCourts: 4,
+    surface: "Hard",
+    hasLights: true,
+    hours: "7 AM - 11 PM",
+    walkOnRules: "First come, first served",
+    reservationInfo: "Unknown",
+  },
+  beta: {
+    id: "court-beta",
+    name: "Beta Park",
+    address: "2 Test Ave NW, Atlanta",
+    latitude: 33.81,
+    longitude: -84.42,
+    sports: ["tennis", "pickleball"],
+    numberOfCourts: 2,
+    surface: "Unknown",
+    hasLights: null,
+    hours: "Unknown",
+    walkOnRules: "Unknown",
+    reservationInfo: "Unknown",
+  },
+  gamma: {
+    id: "court-gamma",
+    name: "Gamma Pickleball",
+    address: "3 Test Rd SE, Atlanta",
+    latitude: 33.74,
+    longitude: -84.36,
+    sports: ["pickleball"],
+    numberOfCourts: 6,
+    surface: "Concrete",
+    hasLights: false,
+    hours: "6 AM - 10 PM",
+    walkOnRules: "Paddle stacking",
+    reservationInfo: "Unknown",
+  },
+} as const;
+
+type FirestoreValue =
+  | { stringValue: string }
+  | { integerValue: string }
+  | { doubleValue: number }
+  | { booleanValue: boolean }
+  | { nullValue: null }
+  | { arrayValue: { values: FirestoreValue[] } };
+
+function toValue(value: unknown): FirestoreValue {
+  if (value === null) {
+    return { nullValue: null };
+  }
+  if (typeof value === "boolean") {
+    return { booleanValue: value };
+  }
+  if (typeof value === "number") {
+    return Number.isInteger(value)
+      ? { integerValue: String(value) }
+      : { doubleValue: value };
+  }
+  if (Array.isArray(value)) {
+    return { arrayValue: { values: value.map(toValue) } };
+  }
+  return { stringValue: String(value) };
+}
+
+export async function resetData() {
+  await fetch(
+    `${FIRESTORE}/emulator/v1/projects/${PROJECT_ID}/databases/(default)/documents`,
+    {
+      method: "DELETE",
+    },
+  );
+  await fetch(`${AUTH}/emulator/v1/projects/${PROJECT_ID}/accounts`, {
+    method: "DELETE",
+  });
+
+  for (const { id, ...court } of Object.values(COURTS)) {
+    const fields = Object.fromEntries(
+      Object.entries(court).map(([key, value]) => [key, toValue(value)]),
+    );
+    const response = await fetch(
+      `${FIRESTORE}/v1/projects/${PROJECT_ID}/databases/(default)/documents/courts?documentId=${id}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer owner",
+        },
+        body: JSON.stringify({ fields }),
+      },
+    );
+    expect(response.ok).toBe(true);
+  }
+}
+
+export async function newUser(
+  browser: Browser,
+  name: string,
+  options: { skipPrompts?: boolean; geolocation?: boolean } = {},
+): Promise<{ context: BrowserContext; page: Page; email: string }> {
+  const { skipPrompts = true, geolocation = true } = options;
+  const context = await browser.newContext({
+    baseURL: APP_URL,
+    viewport: { width: 390, height: 844 },
+    ...(geolocation
+      ? { geolocation: PIEDMONT_PARK, permissions: ["geolocation"] }
+      : { permissions: [] }),
+  });
+  if (skipPrompts) {
+    await context.addInitScript(() => {
+      try {
+        window.sessionStorage.setItem("peachcourt-trust-asked", "true");
+      } catch {
+        return;
+      }
+    });
+  }
+  const page = await context.newPage();
+  const email = await signUp(page, name);
+  return { context, page, email };
+}
+
+export async function signUp(page: Page, name: string) {
+  const email = `${name.toLowerCase()}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@test.dev`;
+  await page.goto("/signup");
+  await page.getByPlaceholder("Name (optional)").fill(name);
+  await page.getByPlaceholder("Email").fill(email);
+  await page.getByPlaceholder("Password (6+ characters)").fill("secret123");
+  await page.getByPlaceholder("Confirm password").fill("secret123");
+  await page.getByRole("button", { name: "Sign up", exact: true }).click();
+  await expect(page).toHaveURL(/\/courts$/);
+  return email;
+}
+
+export async function expectLoginPageShown(page: Page) {
+  await expect(page).toHaveURL(/\/login$/);
+  const loginPage = page
+    .locator("div.ion-page")
+    .filter({ has: page.locator("h1.pc-title", { hasText: "Log in" }) });
+  await expect(loginPage).toHaveCount(1);
+  await expect(loginPage).not.toHaveClass(/ion-page-(invisible|hidden)/);
+}
+
+export function visibleText(page: Page, text: string | RegExp) {
+  return page.getByText(text).filter({ visible: true }).first();
+}
+
+export async function openCourt(page: Page, courtName: string) {
+  await page
+    .locator("ion-item")
+    .filter({ hasText: courtName })
+    .filter({ visible: true })
+    .first()
+    .click();
+  await expect(
+    page
+      .locator("h1.pc-title")
+      .filter({ hasText: courtName })
+      .filter({ visible: true }),
+  ).toBeVisible();
+}
+
+export async function backToCourts(page: Page) {
+  await page
+    .locator("ion-back-button")
+    .filter({ visible: true })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/\/courts$/);
+}
+
+export function ionButton(scope: Page | Locator, text: string) {
+  return scope
+    .locator("ion-button")
+    .filter({ hasText: new RegExp(`^\\s*${text}\\s*$`) })
+    .filter({ visible: true })
+    .first();
+}
+
+export function liveCard(page: Page) {
+  return page.locator(".live-card").filter({ visible: true }).first();
+}
+
+export function openAlert(page: Page) {
+  return page.locator("ion-alert").filter({ visible: true }).last();
+}
+
+export function alertInput(page: Page) {
+  return openAlert(page).locator("input");
+}
+
+export function alertButton(page: Page, text: string) {
+  return openAlert(page).locator("button").filter({ hasText: text }).first();
+}
+
+export async function checkIn(page: Page, headCount: number) {
+  await ionButton(page.locator("ion-footer"), "Check in").click();
+  await alertInput(page).fill(String(headCount));
+  await alertButton(page, "Check in").click();
+  await expect(visibleText(page, "You're checked in")).toBeVisible();
+}
+
+export async function closeConfirmation(page: Page) {
+  await ionButton(page.locator("ion-modal"), "Done").click();
+}
+
+export async function dismissFeedbackIfShown(page: Page) {
+  const notNow = alertButton(page, "Not now");
+  const shown = await notNow
+    .waitFor({ state: "visible", timeout: 2_000 })
+    .then(() => true)
+    .catch(() => false);
+  if (shown) {
+    await notNow.click();
+    await expect(openAlert(page)).toHaveCount(0);
+  }
+}
+
+export async function postGame(
+  page: Page,
+  options: { sport?: "Tennis" | "Pickleball"; skill: string; time?: string },
+) {
+  await ionButton(page.locator("ion-footer"), "Post a game").click();
+  const modal = page.locator("ion-modal").filter({ visible: true }).last();
+  if (options.sport) {
+    await modal
+      .locator("ion-segment-button")
+      .filter({ hasText: options.sport })
+      .click();
+  }
+  await modal.locator("ion-select").nth(0).click();
+  await page
+    .locator("ion-popover")
+    .getByText("Tomorrow", { exact: true })
+    .click();
+  await modal.locator('input[type="time"]').fill(options.time ?? "10:00");
+  await modal.locator("ion-select").nth(1).click();
+  await page
+    .locator("ion-popover")
+    .getByText(options.skill, { exact: true })
+    .click();
+  await ionButton(modal, "Post game").click();
+  await expect(visibleText(page, "Your game is posted.")).toBeVisible();
+}
+
+export function gameCard(page: Page, hostName: string) {
+  return page
+    .locator(".match-card")
+    .filter({ hasText: hostName })
+    .filter({ visible: true })
+    .first();
+}

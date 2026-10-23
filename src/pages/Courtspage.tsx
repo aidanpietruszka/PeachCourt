@@ -8,10 +8,10 @@ import {
   IonPage,
   IonSegment,
   IonSegmentButton,
+  useIonRouter,
   IonToast,
 } from "@ionic/react";
 import { Geolocation } from "@capacitor/geolocation";
-import { useNavigate } from "react-router-dom";
 import CourtMap, { CourtMapItem } from "../components/CourtMap";
 import { useAuth } from "../components/useAuth";
 import {
@@ -30,7 +30,7 @@ import {
 import "./Courtspage.css";
 
 const CourtsPage: React.FC = () => {
-  const navigate = useNavigate();
+  const ionRouter = useIonRouter();
   const { user } = useAuth();
   const uid = user?.uid ?? null;
   const [sport, setSport] = useState<Sport>("tennis");
@@ -177,8 +177,8 @@ const CourtsPage: React.FC = () => {
 
   const handleLogout = async () => {
     try {
+      ionRouter.push("/login", "root", "replace");
       await logout();
-      navigate("/", { replace: true });
     } catch (error) {
       console.error("Unable to log out", error);
       setToastMessage("Log out failed. Please try again.");

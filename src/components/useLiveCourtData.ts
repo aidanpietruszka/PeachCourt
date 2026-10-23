@@ -8,30 +8,18 @@ import {
   type DocumentData,
 } from "firebase/firestore";
 import { db } from "../services/firebase";
-import { isValidSkill } from "../utils/skill";
+import {
+  summarizeActivity,
+  type CourtActivity,
+  type CourtReport,
+} from "../utils/activity";
 import { useAuth } from "./useAuth";
 
-export const REPORT_WINDOW_MINUTES = 120;
-
-export interface CourtActivity {
-  checkedIn: number;
-  reported: number | null;
-  reportedAt: Date | null;
-  openGames: number;
-}
-
-export const EMPTY_ACTIVITY: CourtActivity = {
-  checkedIn: 0,
-  reported: null,
-  reportedAt: null,
-  openGames: 0,
-};
-
-interface CourtReport {
-  courtId: string;
-  playerCount: number;
-  reportedAt: Timestamp;
-}
+export {
+  EMPTY_ACTIVITY,
+  REPORT_WINDOW_MINUTES,
+  type CourtActivity,
+} from "../utils/activity";
 
 export function useLiveCourtData(): Record<string, CourtActivity> {
   const { user } = useAuth();
@@ -96,53 +84,8 @@ export function useLiveCourtData(): Record<string, CourtActivity> {
     return () => window.clearInterval(timer);
   }, []);
 
-  return useMemo(() => {
-    const activity: Record<string, CourtActivity> = {};
-    const entryFor = (courtId: string) => {
-      activity[courtId] ??= { ...EMPTY_ACTIVITY };
-      return activity[courtId];
-    };
-
-    checkins.forEach((checkin) => {
-      const arrival =
-        checkin.scheduledArrivalAt instanceof Timestamp
-          ? checkin.scheduledArrivalAt
-          : checkin.checkedInAt;
-      if (
-        typeof checkin.courtId !== "string" ||
-        !(arrival instanceof Timestamp) ||
-        !(checkin.expiresAt instanceof Timestamp) ||
-        arrival.toMillis() > now ||
-        checkin.expiresAt.toMillis() <= now
-      ) {
-        return;
-      }
-      entryFor(checkin.courtId).checkedIn += 1;
-    });
-
-    reports.forEach((report) => {
-      if (now - report.reportedAt.toMillis() > REPORT_WINDOW_MINUTES * 60_000) {
-        return;
-      }
-      const entry = entryFor(report.courtId);
-      entry.reported = report.playerCount;
-      entry.reportedAt = report.reportedAt.toDate();
-    });
-
-    matches.forEach((match) => {
-      if (
-        typeof match.courtId !== "string" ||
-        !isValidSkill(match.sport, match.skillLevel) ||
-        !(match.startAt instanceof Timestamp) ||
-        match.startAt.toMillis() <= now ||
-        !Array.isArray(match.playerUids) ||
-        match.playerUids.length >= match.spotsTotal
-      ) {
-        return;
-      }
-      entryFor(match.courtId).openGames += 1;
-    });
-
-    return activity;
-  }, [checkins, reports, matches, now]);
+  return useMemo(
+    () => summarizeActivity(checkins, reports, matches, now),
+    [checkins, reports, matches, now],
+  );
 }

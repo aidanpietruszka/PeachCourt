@@ -35,3 +35,7 @@ scripts/serviceAccountKey.json
 
 # Optional eslint cache
 .eslintcache
+/test-results
+/playwright-report
+firebase-debug.log
+firestore-debug.log

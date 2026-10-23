@@ -17,6 +17,7 @@ import {
   IonTitle,
   IonToast,
   IonToolbar,
+  type AlertInput,
 } from "@ionic/react";
 import { useAuth } from "./useAuth";
 import { MatchService, SPOTS_BY_FORMAT } from "../services/MatchService";
@@ -28,9 +29,19 @@ import type {
   Sport,
 } from "../types/types";
 import { formatSkill, SKILL_LEVELS, SPORT_LABEL } from "../utils/skill";
+import { buildStart, formatStart } from "../utils/time";
 import "./MatchBoard.css";
 
 const NAME_KEY = "peachcourt-first-name";
+
+const JOIN_INPUTS: AlertInput[] = [
+  {
+    name: "playerName",
+    type: "text",
+    placeholder: "Your first name",
+    attributes: { maxlength: 40 },
+  },
+];
 
 const FORMAT_LABEL: Record<MatchFormat, string> = {
   singles: "Singles",
@@ -51,44 +62,6 @@ function saveName(name: string) {
   } catch (error) {
     console.warn("Unable to remember your first name", error);
   }
-}
-
-function startOfDay(date: Date): number {
-  return new Date(
-    date.getFullYear(),
-    date.getMonth(),
-    date.getDate(),
-  ).getTime();
-}
-
-function formatStart(startAt: Date, now: number): string {
-  const time = startAt.toLocaleTimeString([], {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-  const dayDifference = Math.round(
-    (startOfDay(startAt) - startOfDay(new Date(now))) / 86_400_000,
-  );
-  if (dayDifference === 0) {
-    return `Today ${time}`;
-  }
-  if (dayDifference === 1) {
-    return `Tomorrow ${time}`;
-  }
-  return `${startAt.toLocaleDateString()} ${time}`;
-}
-
-function buildStart(day: "today" | "tomorrow", time: string): Date | null {
-  const [hours, minutes] = time.split(":").map(Number);
-  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) {
-    return null;
-  }
-  const date = new Date();
-  if (day === "tomorrow") {
-    date.setDate(date.getDate() + 1);
-  }
-  date.setHours(hours, minutes, 0, 0);
-  return date;
 }
 
 interface MatchBoardProps {
@@ -430,14 +403,7 @@ const MatchBoard: React.FC<MatchBoardProps> = ({
             ? `${joiningMatch.hostName} · ${FORMAT_LABEL[joiningMatch.format]} · ${formatStart(joiningMatch.startAt.toDate(), now)}`
             : ""
         }
-        inputs={[
-          {
-            name: "playerName",
-            type: "text",
-            placeholder: "Your first name",
-            attributes: { maxlength: 40 },
-          },
-        ]}
+        inputs={JOIN_INPUTS}
         buttons={[
           { text: "Cancel", role: "cancel" },
           {

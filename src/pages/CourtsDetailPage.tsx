@@ -15,6 +15,7 @@ import {
   IonText,
   IonToast,
   IonToolbar,
+  type AlertInput,
 } from "@ionic/react";
 import { Geolocation } from "@capacitor/geolocation";
 import { useParams } from "react-router-dom";
@@ -40,6 +41,9 @@ const DISTANCE_WARNING_METERS = 150;
 const FEEDBACK_PROMPT_KEY = "peachcourt-checkin-feedback-asked";
 const TRUST_PROMPT_KEY = "peachcourt-trust-asked";
 const TRUST_PROMPT_DELAY_MS = 5_000;
+const HEAD_COUNT_INPUTS: AlertInput[] = [
+  { name: "playerCount", type: "number", value: 1, min: 1, max: 20 },
+];
 
 function lightsLabel(hasLights: boolean | null): string {
   if (hasLights === null) {
@@ -378,9 +382,7 @@ const CourtDetailPage: React.FC = () => {
         isOpen={isCountPromptOpen}
         header="Check in"
         message="How many people are here right now, including you?"
-        inputs={[
-          { name: "playerCount", type: "number", value: 1, min: 1, max: 20 },
-        ]}
+        inputs={HEAD_COUNT_INPUTS}
         buttons={[
           { text: "Cancel", role: "cancel" },
           {
