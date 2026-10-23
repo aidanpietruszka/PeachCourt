@@ -19,7 +19,7 @@ import {
   IonToolbar,
   type AlertInput,
 } from "@ionic/react";
-import { useAuth } from "./useAuth";
+import { useAuth } from "../hooks/useAuth";
 import { MatchService, SPOTS_BY_FORMAT } from "../services/MatchService";
 import type {
   Court,

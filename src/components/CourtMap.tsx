@@ -3,9 +3,8 @@ import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import { Link } from "react-router-dom";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import type { Court } from "../types/types.ts";
-import { PIEDMONT_PARK } from "../data/sampleCourts";
-import { formatActivity } from "../utils/geo";
+import type { Court } from "../types/types";
+import { PIEDMONT_PARK, formatActivity } from "../utils/geo";
 import "./CourtMap.css";
 
 export interface CourtMapItem {

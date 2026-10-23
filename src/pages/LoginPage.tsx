@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from "react";
 import {
   IonBackButton,
   IonButton,
@@ -10,25 +10,27 @@ import {
   IonToolbar,
   IonSpinner,
   useIonRouter,
-} from '@ionic/react';
-import './AuthPages.css';
-import { authErrorMessage, signInWithEmail, signInWithGoogle } from '../services/auth';
-import './AuthPages.css';
+} from "@ionic/react";
+import {
+  authErrorMessage,
+  signInWithEmail,
+  signInWithGoogle,
+} from "../services/auth";
+import "./AuthPages.css";
 
 const LoginPage: React.FC = () => {
   const ionRouter = useIonRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  /** Runs one sign-in action with busy state, error handling, and navigation. */
   const run = async (action: () => Promise<void>) => {
-    setError('');
+    setError("");
     setBusy(true);
     try {
       await action();
-      ionRouter.push('/courts', 'root', 'replace');
+      ionRouter.push("/courts", "root", "replace");
     } catch (e) {
       setError(authErrorMessage(e));
     } finally {
@@ -39,7 +41,7 @@ const LoginPage: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !password) {
-      setError('Enter your email and password.');
+      setError("Enter your email and password.");
       return;
     }
     run(() => signInWithEmail(email.trim(), password));
@@ -58,7 +60,9 @@ const LoginPage: React.FC = () => {
       <IonContent>
         <div className="pc-screen auth-page">
           <h1 className="pc-title">Log in</h1>
-          <p className="pc-subtitle">Welcome back. Log in to check in at courts near you.</p>
+          <p className="pc-subtitle">
+            Welcome back. Log in to check in at courts near you.
+          </p>
 
           <form onSubmit={handleSubmit}>
             <div className="auth-field">
@@ -67,7 +71,7 @@ const LoginPage: React.FC = () => {
                 placeholder="Email"
                 autocomplete="email"
                 value={email}
-                onIonInput={(e) => setEmail(String(e.detail.value ?? ''))}
+                onIonInput={(e) => setEmail(String(e.detail.value ?? ""))}
               />
             </div>
             <div className="auth-field">
@@ -76,14 +80,14 @@ const LoginPage: React.FC = () => {
                 placeholder="Password"
                 autocomplete="current-password"
                 value={password}
-                onIonInput={(e) => setPassword(String(e.detail.value ?? ''))}
+                onIonInput={(e) => setPassword(String(e.detail.value ?? ""))}
               />
             </div>
 
             {error && <div className="auth-error">{error}</div>}
 
             <IonButton expand="block" type="submit" disabled={busy}>
-              {busy ? <IonSpinner name="dots" /> : 'Log in'}
+              {busy ? <IonSpinner name="dots" /> : "Log in"}
             </IonButton>
           </form>
 
@@ -99,11 +103,11 @@ const LoginPage: React.FC = () => {
           </IonButton>
 
           <div className="auth-switch">
-            New to PeachCourt?{' '}
+            New to PeachCourt?{" "}
             <button
               type="button"
               className="auth-link"
-              onClick={() => ionRouter.push('/signup', 'forward', 'replace')}
+              onClick={() => ionRouter.push("/signup", "forward", "replace")}
             >
               Create an account
             </button>

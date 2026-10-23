@@ -1,28 +1,15 @@
-/* For information on how to create your own theme, please refer to:
-http://ionicframework.com/docs/theming/ */
-
-
 :root {
-  /* Brand */
   --pc-green: #0d9677;
   --pc-green-light: #e3f5ef;
-
-  /* Neutrals */
   --pc-text: #111111;
   --pc-text-muted: #8a8a8e;
   --pc-card-bg: #f2f2f7;
   --pc-border: #e5e5ea;
-  --pc-white: #ffffff;
-
-  /* Status pills */
   --pc-open-bg: #e3f5ef;
   --pc-open-text: #0d9677;
-  --pc-busy-bg: #fdf1d6;
-  --pc-busy-text: #a8660a;
   --pc-full-bg: #fde8e8;
   --pc-full-text: #c0392b;
 
-  /* Map `Ionic` onto our tokens */
   --ion-color-primary: #0d9677;
   --ion-color-primary-rgb: 13, 150, 119;
   --ion-color-primary-contrast: #ffffff;
@@ -31,11 +18,12 @@ http://ionicframework.com/docs/theming/ */
   --ion-color-primary-tint: #26a184;
 
   --ion-background-color: #ffffff;
+  --ion-toolbar-background: #ffffff;
   --ion-text-color: #111111;
-  --ion-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --ion-font-family:
+    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-/* Shared screen styles */
 .pc-screen {
   padding: 8px 16px 24px;
 }
