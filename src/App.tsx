@@ -1,13 +1,13 @@
 import { Route } from "react-router-dom";
 import { IonApp, IonRouterOutlet, setupIonicReact } from "@ionic/react";
 import { IonReactRouter } from "@ionic/react-router";
-import CourtsPage from "./pages/Courtspage";
-import CourtDetailPage from "./pages/CourtsDetailPage";
+import CourtsPage from "./pages/CourtsPage";
+import CourtDetailPage from "./pages/CourtDetailPage";
 import WelcomePage from "./pages/WelcomePage";
 import LoginPage from "./pages/LoginPage";
 import SignUpPage from "./pages/SignUpPage";
 import ProtectedRoute from "./components/ProtectedRoute";
-import { AuthProvider } from "./components/useAuth";
+import { AuthProvider } from "./hooks/useAuth";
 
 import "@ionic/react/css/core.css";
 

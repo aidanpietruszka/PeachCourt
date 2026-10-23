@@ -1,15 +1,24 @@
-import { IonContent, IonPage, IonSpinner } from '@ionic/react';
-import { Navigate } from 'react-router-dom';
-import { useAuth } from './useAuth';
+import { IonContent, IonPage, IonSpinner } from "@ionic/react";
+import { Navigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
 
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const { user, loading } = useAuth();
 
   if (loading) {
     return (
       <IonPage>
         <IonContent>
-          <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+          <div
+            style={{
+              display: "flex",
+              height: "100%",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
             <IonSpinner />
           </div>
         </IonContent>

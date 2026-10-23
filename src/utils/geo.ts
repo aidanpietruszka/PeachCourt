@@ -1,3 +1,5 @@
+export const PIEDMONT_PARK: [number, number] = [33.7851, -84.3738];
+
 export function distanceBetweenMeters(
   latitude1: number,
   longitude1: number,
