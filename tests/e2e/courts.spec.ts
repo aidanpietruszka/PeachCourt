@@ -47,7 +47,10 @@ test("E2E-07 with location the list is nearest first with distances", async ({
   await expect(page.locator("#nearby-courts-heading")).toHaveText(
     "3 tennis courts",
   );
-  await expect(visibleText(page, "Nearest first ▾")).toBeVisible();
+  await expect(
+    page.locator(".courts-page__list-header .courts-chip--filter"),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: /▾/ })).toHaveCount(0);
   const firstRow = page.locator(".courts-page__list ion-item").first();
   await expect(firstRow).toContainText(COURTS.alpha.name);
   await expect(firstRow).toContainText(/ft|mi/);
@@ -58,7 +61,7 @@ test("E2E-07 with location the list is nearest first with distances", async ({
   await context.close();
 });
 
-test("E2E-08 without location the list says most active", async ({
+test("E2E-08 without location the list asks for location access", async ({
   browser,
 }) => {
   const { context, page } = await newUser(browser, "Sam", {
@@ -67,7 +70,7 @@ test("E2E-08 without location the list says most active", async ({
   await expect(page.locator("#nearby-courts-heading")).toHaveText(
     "3 tennis courts",
   );
-  await expect(visibleText(page, "Most active ▾")).toBeVisible();
+  await expect(page.getByRole("button", { name: /▾/ })).toHaveCount(0);
   await expect(
     visibleText(page, "Allow location access to sort courts by distance."),
   ).toBeVisible();

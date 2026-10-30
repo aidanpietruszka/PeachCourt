@@ -211,30 +211,6 @@ export function activeFilterChips(
   return chips;
 }
 
-export function removeFilter(filters: CourtFilters, key: string): CourtFilters {
-  if (key.startsWith("surface:")) {
-    const surface = key.slice("surface:".length);
-    return {
-      ...filters,
-      surfaces: filters.surfaces.filter((item) => item !== surface),
-    };
-  }
-  if (key === "distance") {
-    return { ...filters, distanceMiles: null };
-  }
-  if (
-    key === "playersNow" ||
-    key === "openGames" ||
-    key === "openNow" ||
-    key === "lights" ||
-    key === "pickleballLines" ||
-    key === "firstCome"
-  ) {
-    return { ...filters, [key]: false };
-  }
-  return filters;
-}
-
 export function clearFilters(filters: CourtFilters): CourtFilters {
   return { ...DEFAULT_FILTERS, sort: filters.sort, surfaces: [] };
 }
@@ -356,10 +332,4 @@ export function buildRows(
       byName(a, b)
     );
   });
-}
-
-export function sortLabel(sort: CourtSort, hasLocation: boolean): string {
-  if (sort === "players") return "Most players";
-  if (sort === "games") return "Most open games";
-  return hasLocation ? "Nearest first" : "Most active";
 }

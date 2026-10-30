@@ -36,13 +36,6 @@ function filterButton(page: Page) {
   return page.locator(".courts-chip--filter");
 }
 
-function quickChip(page: Page, label: string) {
-  return page
-    .locator(".courts-page__chips button")
-    .filter({ hasText: new RegExp(`^${label}$`) })
-    .filter({ visible: true });
-}
-
 function sheet(page: Page) {
   return page.getByRole("dialog", { name: "Filter courts" });
 }
@@ -63,18 +56,45 @@ async function closeSheet(page: Page) {
   await expect(sheet(page)).toHaveCount(0);
 }
 
+async function applyFlag(page: Page, label: string) {
+  await openSheet(page);
+  await sheetChip(page, label).click();
+  await closeSheet(page);
+}
+
+async function returnToCourts(page: Page) {
+  await expect(page.locator("ion-router-outlet")).not.toHaveAttribute(
+    "aria-hidden",
+    "true",
+  );
+  await backToCourts(page);
+  await expect(page.locator(".ion-page.can-go-back")).toHaveCount(0);
+}
+
 async function pickSport(page: Page, sport: "Tennis" | "Pickleball") {
   await page.locator("ion-segment-button").filter({ hasText: sport }).click();
 }
 
-test("E2E-45 the chip row shows Filter courts and the three quick chips", async ({
+test("E2E-45 Filter courts sits under the map and the filter pills are gone", async ({
   browser,
 }) => {
   const { context, page } = await newUser(browser, "Sam");
   await expect(filterButton(page)).toHaveText("Filter courts");
-  await expect(quickChip(page, "Players now")).toBeVisible();
-  await expect(quickChip(page, "Has open games")).toBeVisible();
-  await expect(quickChip(page, "Lights")).toBeVisible();
+  await expect(filterButton(page)).toHaveCount(1);
+  await expect(page.locator(".courts-page__chips")).toHaveCount(0);
+  for (const label of ["Players now", "Has open games", "Lights"]) {
+    await expect(
+      page.getByRole("button", { name: label, exact: true }),
+    ).toHaveCount(0);
+  }
+  const mapBox = await page.locator(".courts-page__map").boundingBox();
+  const buttonBox = await filterButton(page).boundingBox();
+  expect(mapBox).not.toBeNull();
+  expect(buttonBox).not.toBeNull();
+  expect(buttonBox!.y).toBeGreaterThanOrEqual(mapBox!.y + mapBox!.height);
+  await expect(
+    page.locator(".courts-page__list-header").locator(".courts-chip--filter"),
+  ).toBeVisible();
   await expect(heading(page)).toHaveText("3 tennis courts");
   await context.close();
 });
@@ -90,30 +110,31 @@ test("E2E-46 the sport control lists Pickleball first and Tennis second", async 
   await context.close();
 });
 
-test("E2E-47 the Lights quick chip hides courts without confirmed lights", async ({
+test("E2E-47 the Lights filter hides courts without confirmed lights", async ({
   browser,
 }) => {
   const { context, page } = await newUser(browser, "Sam");
-  await quickChip(page, "Lights").click();
+  await applyFlag(page, "Lights");
   await expect(rowNames(page)).toHaveText([names.alpha, names.delta]);
   await expect(filterButton(page)).toHaveText("Filter courts · 1");
   await expect(heading(page)).toHaveText("2 of 4 courts");
-  await expect(quickChip(page, "Players now")).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: "Remove filter Lights" }),
-  ).toBeVisible();
+  ).toHaveCount(0);
   await context.close();
 });
 
-test("E2E-48 removing an active chip restores the list", async ({
+test("E2E-48 turning a filter off in the sheet restores the list", async ({
   browser,
 }) => {
   const { context, page } = await newUser(browser, "Sam");
-  await quickChip(page, "Lights").click();
-  await page.getByRole("button", { name: "Remove filter Lights" }).click();
+  await applyFlag(page, "Lights");
+  await expect(rowNames(page)).toHaveCount(2);
+  await openSheet(page);
+  await sheetChip(page, "Lights").click();
+  await closeSheet(page);
   await expect(rowNames(page)).toHaveCount(3);
   await expect(filterButton(page)).toHaveText("Filter courts");
-  await expect(quickChip(page, "Lights")).toBeVisible();
   await context.close();
 });
 
@@ -340,7 +361,7 @@ test("E2E-61 Open now shows the empty state outside every court's hours", async 
 test("E2E-62 Players now keeps courts with a report", async ({ browser }) => {
   await seedReport(COURTS.beta.id, 4);
   const { context, page } = await newUser(browser, "Sam");
-  await quickChip(page, "Players now").click();
+  await applyFlag(page, "Players there now");
   await expect(rowNames(page)).toHaveText([names.beta]);
   await expect(page.locator(".courts-page__list")).toContainText("4 reported");
   await context.close();
@@ -353,9 +374,10 @@ test("E2E-63 Players now keeps a court once someone checks in", async ({
   await openCourt(page, names.alpha);
   await checkIn(page, 2);
   await closeConfirmation(page);
+  await expect(page.locator("ion-modal.show-modal")).toHaveCount(0);
   await dismissFeedbackIfShown(page);
-  await backToCourts(page);
-  await quickChip(page, "Players now").click();
+  await returnToCourts(page);
+  await applyFlag(page, "Players there now");
   await expect(rowNames(page)).toHaveText([names.alpha]);
   await context.close();
 });
@@ -367,7 +389,8 @@ test("E2E-64 Has open games keeps courts with a posted game", async ({
   await openCourt(page, names.alpha);
   await postGame(page, { skill: "4.0" });
   await backToCourts(page);
-  await quickChip(page, "Has open games").click();
+  await page.reload();
+  await applyFlag(page, "Has open games");
   await expect(rowNames(page)).toHaveText([names.alpha]);
   await expect(page.locator(".courts-page__list")).toContainText("1 open game");
   await context.close();
@@ -385,55 +408,54 @@ test("E2E-65 Most players sorts by head count", async ({ browser }) => {
     names.alpha,
     names.delta,
   ]);
-  await expect(visibleText(page, "Most players ▾")).toBeVisible();
+  await expect(page.getByRole("button", { name: /▾/ })).toHaveCount(0);
   await context.close();
 });
 
-test("E2E-66 the list header sort menu changes the order", async ({
+test("E2E-66 the sheet sort changes the order and can be changed back", async ({
   browser,
 }) => {
   await seedReport(COURTS.beta.id, 8);
   const { context, page } = await newUser(browser, "Sam");
   await expect(rowNames(page).first()).toHaveText(names.alpha);
-  await page.getByRole("button", { name: "Nearest first ▾" }).click();
-  await page
-    .locator("ion-action-sheet")
-    .getByRole("button", { name: "Most players" })
-    .click();
+  await openSheet(page);
+  await sheetChip(page, "Most players").click();
+  await closeSheet(page);
   await expect(rowNames(page).first()).toHaveText(names.beta);
-  await expect(
-    page.getByRole("button", { name: "Most players ▾" }),
-  ).toBeVisible();
+  await openSheet(page);
+  await sheetChip(page, "Nearest").click();
+  await closeSheet(page);
+  await expect(rowNames(page).first()).toHaveText(names.alpha);
   await context.close();
 });
 
-test("E2E-67 cancelling the sort menu keeps the current sort", async ({
+test("E2E-67 closing the sheet without changing sort keeps the order and no sort menu exists", async ({
   browser,
 }) => {
+  await seedReport(COURTS.beta.id, 8);
   const { context, page } = await newUser(browser, "Sam");
-  await page.getByRole("button", { name: "Nearest first ▾" }).click();
-  await page
-    .locator("ion-action-sheet")
-    .getByRole("button", { name: "Cancel" })
-    .click();
-  await expect(
-    page.getByRole("button", { name: "Nearest first ▾" }),
-  ).toBeVisible();
+  await openSheet(page);
+  await closeSheet(page);
+  await expect(rowNames(page).first()).toHaveText(names.alpha);
+  await expect(page.locator("ion-action-sheet")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /▾/ })).toHaveCount(0);
+  await expect(filterButton(page)).toHaveText("Filter courts");
   await context.close();
 });
 
-test("E2E-68 the sort menu has no Nearest option without location", async ({
+test("E2E-68 without location the list is ordered by activity and Nearest is not offered", async ({
   browser,
 }) => {
+  await seedReport(COURTS.beta.id, 8);
   const { context, page } = await newUser(browser, "Sam", {
     geolocation: false,
   });
-  await page.getByRole("button", { name: "Most active ▾" }).click();
-  const menu = page.locator("ion-action-sheet");
-  await expect(
-    menu.getByRole("button", { name: "Most players" }),
-  ).toBeVisible();
-  await expect(menu.getByRole("button", { name: "Nearest" })).toHaveCount(0);
+  await expect(rowNames(page).first()).toHaveText(names.beta);
+  await openSheet(page);
+  await expect(sheetChip(page, "Most players")).toBeVisible();
+  await expect(sheetChip(page, "Nearest")).toHaveCount(0);
+  await closeSheet(page);
+  await expect(page.locator("ion-action-sheet")).toHaveCount(0);
   await context.close();
 });
 
@@ -495,7 +517,7 @@ test("E2E-71 Clear all in the sheet resets filters but keeps the sort", async ({
 
 test("E2E-72 filters apply to the other sport tab", async ({ browser }) => {
   const { context, page } = await newUser(browser, "Sam");
-  await quickChip(page, "Lights").click();
+  await applyFlag(page, "Lights");
   await expect(rowNames(page)).toHaveText([names.alpha, names.delta]);
   await pickSport(page, "Pickleball");
   await expect(rowNames(page)).toHaveText([names.delta]);
@@ -509,7 +531,7 @@ test("E2E-72 filters apply to the other sport tab", async ({ browser }) => {
 test("E2E-73 the map shows only matching courts", async ({ browser }) => {
   const { context, page } = await newUser(browser, "Sam");
   await expect(page.locator(".court-pin")).toHaveCount(3);
-  await quickChip(page, "Lights").click();
+  await applyFlag(page, "Lights");
   await expect(page.locator(".court-pin")).toHaveCount(2);
   await page.getByRole("button", { name: "Clear", exact: true }).click();
   await expect(page.locator(".court-pin")).toHaveCount(3);
@@ -574,13 +596,18 @@ test("E2E-76 saved filters with unknown values are cleaned", async ({
   await context.close();
 });
 
-test("E2E-77 an ✕ chip removes only its own filter", async ({ browser }) => {
+test("E2E-77 turning one filter off in the sheet keeps the others", async ({
+  browser,
+}) => {
   const { context, page } = await newUser(browser, "Sam");
   await openSheet(page);
   await sheetChip(page, "Lights").click();
   await sheetChip(page, "Clay").click();
   await closeSheet(page);
-  await page.getByRole("button", { name: "Remove filter Lights" }).click();
+  await expect(filterButton(page)).toHaveText("Filter courts · 2");
+  await openSheet(page);
+  await sheetChip(page, "Lights").click();
+  await closeSheet(page);
   await expect(filterButton(page)).toHaveText("Filter courts · 1");
   await expect(rowNames(page)).toHaveText([names.delta]);
   await context.close();
@@ -590,10 +617,10 @@ test("E2E-78 a filtered court still opens its detail page", async ({
   browser,
 }) => {
   const { context, page } = await newUser(browser, "Sam");
-  await quickChip(page, "Lights").click();
+  await applyFlag(page, "Lights");
   await openCourt(page, names.delta);
   await expect(visibleText(page, names.delta)).toBeVisible();
-  await backToCourts(page);
+  await returnToCourts(page);
   await expect(filterButton(page)).toHaveText("Filter courts · 1");
   await expect(rowNames(page)).toHaveText([names.alpha, names.delta]);
   await context.close();

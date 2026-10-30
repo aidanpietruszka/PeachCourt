@@ -11,9 +11,7 @@ import {
   isOpenNow,
   loadFilters,
   parseFilters,
-  removeFilter,
   saveFilters,
-  sortLabel,
   sportMatches,
   toggleSurface,
   type CourtFilters,
@@ -429,43 +427,6 @@ describe("filter chips and edits", () => {
     expect(activeFilterChips(filters({ distanceMiles: 3 }), false)).toEqual([]);
   });
 
-  it("U-155 removing a chip clears only that filter", () => {
-    const start = filters({
-      lights: true,
-      playersNow: true,
-      surfaces: ["Hard", "Clay"],
-      distanceMiles: 3,
-    });
-    expect(removeFilter(start, "lights").lights).toBe(false);
-    expect(removeFilter(start, "lights").playersNow).toBe(true);
-    expect(removeFilter(start, "surface:Hard").surfaces).toEqual(["Clay"]);
-    expect(removeFilter(start, "distance").distanceMiles).toBeNull();
-    expect(removeFilter(start, "unknown")).toEqual(start);
-  });
-
-  it("U-156 every flag chip key can be removed", () => {
-    const all = filters({
-      playersNow: true,
-      openGames: true,
-      openNow: true,
-      lights: true,
-      pickleballLines: true,
-      firstCome: true,
-    });
-    let current = all;
-    for (const key of [
-      "playersNow",
-      "openGames",
-      "openNow",
-      "lights",
-      "pickleballLines",
-      "firstCome",
-    ]) {
-      current = removeFilter(current, key);
-    }
-    expect(current).toEqual(DEFAULT_FILTERS);
-  });
-
   it("U-157 clear all keeps the chosen sort", () => {
     const cleared = clearFilters(
       filters({ sort: "players", lights: true, surfaces: ["Hard"] }),
@@ -862,14 +823,5 @@ describe("buildRows sorting", () => {
       "a-near",
       "b-mid",
     ]);
-  });
-});
-
-describe("sortLabel", () => {
-  it("U-187 names each sort and the no-location fallback", () => {
-    expect(sortLabel("nearest", true)).toBe("Nearest first");
-    expect(sortLabel("nearest", false)).toBe("Most active");
-    expect(sortLabel("players", true)).toBe("Most players");
-    expect(sortLabel("games", false)).toBe("Most open games");
   });
 });

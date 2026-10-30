@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  IonActionSheet,
   IonButton,
   IonContent,
   IonItem,
@@ -26,22 +25,10 @@ import {
   activeFilterChips,
   buildRows,
   clearFilters,
-  removeFilter,
-  sortLabel,
-  type CourtSort,
 } from "../utils/courtFilters";
 import { courtSummary } from "../utils/courts";
 import { formatDistance } from "../utils/geo";
 import "./CourtsPage.css";
-
-const QUICK_CHIPS: {
-  key: "playersNow" | "openGames" | "lights";
-  label: string;
-}[] = [
-  { key: "playersNow", label: "Players now" },
-  { key: "openGames", label: "Has open games" },
-  { key: "lights", label: "Lights" },
-];
 
 const CourtsPage: React.FC = () => {
   const ionRouter = useIonRouter();
@@ -58,7 +45,6 @@ const CourtsPage: React.FC = () => {
   const [isBusy, setIsBusy] = useState(false);
   const [filters, changeFilters] = useCourtFilters();
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [sortOpen, setSortOpen] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [toastMessage, setToastMessage] = useState("");
   const gotLocation = useRef(false);
@@ -225,51 +211,6 @@ const CourtsPage: React.FC = () => {
                 <IonLabel>Tennis</IonLabel>
               </IonSegmentButton>
             </IonSegment>
-
-            <div className="courts-page__chips">
-              <button
-                type="button"
-                className={`courts-chip courts-chip--filter${chips.length > 0 ? " courts-chip--on" : ""}`}
-                onClick={() => setSheetOpen(true)}
-              >
-                {chips.length > 0
-                  ? `Filter courts · ${chips.length}`
-                  : "Filter courts"}
-              </button>
-              {chips.length > 0
-                ? chips.map((chip) => (
-                    <button
-                      key={chip.key}
-                      type="button"
-                      className="courts-chip courts-chip--selected"
-                      aria-label={`Remove filter ${chip.label}`}
-                      onClick={() =>
-                        changeFilters((current) =>
-                          removeFilter(current, chip.key),
-                        )
-                      }
-                    >
-                      {chip.label}
-                      <span aria-hidden="true">✕</span>
-                    </button>
-                  ))
-                : QUICK_CHIPS.map((chip) => (
-                    <button
-                      key={chip.key}
-                      type="button"
-                      className="courts-chip"
-                      aria-pressed={false}
-                      onClick={() =>
-                        changeFilters((current) => ({
-                          ...current,
-                          [chip.key]: true,
-                        }))
-                      }
-                    >
-                      {chip.label}
-                    </button>
-                  ))}
-            </div>
           </div>
 
           <div className="courts-page__map">
@@ -285,11 +226,13 @@ const CourtsPage: React.FC = () => {
             aria-labelledby="nearby-courts-heading"
           >
             <div className="courts-page__list-header">
-              {chips.length > 0 ? (
-                <>
-                  <h2 id="nearby-courts-heading" className="pc-section-heading">
-                    {`${rows.length} of ${courts.length} courts`}
-                  </h2>
+              <h2 id="nearby-courts-heading" className="pc-section-heading">
+                {chips.length > 0
+                  ? `${rows.length} of ${courts.length} courts`
+                  : `${rows.length} ${sportName} ${rows.length === 1 ? "court" : "courts"}`}
+              </h2>
+              <div className="courts-page__list-actions">
+                {chips.length > 0 && (
                   <button
                     type="button"
                     className="courts-page__link"
@@ -297,21 +240,17 @@ const CourtsPage: React.FC = () => {
                   >
                     Clear
                   </button>
-                </>
-              ) : (
-                <>
-                  <h2 id="nearby-courts-heading" className="pc-section-heading">
-                    {`${rows.length} ${sportName} ${rows.length === 1 ? "court" : "courts"}`}
-                  </h2>
-                  <button
-                    type="button"
-                    className="courts-page__link"
-                    onClick={() => setSortOpen(true)}
-                  >
-                    {`${sortLabel(filters.sort, hasLocation)} ▾`}
-                  </button>
-                </>
-              )}
+                )}
+                <button
+                  type="button"
+                  className={`courts-chip courts-chip--filter${chips.length > 0 ? " courts-chip--on" : ""}`}
+                  onClick={() => setSheetOpen(true)}
+                >
+                  {chips.length > 0
+                    ? `Filter courts · ${chips.length}`
+                    : "Filter courts"}
+                </button>
+              </div>
             </div>
             {!userLocation && (
               <p className="courts-page__location-note">
@@ -380,25 +319,6 @@ const CourtsPage: React.FC = () => {
         hasLocation={hasLocation}
         onChange={changeFilters}
         onClose={() => setSheetOpen(false)}
-      />
-      <IonActionSheet
-        isOpen={sortOpen}
-        header="Sort courts"
-        buttons={[
-          ...(hasLocation
-            ? [{ text: "Nearest", data: "nearest" as CourtSort }]
-            : []),
-          { text: "Most players", data: "players" as CourtSort },
-          { text: "Most open games", data: "games" as CourtSort },
-          { text: "Cancel", role: "cancel" },
-        ]}
-        onDidDismiss={(event) => {
-          setSortOpen(false);
-          const choice = event.detail.data as CourtSort | undefined;
-          if (choice) {
-            changeFilters((current) => ({ ...current, sort: choice }));
-          }
-        }}
       />
       <IonToast
         isOpen={toastMessage.length > 0}

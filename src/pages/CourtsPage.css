@@ -77,18 +77,6 @@
 .courts-page__checked-in ion-button {
   margin: 0;
 }
-.courts-page__chips {
-  display: flex;
-  gap: 8px;
-  margin-top: 12px;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.courts-page__chips::-webkit-scrollbar {
-  display: none;
-}
-
 .courts-chip {
   display: inline-flex;
   flex: 0 0 auto;
@@ -115,17 +103,6 @@
   background: var(--pc-green);
 }
 
-.courts-chip--selected {
-  font-weight: 600;
-  color: var(--pc-green);
-  border-color: var(--pc-green);
-  background: var(--pc-green-light);
-}
-
-.courts-chip--selected span {
-  font-size: 11px;
-}
-
 .courts-page__list-header {
   display: flex;
   align-items: center;
@@ -135,6 +112,12 @@
 
 .courts-page__list-header .pc-section-heading {
   margin: 0;
+}
+
+.courts-page__list-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .courts-page__link {
