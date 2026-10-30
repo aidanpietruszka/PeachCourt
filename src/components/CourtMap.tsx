@@ -16,6 +16,12 @@ export interface CourtMapItem {
 interface CourtMapProps {
   items: CourtMapItem[];
   userLocation: [number, number] | null;
+  fitToItems?: boolean;
+}
+
+interface FitToItemsProps {
+  items: CourtMapItem[];
+  enabled: boolean;
 }
 
 interface CenterOnUserProps {
@@ -45,6 +51,28 @@ const CenterOnUser: React.FC<CenterOnUserProps> = ({ position }) => {
   return null;
 };
 
+const FitToItems: React.FC<FitToItemsProps> = ({ items, enabled }) => {
+  const map = useMap();
+  const latest = useRef(items);
+  const key = items.map(({ court }) => court.id).join("|");
+
+  useEffect(() => {
+    latest.current = items;
+  });
+
+  useEffect(() => {
+    if (!enabled || key === "") {
+      return;
+    }
+    const points = latest.current.map(
+      ({ court }) => [court.latitude, court.longitude] as [number, number],
+    );
+    map.fitBounds(L.latLngBounds(points), { padding: [30, 30], maxZoom: 15 });
+  }, [map, enabled, key]);
+
+  return null;
+};
+
 const pinIcon = (isActive: boolean) =>
   L.divIcon({
     className: "",
@@ -62,7 +90,11 @@ const userLocationIcon = L.divIcon({
   popupAnchor: [0, -14],
 });
 
-const CourtMap: React.FC<CourtMapProps> = ({ items, userLocation }) => (
+const CourtMap: React.FC<CourtMapProps> = ({
+  items,
+  userLocation,
+  fitToItems = false,
+}) => (
   <MapContainer
     center={PIEDMONT_PARK}
     zoom={13}
@@ -75,6 +107,7 @@ const CourtMap: React.FC<CourtMapProps> = ({ items, userLocation }) => (
     />
     <FixSize />
     <CenterOnUser position={userLocation} />
+    <FitToItems items={items} enabled={fitToItems} />
     {userLocation && (
       <Marker
         position={userLocation}

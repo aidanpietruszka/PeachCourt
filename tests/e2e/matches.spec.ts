@@ -71,7 +71,8 @@ test("E2E-19 open games show on the courts list", async ({ browser }) => {
   const row = page
     .locator(".courts-page__list ion-item")
     .filter({ hasText: COURTS.alpha.name });
-  await expect(row).toContainText("No reports · 1 open game");
+  await expect(row).toContainText("No reports");
+  await expect(row).toContainText("1 open game");
   await context.close();
 });
 

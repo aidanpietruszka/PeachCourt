@@ -164,7 +164,7 @@ test("E2E-16 the map pin and list row turn active after a check-in", async ({
     .locator(".courts-page__list ion-item")
     .filter({ hasText: COURTS.alpha.name });
   await expect(row.locator(".courts-page__activity--active")).toContainText(
-    "3 reported · 0 open games",
+    "3 reported",
   );
   await expect(page.locator(".court-pin--active")).toHaveCount(1);
   await context.close();

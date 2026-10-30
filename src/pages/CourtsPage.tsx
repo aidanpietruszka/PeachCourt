@@ -14,17 +14,20 @@ import {
 import { Geolocation } from "@capacitor/geolocation";
 import CourtMap, { CourtMapItem } from "../components/CourtMap";
 import { useAuth } from "../hooks/useAuth";
-import { EMPTY_ACTIVITY, useLiveCourtData } from "../hooks/useLiveCourtData";
+import { useLiveCourtData } from "../hooks/useLiveCourtData";
 import { logout } from "../services/auth";
 import { CheckinService, type ActiveCheckIn } from "../services/CheckinService";
 import { CourtService } from "../services/CourtService";
 import type { Court, Sport } from "../types/types";
-import { courtCountLabel, courtSports } from "../utils/courts";
+import CourtFilterSheet from "../components/CourtFilterSheet";
+import { useCourtFilters } from "../hooks/useCourtFilters";
 import {
-  distanceBetweenMeters,
-  formatActivity,
-  formatDistance,
-} from "../utils/geo";
+  activeFilterChips,
+  buildRows,
+  clearFilters,
+} from "../utils/courtFilters";
+import { courtSummary } from "../utils/courts";
+import { formatDistance } from "../utils/geo";
 import "./CourtsPage.css";
 
 const CourtsPage: React.FC = () => {
@@ -40,8 +43,11 @@ const CourtsPage: React.FC = () => {
     null,
   );
   const [isBusy, setIsBusy] = useState(false);
+  const [filters, changeFilters] = useCourtFilters();
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
   const [toastMessage, setToastMessage] = useState("");
-  const hasLocation = useRef(false);
+  const gotLocation = useRef(false);
   const activity = useLiveCourtData();
 
   useEffect(() => {
@@ -66,6 +72,11 @@ const CourtsPage: React.FC = () => {
   }, [uid]);
 
   useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
     let isDisposed = false;
     let watchId: string | undefined;
 
@@ -83,7 +94,7 @@ const CourtsPage: React.FC = () => {
         }
 
         if (position && !isDisposed) {
-          hasLocation.current = true;
+          gotLocation.current = true;
           setUserLocation([
             position.coords.latitude,
             position.coords.longitude,
@@ -114,39 +125,13 @@ const CourtsPage: React.FC = () => {
     };
   }, []);
 
-  const rows = useMemo(() => {
-    const sportCourts = courts
-      .filter((court) => courtSports(court).includes(sport))
-      .map((court) => {
-        const courtActivity = activity[court.id] ?? EMPTY_ACTIVITY;
-        return {
-          court,
-          reported: courtActivity.reported,
-          openGames: courtActivity.openGames,
-          distance: userLocation
-            ? distanceBetweenMeters(
-                userLocation[0],
-                userLocation[1],
-                court.latitude,
-                court.longitude,
-              )
-            : null,
-        };
-      });
-
-    return sportCourts.sort((first, second) => {
-      if (first.distance !== null && second.distance !== null) {
-        return first.distance - second.distance;
-      }
-      const activityDifference =
-        (second.reported ?? 0) +
-        second.openGames -
-        ((first.reported ?? 0) + first.openGames);
-      return activityDifference !== 0
-        ? activityDifference
-        : first.court.name.localeCompare(second.court.name);
-    });
-  }, [courts, sport, activity, userLocation]);
+  const hasLocation = userLocation !== null;
+  const rows = useMemo(
+    () => buildRows(courts, sport, filters, activity, userLocation, now),
+    [courts, sport, filters, activity, userLocation, now],
+  );
+  const chips = activeFilterChips(filters, hasLocation);
+  const sportName = sport === "tennis" ? "tennis" : "pickleball";
 
   const items: CourtMapItem[] = rows.map(({ court, reported, openGames }) => ({
     court,
@@ -219,30 +204,70 @@ const CourtsPage: React.FC = () => {
               onIonChange={(event) => setSport(event.detail.value as Sport)}
               className="courts-page__segment"
             >
-              <IonSegmentButton value="tennis">
-                <IonLabel>Tennis</IonLabel>
-              </IonSegmentButton>
               <IonSegmentButton value="pickleball">
                 <IonLabel>Pickleball</IonLabel>
+              </IonSegmentButton>
+              <IonSegmentButton value="tennis">
+                <IonLabel>Tennis</IonLabel>
               </IonSegmentButton>
             </IonSegment>
           </div>
 
           <div className="courts-page__map">
-            <CourtMap items={items} userLocation={userLocation} />
+            <CourtMap
+              items={items}
+              userLocation={userLocation}
+              fitToItems={chips.length > 0}
+            />
           </div>
 
           <section
             className="courts-page__list"
             aria-labelledby="nearby-courts-heading"
           >
-            <h2 id="nearby-courts-heading" className="pc-section-heading">
-              {userLocation ? "Nearest courts" : "Most active courts"}
-            </h2>
+            <div className="courts-page__list-header">
+              <h2 id="nearby-courts-heading" className="pc-section-heading">
+                {chips.length > 0
+                  ? `${rows.length} of ${courts.length} courts`
+                  : `${rows.length} ${sportName} ${rows.length === 1 ? "court" : "courts"}`}
+              </h2>
+              <div className="courts-page__list-actions">
+                {chips.length > 0 && (
+                  <button
+                    type="button"
+                    className="courts-page__link"
+                    onClick={() => changeFilters(clearFilters)}
+                  >
+                    Clear
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className={`courts-chip courts-chip--filter${chips.length > 0 ? " courts-chip--on" : ""}`}
+                  onClick={() => setSheetOpen(true)}
+                >
+                  {chips.length > 0
+                    ? `Filter courts · ${chips.length}`
+                    : "Filter courts"}
+                </button>
+              </div>
+            </div>
             {!userLocation && (
               <p className="courts-page__location-note">
                 Allow location access to sort courts by distance.
               </p>
+            )}
+            {rows.length === 0 && chips.length > 0 && (
+              <div className="courts-page__empty">
+                <p>No courts match</p>
+                <IonButton
+                  size="small"
+                  fill="outline"
+                  onClick={() => changeFilters(clearFilters)}
+                >
+                  Clear filters
+                </IonButton>
+              </div>
             )}
             <IonList inset>
               {rows.map(({ court, reported, openGames, distance }) => (
@@ -255,28 +280,46 @@ const CourtsPage: React.FC = () => {
                 >
                   <IonLabel>
                     <h3>{court.name}</h3>
-                    <p
+                    <p>
+                      {distance === null
+                        ? ""
+                        : `${formatDistance(distance)} · `}
+                      {courtSummary(court)}
+                    </p>
+                    <p>{court.address}</p>
+                  </IonLabel>
+                  <div className="courts-page__live" slot="end">
+                    <span
                       className={
-                        reported !== null || openGames > 0
+                        reported !== null
                           ? "courts-page__activity courts-page__activity--active"
                           : "courts-page__activity"
                       }
                     >
-                      {distance === null
-                        ? ""
-                        : `${formatDistance(distance)} · `}
-                      {formatActivity(reported, openGames)}
-                    </p>
-                    <p>
-                      {courtCountLabel(court, sport)} · {court.address}
-                    </p>
-                  </IonLabel>
+                      {reported === null
+                        ? "No reports"
+                        : `${reported} reported`}
+                    </span>
+                    {openGames > 0 && (
+                      <span className="courts-page__games">
+                        {`${openGames} open ${openGames === 1 ? "game" : "games"}`}
+                      </span>
+                    )}
+                  </div>
                 </IonItem>
               ))}
             </IonList>
           </section>
         </div>
       </IonContent>
+      <CourtFilterSheet
+        isOpen={sheetOpen}
+        filters={filters}
+        resultCount={rows.length}
+        hasLocation={hasLocation}
+        onChange={changeFilters}
+        onClose={() => setSheetOpen(false)}
+      />
       <IonToast
         isOpen={toastMessage.length > 0}
         message={toastMessage}
