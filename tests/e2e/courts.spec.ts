@@ -44,11 +44,15 @@ test("E2E-07 with location the list is nearest first with distances", async ({
   browser,
 }) => {
   const { context, page } = await newUser(browser, "Sam");
-  await expect(visibleText(page, "Nearest courts")).toBeVisible();
+  await expect(page.locator("#nearby-courts-heading")).toHaveText(
+    "3 tennis courts",
+  );
+  await expect(visibleText(page, "Nearest first ▾")).toBeVisible();
   const firstRow = page.locator(".courts-page__list ion-item").first();
   await expect(firstRow).toContainText(COURTS.alpha.name);
   await expect(firstRow).toContainText(/ft|mi/);
-  await expect(firstRow).toContainText("No reports · 0 open games");
+  await expect(firstRow).toContainText("No reports");
+  await expect(firstRow).not.toContainText("open game");
   const lastRow = page.locator(".courts-page__list ion-item").last();
   await expect(lastRow).toContainText(COURTS.delta.name);
   await context.close();
@@ -60,7 +64,10 @@ test("E2E-08 without location the list says most active", async ({
   const { context, page } = await newUser(browser, "Sam", {
     geolocation: false,
   });
-  await expect(visibleText(page, "Most active courts")).toBeVisible();
+  await expect(page.locator("#nearby-courts-heading")).toHaveText(
+    "3 tennis courts",
+  );
+  await expect(visibleText(page, "Most active ▾")).toBeVisible();
   await expect(
     visibleText(page, "Allow location access to sort courts by distance."),
   ).toBeVisible();
@@ -163,7 +170,7 @@ test("E2E-28 court detail shows multiple surfaces, lines and half-hour times", a
   await context.close();
 });
 
-test("E2E-29 list rows show the court count for the selected sport", async ({
+test("E2E-29 list rows show both court counts and lights", async ({
   browser,
 }) => {
   const { context, page } = await newUser(browser, "Sam");
@@ -172,18 +179,20 @@ test("E2E-29 list rows show the court count for the selected sport", async ({
       .locator(".courts-page__list ion-item")
       .filter({ hasText: name })
       .filter({ visible: true });
-  await expect(row(COURTS.alpha.name)).toContainText("4 tennis courts");
-  await expect(row(COURTS.beta.name)).toContainText("2 tennis courts");
-  await expect(row(COURTS.delta.name)).toContainText("3 tennis courts");
+  await expect(row(COURTS.alpha.name)).toContainText("4 tennis · Lights");
+  await expect(row(COURTS.beta.name)).toContainText("2 tennis · 2 pickleball");
+  await expect(row(COURTS.delta.name)).toContainText(
+    "3 tennis · pickleball lines · Lights",
+  );
 
   await page
     .locator("ion-segment-button")
     .filter({ hasText: "Pickleball" })
     .click();
-  await expect(row(COURTS.gamma.name)).toContainText("6 pickleball courts");
-  await expect(row(COURTS.beta.name)).toContainText("2 pickleball courts");
+  await expect(row(COURTS.gamma.name)).toContainText("6 pickleball");
+  await expect(row(COURTS.beta.name)).toContainText("2 tennis · 2 pickleball");
   await expect(row(COURTS.delta.name)).toContainText(
-    "Pickleball lines on tennis courts",
+    "3 tennis · pickleball lines · Lights",
   );
   await expect(row(COURTS.gamma.name)).toContainText(COURTS.gamma.address);
   await context.close();

@@ -106,3 +106,29 @@ export function courtCountLabel(court: SportFields, sport: Sport): string {
     ? "Pickleball lines on tennis courts"
     : "Courts unknown";
 }
+
+export function timeToMinutes(value: string): number | null {
+  const match = typeof value === "string" ? TIME_PATTERN.exec(value) : null;
+  return match ? Number(match[1]) * 60 + Number(match[2]) : null;
+}
+
+export function courtSummary(
+  court: SportFields & { hasLights?: boolean | null },
+): string {
+  const parts: string[] = [];
+  if (isPositiveCount(court.tennisCourts)) {
+    parts.push(`${court.tennisCourts} tennis`);
+  }
+  if (isPositiveCount(court.pickleballCourts)) {
+    parts.push(`${court.pickleballCourts} pickleball`);
+  } else if (court.pickleballLines === true) {
+    parts.push("pickleball lines");
+  }
+  if (parts.length === 0) {
+    parts.push("Courts unknown");
+  }
+  if (court.hasLights === true) {
+    parts.push("Lights");
+  }
+  return parts.join(" · ");
+}

@@ -77,3 +77,92 @@
 .courts-page__checked-in ion-button {
   margin: 0;
 }
+.courts-page__chips {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.courts-page__chips::-webkit-scrollbar {
+  display: none;
+}
+
+.courts-chip {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 1.5px solid transparent;
+  border-radius: 18px;
+  font-size: 13px;
+  white-space: nowrap;
+  color: var(--pc-text);
+  background: var(--pc-card-bg);
+}
+
+.courts-chip--filter {
+  font-weight: 600;
+  border-color: var(--pc-border);
+  background: #fff;
+}
+
+.courts-chip--on {
+  color: #fff;
+  border-color: var(--pc-green);
+  background: var(--pc-green);
+}
+
+.courts-chip--selected {
+  font-weight: 600;
+  color: var(--pc-green);
+  border-color: var(--pc-green);
+  background: var(--pc-green-light);
+}
+
+.courts-chip--selected span {
+  font-size: 11px;
+}
+
+.courts-page__list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 20px 16px 8px;
+}
+
+.courts-page__list-header .pc-section-heading {
+  margin: 0;
+}
+
+.courts-page__link {
+  padding: 0;
+  border: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pc-green);
+  background: none;
+}
+
+.courts-page__live {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  font-size: 13px;
+}
+
+.courts-page__games {
+  color: var(--pc-text-muted);
+}
+
+.courts-page__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: 16px;
+  color: var(--pc-text-muted);
+}
