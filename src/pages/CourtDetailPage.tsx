@@ -40,7 +40,7 @@ import {
 } from "../utils/geo";
 import "./CourtDetailPage.css";
 
-const CHECK_IN_MINUTES = 120;
+const CHECK_IN_MINUTES = 60;
 const DISTANCE_WARNING_METERS = 150;
 const FEEDBACK_PROMPT_KEY = "peachcourt-checkin-feedback-asked";
 const TRUST_PROMPT_KEY = "peachcourt-trust-asked";
@@ -460,7 +460,7 @@ const CourtDetailPage: React.FC = () => {
             </p>
             <p className="checked-in__note">
               Others can now see this court is in use. Your check-in ends after
-              2 hours or when you check out.
+              1 hour or when you check out.
             </p>
             <IonButton expand="block" onClick={closeConfirmation}>
               Done

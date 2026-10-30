@@ -76,3 +76,12 @@
   font-weight: 600;
   color: var(--pc-green);
 }
+
+.match-conflict {
+  margin: 6px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--ion-color-danger);
+  background: color-mix(in srgb, var(--ion-color-danger) 10%, transparent);
+}

@@ -11,7 +11,7 @@ import {
 } from "firebase/firestore";
 import { auth, db } from "./firebase";
 
-const ALLOWED_DURATIONS_MINUTES = [30, 60, 90, 120, 180, 240] as const;
+const ALLOWED_DURATIONS_MINUTES = [30, 60] as const;
 
 export interface ActiveCheckIn {
   checkinId: string;

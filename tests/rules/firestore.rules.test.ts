@@ -43,8 +43,8 @@ function checkinData(uid: string, overrides: Record<string, unknown> = {}) {
     playerCount: 3,
     checkedInAt: minutesFromNow(0),
     scheduledArrivalAt: minutesFromNow(0),
-    durationMinutes: 120,
-    expiresAt: minutesFromNow(120),
+    durationMinutes: 60,
+    expiresAt: minutesFromNow(60),
     distance: 25,
     timeToCheckIn: 1800,
     active: true,
@@ -60,14 +60,15 @@ function activeCheckinData(uid: string, courtId = "court-1") {
     playerCount: 3,
     checkedInAt: minutesFromNow(0),
     scheduledArrivalAt: minutesFromNow(0),
-    durationMinutes: 120,
-    expiresAt: minutesFromNow(120),
+    durationMinutes: 60,
+    expiresAt: minutesFromNow(60),
   };
 }
 
 function matchData(hostUid: string, overrides: Record<string, unknown> = {}) {
   return {
     courtId: "court-1",
+    courtName: "City Park",
     sport: "tennis",
     hostUid,
     hostName: "Sam",
@@ -624,7 +625,7 @@ describe("events", () => {
         courtId: "court-1",
         playerCount: 3,
         scheduledArrivalAt: Timestamp.now(),
-        durationMinutes: 120,
+        durationMinutes: 60,
         timeToCheckIn: 1200,
         distance: null,
       },

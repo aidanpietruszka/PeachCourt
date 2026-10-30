@@ -43,5 +43,7 @@ firestore-debug.log
 # Export
 /exports
 
+CLAUDE.md
+
 /functions/node_modules
 /functions/lib
