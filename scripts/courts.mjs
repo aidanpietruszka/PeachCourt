@@ -33,17 +33,17 @@ const FREE = "Free · first come, first served";
 
 export const COURTS = [
   mk(
-    "georgia-tech-courts",
-    "Georgia Tech Campus Courts",
-    "Georgia Tech Campus, Atlanta, GA 30332",
-    33.7788,
-    -84.4048,
-    TP,
-    6,
+    "ken-byers-tennis-complex",
+    "Ken Byers Tennis Complex",
+    "Fowler Street Northwest at 10th Street, Atlanta, GA 30332",
+    33.780684,
+    -84.394465,
+    T,
+    10,
     "Hard",
     true,
-    "7 AM–10 PM daily",
-    "Georgia Tech affiliates only",
-    "None",
+    "Mon–Fri 5 PM–10 PM · Sat 10 AM–2 PM",
+    "Members only",
+    "Georgia Tech students only (BuzzCard); 4 of 10 courts; no reservations",
   ),
 ];
