@@ -29,6 +29,10 @@ const asUser = (uid: string) =>
   env.authenticatedContext(uid).firestore() as unknown as Firestore;
 const asGuest = () =>
   env.unauthenticatedContext().firestore() as unknown as Firestore;
+const asAnonymous = (uid = "anon-uid") =>
+  env
+    .authenticatedContext(uid, { firebase: { sign_in_provider: "anonymous" } })
+    .firestore() as unknown as Firestore;
 
 async function seed(path: string, data: Record<string, unknown>) {
   await env.withSecurityRulesDisabled(async (context) => {
@@ -753,6 +757,56 @@ describe("events", () => {
       addDoc(
         collection(db, "events"),
         eventData("alice", "trust_skipped", { courtId: "court-1" }),
+      ),
+    );
+  });
+});
+
+describe("anonymous users are blocked", () => {
+  it("R-anon-01 anonymous user cannot read checkins", async () => {
+    await seed("checkins/c1", checkinData("alice"));
+    await assertFails(getDoc(doc(asAnonymous(), "checkins/c1")));
+  });
+
+  it("R-anon-02 anonymous user cannot create a checkin", async () => {
+    await assertFails(
+      addDoc(collection(asAnonymous(), "checkins"), checkinData("anon-uid")),
+    );
+  });
+
+  it("R-anon-03 anonymous user cannot read or write activeCheckins", async () => {
+    await assertFails(
+      getDoc(doc(asAnonymous(), "activeCheckins/anon-uid")),
+    );
+    await assertFails(
+      setDoc(
+        doc(asAnonymous(), "activeCheckins/anon-uid"),
+        activeCheckinData("anon-uid"),
+      ),
+    );
+  });
+
+  it("R-anon-04 anonymous user cannot read courtStatus", async () => {
+    await seed("courtStatus/court-1", { playerCount: 2, reportedBy: "alice", reportedAt: minutesFromNow(0) });
+    await assertFails(getDoc(doc(asAnonymous(), "courtStatus/court-1")));
+  });
+
+  it("R-anon-05 anonymous user cannot read matches", async () => {
+    await seed("matches/m1", matchData("alice"));
+    await assertFails(getDoc(doc(asAnonymous(), "matches/m1")));
+  });
+
+  it("R-anon-06 anonymous user cannot create a match", async () => {
+    await assertFails(
+      addDoc(collection(asAnonymous(), "matches"), matchData("anon-uid")),
+    );
+  });
+
+  it("R-anon-07 anonymous user cannot create an event", async () => {
+    await assertFails(
+      addDoc(
+        collection(asAnonymous(), "events"),
+        eventData("anon-uid", "court_viewed", { courtId: "court-1", reportedCount: null }),
       ),
     );
   });

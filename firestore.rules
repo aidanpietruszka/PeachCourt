@@ -1,8 +1,13 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null
+        && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+
     function signedInAs(uid) {
-      return request.auth != null && request.auth.uid == uid;
+      return signedIn() && request.auth.uid == uid;
     }
 
     function validSkill(sport, skill) {
@@ -17,7 +22,7 @@ service cloud.firestore {
     }
 
     match /checkins/{checkinId} {
-      allow create: if request.auth != null
+      allow create: if signedIn()
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.courtId is string
         && request.resource.data.playerCount is int
@@ -34,10 +39,10 @@ service cloud.firestore {
         )
         && request.resource.data.timeToCheckIn is number;
 
-      allow read: if request.auth != null
+      allow read: if signedIn()
         && (resource.data.active == true || resource.data.uid == request.auth.uid);
 
-      allow update: if request.auth != null
+      allow update: if signedIn()
         && resource.data.uid == request.auth.uid
         && request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly(['active', 'checkedOutAt'])
@@ -64,8 +69,8 @@ service cloud.firestore {
     }
 
     match /courtStatus/{courtId} {
-      allow read: if request.auth != null;
-      allow create, update: if request.auth != null
+      allow read: if signedIn();
+      allow create, update: if signedIn()
         && request.resource.data.keys().hasOnly(['playerCount', 'reportedBy', 'reportedAt'])
         && request.resource.data.reportedBy == request.auth.uid
         && request.resource.data.playerCount is int
@@ -77,9 +82,9 @@ service cloud.firestore {
     }
 
     match /matches/{matchId} {
-      allow read: if request.auth != null;
+      allow read: if signedIn();
 
-      allow create: if request.auth != null
+      allow create: if signedIn()
         && request.resource.data.keys().hasOnly([
           'courtId', 'courtName', 'sport', 'hostUid', 'hostName', 'format', 'startAt', 'skillLevel',
           'spotsTotal', 'playerUids', 'playerNames', 'status', 'createdAt'
@@ -103,7 +108,7 @@ service cloud.firestore {
         && request.resource.data.status == 'open'
         && request.resource.data.createdAt is timestamp;
 
-      allow update: if request.auth != null
+      allow update: if signedIn()
         && resource.data.startAt > request.time
         && request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly(['playerUids', 'playerNames', 'status'])
@@ -135,7 +140,7 @@ service cloud.firestore {
     }
 
     match /events/{eventId} {
-      allow create: if request.auth != null
+      allow create: if signedIn()
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.timestamp is timestamp
         && (
