@@ -2,19 +2,26 @@ import type { Timestamp } from "firebase/firestore";
 
 export type Sport = "pickleball" | "tennis";
 
+export interface OpeningHours {
+  days: string;
+  open: string;
+  close: string;
+}
+
 export interface Court {
   id: string;
   name: string;
   address: string;
   latitude: number;
   longitude: number;
-  sports: Sport[];
-  numberOfCourts: number;
-  surface: string;
+  tennisCourts: number | null;
+  pickleballCourts: number | null;
+  pickleballLines: boolean | null;
+  surfaces: string[] | null;
   hasLights: boolean | null;
-  hours: string;
-  walkOnRules: string;
-  reservationInfo: string;
+  openingHours: OpeningHours[] | null;
+  walkOnRules: string | null;
+  reservationInfo: string | null;
 }
 
 export type MatchFormat = "singles" | "doubles";

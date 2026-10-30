@@ -28,6 +28,7 @@ import type {
   SkillLevel,
   Sport,
 } from "../types/types";
+import { courtSports } from "../utils/courts";
 import { formatSkill, SKILL_LEVELS, SPORT_LABEL } from "../utils/skill";
 import { buildStart, formatStart } from "../utils/time";
 import "./MatchBoard.css";
@@ -77,13 +78,18 @@ const MatchBoard: React.FC<MatchBoardProps> = ({
 }) => {
   const { user } = useAuth();
   const uid = user?.uid ?? null;
+  const { tennisCourts, pickleballCourts, pickleballLines } = court;
+  const sports = useMemo(
+    () => courtSports({ tennisCourts, pickleballCourts, pickleballLines }),
+    [tennisCourts, pickleballCourts, pickleballLines],
+  );
   const [matches, setMatches] = useState<Match[]>([]);
   const [now, setNow] = useState(() => Date.now());
   const [name, setName] = useState("");
   const [format, setFormat] = useState<MatchFormat>("doubles");
   const [day, setDay] = useState<"today" | "tomorrow">("today");
   const [time, setTime] = useState("");
-  const [sport, setSport] = useState<Sport>(court.sports[0] ?? "tennis");
+  const [sport, setSport] = useState<Sport>(sports[0] ?? "tennis");
   const [skillLevel, setSkillLevel] = useState<SkillLevel>("any");
   const [joiningMatch, setJoiningMatch] = useState<Match | null>(null);
   const [isBusy, setIsBusy] = useState(false);
@@ -119,13 +125,13 @@ const MatchBoard: React.FC<MatchBoardProps> = ({
   useEffect(() => {
     if (isPostOpen) {
       setName(readSavedName() || user?.displayName?.split(" ")[0] || "");
-      setSport(court.sports[0] ?? "tennis");
+      setSport(sports[0] ?? "tennis");
       setFormat("doubles");
       setDay("today");
       setTime("");
       setSkillLevel("any");
     }
-  }, [isPostOpen, user, court.sports]);
+  }, [isPostOpen, user, sports]);
 
   const handlePost = async () => {
     const trimmedName = name.trim();
@@ -293,7 +299,7 @@ const MatchBoard: React.FC<MatchBoardProps> = ({
         <IonContent>
           <div className="pc-screen">
             <p className="pc-subtitle">{court.name}</p>
-            {court.sports.length > 1 && (
+            {sports.length > 1 && (
               <IonSegment
                 value={sport}
                 onIonChange={(event) => {
@@ -301,7 +307,7 @@ const MatchBoard: React.FC<MatchBoardProps> = ({
                   setSkillLevel("any");
                 }}
               >
-                {court.sports.map((option) => (
+                {sports.map((option) => (
                   <IonSegmentButton key={option} value={option}>
                     <IonLabel>{SPORT_LABEL[option]}</IonLabel>
                   </IonSegmentButton>

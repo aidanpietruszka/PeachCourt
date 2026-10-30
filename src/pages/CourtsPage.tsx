@@ -19,6 +19,7 @@ import { logout } from "../services/auth";
 import { CheckinService, type ActiveCheckIn } from "../services/CheckinService";
 import { CourtService } from "../services/CourtService";
 import type { Court, Sport } from "../types/types";
+import { courtCountLabel, courtSports } from "../utils/courts";
 import {
   distanceBetweenMeters,
   formatActivity,
@@ -115,7 +116,7 @@ const CourtsPage: React.FC = () => {
 
   const rows = useMemo(() => {
     const sportCourts = courts
-      .filter((court) => court.sports.includes(sport))
+      .filter((court) => courtSports(court).includes(sport))
       .map((court) => {
         const courtActivity = activity[court.id] ?? EMPTY_ACTIVITY;
         return {
@@ -267,7 +268,7 @@ const CourtsPage: React.FC = () => {
                       {formatActivity(reported, openGames)}
                     </p>
                     <p>
-                      {court.numberOfCourts} courts · {court.address}
+                      {courtCountLabel(court, sport)} · {court.address}
                     </p>
                   </IonLabel>
                 </IonItem>

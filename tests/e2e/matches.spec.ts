@@ -114,3 +114,35 @@ test("E2E-22 a start time is required", async ({ browser }) => {
   await expect(visibleText(page, "Choose a start time.")).toBeVisible();
   await context.close();
 });
+
+test("E2E-30 a court with pickleball lines asks which sport", async ({
+  browser,
+}) => {
+  const { context, page } = await newUser(browser, "Ana");
+  await openCourt(page, COURTS.delta.name);
+  await ionButton(page.locator("ion-footer"), "Post a game").click();
+  const modal = page.locator("ion-modal").filter({ visible: true }).last();
+  await expect(
+    modal.locator("ion-segment-button").filter({ hasText: "Tennis" }),
+  ).toHaveCount(1);
+  await expect(
+    modal.locator("ion-segment-button").filter({ hasText: "Pickleball" }),
+  ).toHaveCount(1);
+  await context.close();
+});
+
+test("E2E-31 a tennis-only court does not ask which sport", async ({
+  browser,
+}) => {
+  const { context, page } = await newUser(browser, "Ana");
+  await openCourt(page, COURTS.alpha.name);
+  await ionButton(page.locator("ion-footer"), "Post a game").click();
+  const modal = page.locator("ion-modal").filter({ visible: true }).last();
+  await expect(
+    modal.locator("ion-segment-button").filter({ hasText: "Pickleball" }),
+  ).toHaveCount(0);
+  await expect(
+    modal.locator("ion-segment-button").filter({ hasText: "Tennis" }),
+  ).toHaveCount(0);
+  await context.close();
+});

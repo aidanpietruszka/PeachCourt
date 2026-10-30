@@ -20,13 +20,14 @@ export const COURTS = {
     address: "1 Test St NE, Atlanta",
     latitude: 33.7853,
     longitude: -84.3735,
-    sports: ["tennis"],
-    numberOfCourts: 4,
-    surface: "Hard",
+    tennisCourts: 4,
+    pickleballCourts: 0,
+    pickleballLines: false,
+    surfaces: ["Hard"],
     hasLights: true,
-    hours: "7 AM - 11 PM",
+    openingHours: [{ days: "Daily", open: "07:00", close: "23:00" }],
     walkOnRules: "First come, first served",
-    reservationInfo: "Unknown",
+    reservationInfo: null,
   },
   beta: {
     id: "court-beta",
@@ -34,13 +35,14 @@ export const COURTS = {
     address: "2 Test Ave NW, Atlanta",
     latitude: 33.81,
     longitude: -84.42,
-    sports: ["tennis", "pickleball"],
-    numberOfCourts: 2,
-    surface: "Unknown",
+    tennisCourts: 2,
+    pickleballCourts: 2,
+    pickleballLines: null,
+    surfaces: null,
     hasLights: null,
-    hours: "Unknown",
-    walkOnRules: "Unknown",
-    reservationInfo: "Unknown",
+    openingHours: null,
+    walkOnRules: null,
+    reservationInfo: null,
   },
   gamma: {
     id: "court-gamma",
@@ -48,13 +50,32 @@ export const COURTS = {
     address: "3 Test Rd SE, Atlanta",
     latitude: 33.74,
     longitude: -84.36,
-    sports: ["pickleball"],
-    numberOfCourts: 6,
-    surface: "Concrete",
+    tennisCourts: 0,
+    pickleballCourts: 6,
+    pickleballLines: false,
+    surfaces: ["Concrete"],
     hasLights: false,
-    hours: "6 AM - 10 PM",
+    openingHours: [
+      { days: "Mon–Fri", open: "06:00", close: "22:00" },
+      { days: "Sat–Sun", open: "08:30", close: "20:00" },
+    ],
     walkOnRules: "Paddle stacking",
-    reservationInfo: "Unknown",
+    reservationInfo: "Call the front desk",
+  },
+  delta: {
+    id: "court-delta",
+    name: "Delta Rec Center",
+    address: "4 Test Blvd NE, Atlanta",
+    latitude: 33.7,
+    longitude: -84.3,
+    tennisCourts: 3,
+    pickleballCourts: 0,
+    pickleballLines: true,
+    surfaces: ["Clay", "Hard"],
+    hasLights: true,
+    openingHours: [{ days: "Mon–Fri", open: "09:30", close: "21:00" }],
+    walkOnRules: "Reservation required",
+    reservationInfo: "Book online",
   },
 } as const;
 
@@ -64,7 +85,8 @@ type FirestoreValue =
   | { doubleValue: number }
   | { booleanValue: boolean }
   | { nullValue: null }
-  | { arrayValue: { values: FirestoreValue[] } };
+  | { arrayValue: { values: FirestoreValue[] } }
+  | { mapValue: { fields: Record<string, FirestoreValue> } };
 
 function toValue(value: unknown): FirestoreValue {
   if (value === null) {
@@ -80,6 +102,15 @@ function toValue(value: unknown): FirestoreValue {
   }
   if (Array.isArray(value)) {
     return { arrayValue: { values: value.map(toValue) } };
+  }
+  if (typeof value === "object") {
+    return {
+      mapValue: {
+        fields: Object.fromEntries(
+          Object.entries(value).map(([key, inner]) => [key, toValue(inner)]),
+        ),
+      },
+    };
   }
   return { stringValue: String(value) };
 }
@@ -216,6 +247,14 @@ export async function expectLoginPageShown(page: Page) {
 
 export function visibleText(page: Page, text: string | RegExp) {
   return page.getByText(text).filter({ visible: true }).first();
+}
+
+export function infoRow(page: Page, label: string) {
+  return page
+    .locator(".court-info")
+    .filter({ visible: true })
+    .locator("ion-item")
+    .filter({ has: page.getByText(label, { exact: true }) });
 }
 
 export async function openCourt(page: Page, courtName: string) {
