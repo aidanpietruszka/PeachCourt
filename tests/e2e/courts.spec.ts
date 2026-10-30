@@ -1,5 +1,12 @@
 import { expect, test } from "@playwright/test";
-import { COURTS, newUser, openCourt, resetData, visibleText } from "./support";
+import {
+  COURTS,
+  infoRow,
+  newUser,
+  openCourt,
+  resetData,
+  visibleText,
+} from "./support";
 
 test.beforeEach(async () => {
   await resetData();
@@ -12,6 +19,7 @@ test("E2E-06 tennis is the default and the sport filter works", async ({
   const list = page.locator(".courts-page__list");
   await expect(list.getByText(COURTS.alpha.name)).toBeVisible();
   await expect(list.getByText(COURTS.beta.name)).toBeVisible();
+  await expect(list.getByText(COURTS.delta.name)).toBeVisible();
   await expect(list.getByText(COURTS.gamma.name)).toHaveCount(0);
 
   await page
@@ -20,7 +28,15 @@ test("E2E-06 tennis is the default and the sport filter works", async ({
     .click();
   await expect(list.getByText(COURTS.gamma.name)).toBeVisible();
   await expect(list.getByText(COURTS.beta.name)).toBeVisible();
+  await expect(list.getByText(COURTS.delta.name)).toBeVisible();
   await expect(list.getByText(COURTS.alpha.name)).toHaveCount(0);
+
+  await page
+    .locator("ion-segment-button")
+    .filter({ hasText: "Tennis" })
+    .click();
+  await expect(list.getByText(COURTS.alpha.name)).toBeVisible();
+  await expect(list.getByText(COURTS.gamma.name)).toHaveCount(0);
   await context.close();
 });
 
@@ -33,6 +49,8 @@ test("E2E-07 with location the list is nearest first with distances", async ({
   await expect(firstRow).toContainText(COURTS.alpha.name);
   await expect(firstRow).toContainText(/ft|mi/);
   await expect(firstRow).toContainText("No reports · 0 open games");
+  const lastRow = page.locator(".courts-page__list ion-item").last();
+  await expect(lastRow).toContainText(COURTS.delta.name);
   await context.close();
 });
 
@@ -49,21 +67,124 @@ test("E2E-08 without location the list says most active", async ({
   await context.close();
 });
 
-test("E2E-09 court detail shows info and Unknown for missing data", async ({
+test("E2E-09 court detail shows Unknown for every missing value", async ({
   browser,
 }) => {
   const { context, page } = await newUser(browser, "Sam");
   await openCourt(page, COURTS.beta.name);
-  const info = page.locator(".court-info").filter({ visible: true });
-  await expect(
-    info.locator("ion-item").filter({ hasText: "Lights" }),
-  ).toContainText("Unknown");
-  await expect(
-    info.locator("ion-item").filter({ hasText: "Surface" }),
-  ).toContainText("Unknown");
-  await expect(
-    info.locator("ion-item").filter({ hasText: "Courts" }),
-  ).toContainText("2");
+  await expect(infoRow(page, "Tennis courts")).toContainText("2");
+  await expect(infoRow(page, "Pickleball courts")).toContainText("2");
+  for (const label of [
+    "Hours",
+    "Reservations",
+    "Walk-on rules",
+    "Lights",
+    "Surface",
+    "Pickleball lines",
+  ]) {
+    await expect(infoRow(page, label)).toContainText("Unknown");
+  }
   await expect(visibleText(page, "No recent reports")).toBeVisible();
+  await context.close();
+});
+
+test("E2E-26 court detail shows every row for a tennis court", async ({
+  browser,
+}) => {
+  const { context, page } = await newUser(browser, "Sam");
+  await openCourt(page, COURTS.alpha.name);
+  await expect(infoRow(page, "Tennis courts")).toContainText("4");
+  await expect(infoRow(page, "Pickleball courts")).toContainText("None");
+  await expect(infoRow(page, "Hours")).toContainText("Daily 7 AM–11 PM");
+  await expect(infoRow(page, "Reservations")).toContainText("Unknown");
+  await expect(infoRow(page, "Walk-on rules")).toContainText(
+    "First come, first served",
+  );
+  await expect(infoRow(page, "Lights")).toContainText("Yes");
+  await expect(infoRow(page, "Surface")).toContainText("Hard");
+  await expect(infoRow(page, "Pickleball lines")).toContainText("No");
+  await context.close();
+});
+
+test("E2E-27 court detail shows each hours group on its own line", async ({
+  browser,
+}) => {
+  const { context, page } = await newUser(browser, "Sam");
+  await page
+    .locator("ion-segment-button")
+    .filter({ hasText: "Pickleball" })
+    .click();
+  await openCourt(page, COURTS.gamma.name);
+  await expect(infoRow(page, "Tennis courts")).toContainText("None");
+  await expect(infoRow(page, "Pickleball courts")).toContainText("6");
+  const hours = infoRow(page, "Hours").locator(".court-info__lines");
+  await expect(hours).toContainText("Mon–Fri 6 AM–10 PM");
+  await expect(hours).toContainText("Sat–Sun 8:30 AM–8 PM");
+  const lineTops = await hours.evaluate((element) => {
+    const text = element.firstChild as Text;
+    const content = text.textContent ?? "";
+    const split = content.indexOf("\n");
+    const first = document.createRange();
+    first.setStart(text, 0);
+    first.setEnd(text, 1);
+    const second = document.createRange();
+    second.setStart(text, split + 1);
+    second.setEnd(text, split + 2);
+    return [
+      first.getBoundingClientRect().top,
+      second.getBoundingClientRect().top,
+    ];
+  });
+  expect(lineTops[1]).toBeGreaterThan(lineTops[0]);
+  await expect(infoRow(page, "Reservations")).toContainText(
+    "Call the front desk",
+  );
+  await expect(infoRow(page, "Walk-on rules")).toContainText("Paddle stacking");
+  await expect(infoRow(page, "Lights")).toContainText("No");
+  await expect(infoRow(page, "Surface")).toContainText("Concrete");
+  await expect(infoRow(page, "Pickleball lines")).toContainText("No");
+  await context.close();
+});
+
+test("E2E-28 court detail shows multiple surfaces, lines and half-hour times", async ({
+  browser,
+}) => {
+  const { context, page } = await newUser(browser, "Sam");
+  await openCourt(page, COURTS.delta.name);
+  await expect(infoRow(page, "Tennis courts")).toContainText("3");
+  await expect(infoRow(page, "Pickleball courts")).toContainText("None");
+  await expect(infoRow(page, "Pickleball lines")).toContainText("Yes");
+  await expect(infoRow(page, "Surface")).toContainText("Clay, Hard");
+  await expect(infoRow(page, "Hours")).toContainText("Mon–Fri 9:30 AM–9 PM");
+  await expect(infoRow(page, "Walk-on rules")).toContainText(
+    "Reservation required",
+  );
+  await expect(infoRow(page, "Reservations")).toContainText("Book online");
+  await context.close();
+});
+
+test("E2E-29 list rows show the court count for the selected sport", async ({
+  browser,
+}) => {
+  const { context, page } = await newUser(browser, "Sam");
+  const row = (name: string) =>
+    page
+      .locator(".courts-page__list ion-item")
+      .filter({ hasText: name })
+      .filter({ visible: true });
+  await expect(row(COURTS.alpha.name)).toContainText("4 tennis courts");
+  await expect(row(COURTS.beta.name)).toContainText("2 tennis courts");
+  await expect(row(COURTS.delta.name)).toContainText("3 tennis courts");
+
+  await page
+    .locator("ion-segment-button")
+    .filter({ hasText: "Pickleball" })
+    .click();
+  await expect(row(COURTS.gamma.name)).toContainText("6 pickleball courts");
+  await expect(row(COURTS.beta.name)).toContainText("2 pickleball courts");
+  await expect(row(COURTS.delta.name)).toContainText(
+    "Pickleball lines on tennis courts",
+  );
+  await expect(row(COURTS.gamma.name)).toContainText(COURTS.gamma.address);
   await context.close();
 });

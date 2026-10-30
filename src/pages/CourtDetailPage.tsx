@@ -27,6 +27,13 @@ import { CourtService } from "../services/CourtService";
 import { EventService } from "../services/EventService";
 import type { Court } from "../types/types";
 import {
+  formatCount,
+  formatHours,
+  formatSurfaces,
+  formatText,
+  formatYesNo,
+} from "../utils/courts";
+import {
   distanceBetweenMeters,
   formatDistance,
   formatMinutesAgo,
@@ -41,13 +48,6 @@ const TRUST_PROMPT_DELAY_MS = 5_000;
 const HEAD_COUNT_INPUTS: AlertInput[] = [
   { name: "playerCount", type: "number", value: 1, min: 1, max: 20 },
 ];
-
-function lightsLabel(hasLights: boolean | null): string {
-  if (hasLights === null) {
-    return "Unknown";
-  }
-  return hasLights ? "Yes" : "No";
-}
 
 function isSkip(role: string | undefined): boolean {
   return role === "cancel" || role === "backdrop";
@@ -110,6 +110,7 @@ const CourtDetailPage: React.FC = () => {
           court.longitude,
         )
       : null;
+  const hoursLines = court ? formatHours(court.openingHours) : [];
 
   useEffect(() => {
     if (!courtId) {
@@ -318,24 +319,40 @@ const CourtDetailPage: React.FC = () => {
                   </IonText>
                 </IonItem>
                 <IonItem>
-                  <IonLabel>Courts</IonLabel>
-                  <IonText>{court.numberOfCourts}</IonText>
+                  <IonLabel>Tennis courts</IonLabel>
+                  <IonText>{formatCount(court.tennisCourts)}</IonText>
+                </IonItem>
+                <IonItem>
+                  <IonLabel>Pickleball courts</IonLabel>
+                  <IonText>{formatCount(court.pickleballCourts)}</IonText>
                 </IonItem>
                 <IonItem>
                   <IonLabel>Hours</IonLabel>
-                  <IonText>{court.hours}</IonText>
+                  <IonText className="court-info__lines">
+                    {hoursLines.length > 0 ? hoursLines.join("\n") : "Unknown"}
+                  </IonText>
+                </IonItem>
+                <IonItem>
+                  <IonLabel>Reservations</IonLabel>
+                  <IonText className="court-info__lines">
+                    {formatText(court.reservationInfo)}
+                  </IonText>
                 </IonItem>
                 <IonItem>
                   <IonLabel>Walk-on rules</IonLabel>
-                  <IonText>{court.walkOnRules}</IonText>
+                  <IonText>{formatText(court.walkOnRules)}</IonText>
                 </IonItem>
                 <IonItem>
                   <IonLabel>Lights</IonLabel>
-                  <IonText>{lightsLabel(court.hasLights)}</IonText>
+                  <IonText>{formatYesNo(court.hasLights)}</IonText>
                 </IonItem>
                 <IonItem>
                   <IonLabel>Surface</IonLabel>
-                  <IonText>{court.surface}</IonText>
+                  <IonText>{formatSurfaces(court.surfaces)}</IonText>
+                </IonItem>
+                <IonItem>
+                  <IonLabel>Pickleball lines</IonLabel>
+                  <IonText>{formatYesNo(court.pickleballLines)}</IonText>
                 </IonItem>
               </IonList>
 

@@ -2,6 +2,11 @@
   margin: 0 0 16px;
 }
 
+.court-info__lines {
+  white-space: pre-line;
+  text-align: right;
+}
+
 .live-card {
   margin: 0 0 8px;
   padding: 14px 16px;
