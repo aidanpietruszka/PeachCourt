@@ -20,6 +20,7 @@ import {
   type AlertInput,
 } from "@ionic/react";
 import { useAuth } from "../hooks/useAuth";
+import { useMyGames } from "../hooks/useMyGames";
 import { MatchService, SPOTS_BY_FORMAT } from "../services/MatchService";
 import type {
   Court,
@@ -29,6 +30,11 @@ import type {
   Sport,
 } from "../types/types";
 import { courtSports } from "../utils/courts";
+import {
+  describeGame,
+  findConflict,
+  type PlayerGame,
+} from "../utils/gameOverlap";
 import { formatSkill, SKILL_LEVELS, SPORT_LABEL } from "../utils/skill";
 import { buildStart, formatStart } from "../utils/time";
 import "./MatchBoard.css";
@@ -95,6 +101,8 @@ const MatchBoard: React.FC<MatchBoardProps> = ({
   const [isBusy, setIsBusy] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
 
+  const myGames = useMyGames(uid);
+
   useEffect(() => {
     return MatchService.subscribeToCourtMatches(
       court.id,
@@ -133,6 +141,11 @@ const MatchBoard: React.FC<MatchBoardProps> = ({
     }
   }, [isPostOpen, user, sports]);
 
+  const postStartAt = buildStart(day, time);
+  const postConflict: PlayerGame | null = uid
+    ? findConflict(postStartAt?.getTime() ?? NaN, myGames, now)
+    : null;
+
   const handlePost = async () => {
     const trimmedName = name.trim();
     const startAt = buildStart(day, time);
@@ -153,6 +166,7 @@ const MatchBoard: React.FC<MatchBoardProps> = ({
     try {
       await MatchService.postMatch(
         court.id,
+        court.name,
         sport,
         trimmedName,
         format,
@@ -229,6 +243,10 @@ const MatchBoard: React.FC<MatchBoardProps> = ({
         const isHost = match.hostUid === uid;
         const hasJoined = uid !== null && match.playerUids.includes(uid);
         const isFull = spotsLeft === 0;
+        const joinConflict: PlayerGame | null =
+          !isHost && !hasJoined && uid
+            ? findConflict(match.startAt.toMillis(), myGames, now, match.id)
+            : null;
 
         return (
           <article key={match.id} className="match-card">
@@ -256,6 +274,13 @@ const MatchBoard: React.FC<MatchBoardProps> = ({
                   : "No one has joined yet."}
               </p>
             )}
+            {joinConflict && (
+              <p className="match-conflict">
+                You're already in a game at this time.{" "}
+                {describeGame(joinConflict, joinConflict.courtName, now)} Leave
+                that game or pick another one.
+              </p>
+            )}
             <div className="match-card__footer">
               {isHost ? (
                 <span className="match-card__status">Your game</span>
@@ -276,7 +301,7 @@ const MatchBoard: React.FC<MatchBoardProps> = ({
                 <IonButton
                   size="small"
                   shape="round"
-                  disabled={isFull || isBusy || !uid}
+                  disabled={isFull || isBusy || !uid || joinConflict !== null}
                   onClick={() => setJoiningMatch(match)}
                 >
                   {isFull ? "Full" : "Join"}
@@ -390,9 +415,16 @@ const MatchBoard: React.FC<MatchBoardProps> = ({
               {SPOTS_BY_FORMAT[format] === 1 ? "" : "s"}. Anyone viewing this
               court can join.
             </p>
+            {postConflict && (
+              <p className="match-conflict">
+                You're already in a game at this time.{" "}
+                {describeGame(postConflict, postConflict.courtName, now)} Pick a
+                time at least 1 hour apart.
+              </p>
+            )}
             <IonButton
               expand="block"
-              disabled={isBusy}
+              disabled={isBusy || postConflict !== null}
               onClick={() => void handlePost()}
             >
               {isBusy ? "Posting…" : "Post game"}

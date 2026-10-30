@@ -25,7 +25,7 @@ service cloud.firestore {
         && request.resource.data.playerCount <= 20
         && request.resource.data.checkedInAt is timestamp
         && request.resource.data.scheduledArrivalAt is timestamp
-        && request.resource.data.durationMinutes in [30, 60, 90, 120, 180, 240]
+        && request.resource.data.durationMinutes in [30, 60]
         && request.resource.data.expiresAt is timestamp
         && request.resource.data.active == true
         && (
@@ -58,7 +58,7 @@ service cloud.firestore {
         && request.resource.data.playerCount <= 20
         && request.resource.data.checkedInAt is timestamp
         && request.resource.data.scheduledArrivalAt is timestamp
-        && request.resource.data.durationMinutes in [30, 60, 90, 120, 180, 240]
+        && request.resource.data.durationMinutes in [30, 60]
         && request.resource.data.expiresAt is timestamp;
       allow delete: if signedInAs(uid);
     }
@@ -81,11 +81,12 @@ service cloud.firestore {
 
       allow create: if request.auth != null
         && request.resource.data.keys().hasOnly([
-          'courtId', 'sport', 'hostUid', 'hostName', 'format', 'startAt', 'skillLevel',
+          'courtId', 'courtName', 'sport', 'hostUid', 'hostName', 'format', 'startAt', 'skillLevel',
           'spotsTotal', 'playerUids', 'playerNames', 'status', 'createdAt'
         ])
         && request.resource.data.hostUid == request.auth.uid
         && request.resource.data.courtId is string
+        && request.resource.data.courtName is string
         && request.resource.data.hostName is string
         && request.resource.data.hostName.size() > 0
         && request.resource.data.hostName.size() <= 40
@@ -143,7 +144,7 @@ service cloud.firestore {
             && request.resource.data.courtId is string
             && request.resource.data.playerCount is int
             && request.resource.data.scheduledArrivalAt is timestamp
-            && request.resource.data.durationMinutes in [30, 60, 90, 120, 180, 240]
+            && request.resource.data.durationMinutes in [30, 60]
             && request.resource.data.timeToCheckIn is number
             && (
               request.resource.data.distance is number

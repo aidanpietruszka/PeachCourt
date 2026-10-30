@@ -89,8 +89,8 @@ describe("summarizeActivity", () => {
     });
   });
 
-  it("U-33 drops reports older than 2 hours", () => {
-    const result = summarizeActivity([], [report("a", 2, -121)], [], now);
+  it("U-33 drops reports older than 1 hour", () => {
+    const result = summarizeActivity([], [report("a", 2, -61)], [], now);
     expect(result.a).toBeUndefined();
   });
 

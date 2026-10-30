@@ -31,6 +31,7 @@ export type SkillLevel = number | "any";
 export interface Match {
   id: string;
   courtId: string;
+  courtName?: string;
   sport: Sport;
   hostUid: string;
   hostName: string;

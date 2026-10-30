@@ -51,8 +51,8 @@ function checkinData(uid: string): Data {
     playerCount: 3,
     checkedInAt: minutesFromNow(0),
     scheduledArrivalAt: minutesFromNow(0),
-    durationMinutes: 120,
-    expiresAt: minutesFromNow(120),
+    durationMinutes: 60,
+    expiresAt: minutesFromNow(60),
     distance: 25,
     timeToCheckIn: 1800,
     active: true,
@@ -67,14 +67,15 @@ function activeCheckinData(uid: string): Data {
     playerCount: 3,
     checkedInAt: minutesFromNow(0),
     scheduledArrivalAt: minutesFromNow(0),
-    durationMinutes: 120,
-    expiresAt: minutesFromNow(120),
+    durationMinutes: 60,
+    expiresAt: minutesFromNow(60),
   };
 }
 
 function matchData(hostUid: string): Data {
   return {
     courtId: "court-1",
+    courtName: "City Park",
     sport: "tennis",
     hostUid,
     hostName: "Sam",
@@ -118,12 +119,16 @@ const notTimestamps: [string, unknown][] = [
   ["null", null],
 ];
 
-const durations = [30, 60, 90, 120, 180, 240];
+const durations = [30, 60];
 const badDurations: [string, unknown][] = [
   ["zero", 0],
   ["45", 45],
+  ["90", 90],
+  ["120", 120],
+  ["180", 180],
+  ["240", 240],
   ["300", 300],
-  ["a string", "120"],
+  ["a string", "60"],
   ["null", null],
 ];
 
@@ -557,6 +562,30 @@ describe("matrix: matches create", () => {
         post("alice", { ...matchData("alice"), hostName: bad }),
       );
     }
+  });
+
+  it("M-42b courtName must be a string", async () => {
+    for (const bad of [1, null, true]) {
+      await assertFails(
+        post("alice", { ...matchData("alice"), courtName: bad }),
+      );
+    }
+  });
+
+  it("M-42c courtName is required", async () => {
+    await assertFails(post("alice", without(matchData("alice"), "courtName")));
+  });
+
+  it("M-42d courtName accepts an empty string", async () => {
+    await assertSucceeds(
+      post("alice", { ...matchData("alice"), courtName: "" }),
+    );
+  });
+
+  it("M-42e courtName accepts a non-empty string", async () => {
+    await assertSucceeds(
+      post("alice", { ...matchData("alice"), courtName: "Grove Park" }),
+    );
   });
 
   it("M-43 hostName length bounds", async () => {

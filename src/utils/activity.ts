@@ -1,7 +1,7 @@
 import { Timestamp, type DocumentData } from "firebase/firestore";
 import { isValidSkill } from "./skill";
 
-export const REPORT_WINDOW_MINUTES = 120;
+export const REPORT_WINDOW_MINUTES = 60;
 
 export interface CourtActivity {
   checkedIn: number;

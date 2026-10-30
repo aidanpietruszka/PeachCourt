@@ -126,20 +126,20 @@ describe("summarizeActivity boundaries", () => {
     expect(Object.keys(result)).toEqual([]);
   });
 
-  it("U-107 a report exactly 120 minutes old still counts", () => {
+  it("U-107 a report exactly 60 minutes old still counts", () => {
     const result = summarizeActivity(
       [],
-      [{ courtId: "a", playerCount: 4, reportedAt: at(-120) }],
+      [{ courtId: "a", playerCount: 4, reportedAt: at(-60) }],
       [],
       now,
     );
     expect(result.a.reported).toBe(4);
   });
 
-  it("U-108 a report 121 minutes old is dropped", () => {
+  it("U-108 a report 61 minutes old is dropped", () => {
     const result = summarizeActivity(
       [],
-      [{ courtId: "a", playerCount: 4, reportedAt: at(-121) }],
+      [{ courtId: "a", playerCount: 4, reportedAt: at(-61) }],
       [],
       now,
     );
