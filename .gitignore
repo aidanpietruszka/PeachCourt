@@ -42,3 +42,6 @@ firestore-debug.log
 
 # Export
 /exports
+
+/functions/node_modules
+/functions/lib
