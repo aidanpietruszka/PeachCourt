@@ -9,6 +9,7 @@ import {
   IonSegment,
   IonSegmentButton,
   useIonRouter,
+  useIonViewWillEnter,
   IonToast,
 } from "@ionic/react";
 import { Geolocation } from "@capacitor/geolocation";
@@ -48,6 +49,8 @@ const CourtsPage: React.FC = () => {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [now, setNow] = useState(() => Date.now());
+  const [centerSerial, setCenterSerial] = useState(1);
+  useIonViewWillEnter(() => setCenterSerial((s) => s + 1));
   const [toastMessage, setToastMessage] = useState("");
   const gotLocation = useRef(false);
   const activity = useLiveCourtData();
@@ -248,8 +251,6 @@ const CourtsPage: React.FC = () => {
               )}
             </div>
 
-            {!isSearching && <p className="pc-subtitle">Atlanta</p>}
-
             {activeCheckIn && (
               <div className="courts-page__checked-in">
                 <span>Checked in at {checkedInCourt?.name ?? "a court"}</span>
@@ -286,6 +287,7 @@ const CourtsPage: React.FC = () => {
                 items={items}
                 userLocation={userLocation}
                 fitToItems={chips.length > 0}
+                centerSerial={centerSerial}
               />
             </div>
           )}

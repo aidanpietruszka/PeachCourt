@@ -113,8 +113,8 @@ describe("formatCount", () => {
     expect(formatCount(1)).toBe("1");
   });
 
-  it("U-56 shows None for zero", () => {
-    expect(formatCount(0)).toBe("None");
+  it("U-56 shows 0 for zero", () => {
+    expect(formatCount(0)).toBe("0");
   });
 
   it("U-57 shows Unknown for null, undefined, NaN, infinity and negatives", () => {

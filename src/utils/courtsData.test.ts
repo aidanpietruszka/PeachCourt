@@ -16,15 +16,11 @@ interface CourtRecord {
   openingHours: { days: string; open: string; close: string }[] | null;
   walkOnRules: string | null;
   reservationInfo: string | null;
-  sports: string[];
-  numberOfCourts: number;
-  surface: string;
-  hours: string;
 }
 
 const COURTS = courtsJson as unknown as CourtRecord[];
 const REMOVED_IDS = ["georgia-tech", "georgia-tech-courts", "piedmont-park"];
-const NEW_FIELDS = [
+const REQUIRED_FIELDS = [
   "tennisCourts",
   "pickleballCourts",
   "pickleballLines",
@@ -34,7 +30,7 @@ const NEW_FIELDS = [
   "walkOnRules",
   "reservationInfo",
 ] as const;
-const LEGACY_FIELDS = ["sports", "numberOfCourts", "surface", "hours"] as const;
+const REMOVED_FIELDS = ["sports", "numberOfCourts", "surface", "hours"] as const;
 
 describe("courts.json", () => {
   it("U-79 has 58 records with unique ids", () => {
@@ -58,10 +54,20 @@ describe("courts.json", () => {
     }
   });
 
-  it("U-82 every record has every new and legacy field", () => {
+  it("U-82 every record has every required field", () => {
     for (const court of COURTS) {
-      for (const field of [...NEW_FIELDS, ...LEGACY_FIELDS]) {
+      for (const field of REQUIRED_FIELDS) {
         expect(court, `${court.id} ${field}`).toHaveProperty(field);
+      }
+    }
+  });
+
+  it("U-94 no record contains any removed legacy field", () => {
+    for (const court of COURTS) {
+      for (const field of REMOVED_FIELDS) {
+        expect(court, `${court.id} should not have ${field}`).not.toHaveProperty(
+          field,
+        );
       }
     }
   });
@@ -164,21 +170,4 @@ describe("courts.json", () => {
     }
   });
 
-  it("U-92 the legacy sports field matches the derived sports", () => {
-    for (const court of COURTS) {
-      expect([...court.sports].sort(), court.id).toEqual(
-        [...courtSports(court)].sort(),
-      );
-    }
-  });
-
-  it("U-93 the legacy court count is the larger of the two counts", () => {
-    for (const court of COURTS) {
-      const total = Math.max(
-        court.tennisCourts ?? 0,
-        court.pickleballCourts ?? 0,
-      );
-      expect(court.numberOfCourts, court.id).toBeGreaterThanOrEqual(total);
-    }
-  });
 });

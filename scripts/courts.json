@@ -14,13 +14,7 @@
     "hasLights": false,
     "openingHours": null,
     "walkOnRules": "First come, first served",
-    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)",
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 2,
-    "surface": "Hard",
-    "hours": "Unknown"
+    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)"
   },
   {
     "id": "bagley-park",
@@ -37,13 +31,7 @@
     "hasLights": true,
     "openingHours": null,
     "walkOnRules": "First come, first served",
-    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)",
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 4,
-    "surface": "Hard",
-    "hours": "Unknown"
+    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)"
   },
   {
     "id": "bitsy-grant-tennis-center",
@@ -72,14 +60,7 @@
       }
     ],
     "walkOnRules": "Reservation required",
-    "reservationInfo": "Book through Agape Tennis + Pickleball Academy up to 3 days ahead · 404-205-5352",
-    "sports": [
-      "tennis",
-      "pickleball"
-    ],
-    "numberOfCourts": 36,
-    "surface": "Clay and hard",
-    "hours": "Mon–Fri 9 AM–9 PM · Sat–Sun 9 AM–6 PM"
+    "reservationInfo": "Book through Agape Tennis + Pickleball Academy up to 3 days ahead · 404-205-5352"
   },
   {
     "id": "booker-t-washington-high-school",
@@ -96,13 +77,7 @@
     "hasLights": false,
     "openingHours": null,
     "walkOnRules": "Members only",
-    "reservationInfo": "Atlanta Public Schools use only; not open to the public",
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 3,
-    "surface": "Hard",
-    "hours": "Unknown"
+    "reservationInfo": "Atlanta Public Schools use only; not open to the public"
   },
   {
     "id": "brownwood-park",
@@ -125,13 +100,7 @@
       }
     ],
     "walkOnRules": "First come, first served",
-    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)",
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 3,
-    "surface": "Asphalt",
-    "hours": "6 AM–11 PM daily"
+    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)"
   },
   {
     "id": "butler-park-recreation-center",
@@ -148,13 +117,7 @@
     "hasLights": true,
     "openingHours": null,
     "walkOnRules": "First come, first served",
-    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)",
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 2,
-    "surface": "Hard",
-    "hours": "Unknown"
+    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)"
   },
   {
     "id": "candler-park",
@@ -177,13 +140,7 @@
       }
     ],
     "walkOnRules": "First come, first served",
-    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)",
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 4,
-    "surface": "Concrete",
-    "hours": "6 AM–11 PM daily"
+    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)"
   },
   {
     "id": "central-park",
@@ -206,13 +163,7 @@
       }
     ],
     "walkOnRules": "First come, first served",
-    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)",
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 4,
-    "surface": "Paved",
-    "hours": "6 AM–10 PM daily"
+    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)"
   },
   {
     "id": "chosewood-park",
@@ -229,13 +180,7 @@
     "hasLights": false,
     "openingHours": null,
     "walkOnRules": "First come, first served",
-    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)",
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 1,
-    "surface": "Hard",
-    "hours": "Unknown"
+    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)"
   },
   {
     "id": "coan-park",
@@ -252,13 +197,7 @@
     "hasLights": true,
     "openingHours": null,
     "walkOnRules": "First come, first served",
-    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)",
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 4,
-    "surface": "Hard",
-    "hours": "Unknown"
+    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)"
   },
   {
     "id": "courts-on-26th-street-northwest",
@@ -275,13 +214,7 @@
     "hasLights": null,
     "openingHours": null,
     "walkOnRules": null,
-    "reservationInfo": null,
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 2,
-    "surface": "Hard",
-    "hours": "Unknown"
+    "reservationInfo": null
   },
   {
     "id": "courts-on-beatie-avenue-southwest",
@@ -298,13 +231,7 @@
     "hasLights": true,
     "openingHours": null,
     "walkOnRules": "First come, first served",
-    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)",
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 6,
-    "surface": "Hard",
-    "hours": "Unknown"
+    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)"
   },
   {
     "id": "courts-on-beverly-road-northeast",
@@ -321,13 +248,7 @@
     "hasLights": null,
     "openingHours": null,
     "walkOnRules": "Members only",
-    "reservationInfo": "Private court; not open to the public",
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 1,
-    "surface": "Hard",
-    "hours": "Unknown"
+    "reservationInfo": "Private court; not open to the public"
   },
   {
     "id": "courts-on-buckhead-avenue-northeast",
@@ -344,13 +265,7 @@
     "hasLights": null,
     "openingHours": null,
     "walkOnRules": null,
-    "reservationInfo": null,
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 1,
-    "surface": "Hard",
-    "hours": "Unknown"
+    "reservationInfo": null
   },
   {
     "id": "courts-on-collier-road-northwest",
@@ -367,13 +282,7 @@
     "hasLights": true,
     "openingHours": null,
     "walkOnRules": "Members only",
-    "reservationInfo": "Residents only; not open to the public",
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 1,
-    "surface": "Paved",
-    "hours": "Unknown"
+    "reservationInfo": "Residents only; not open to the public"
   },
   {
     "id": "courts-on-cross-creek-parkway-northwest",
@@ -390,13 +299,7 @@
     "hasLights": true,
     "openingHours": null,
     "walkOnRules": "Members only",
-    "reservationInfo": "Residents only; not open to the public",
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 2,
-    "surface": "Hard",
-    "hours": "Unknown"
+    "reservationInfo": "Residents only; not open to the public"
   },
   {
     "id": "courts-on-howell-mill-road-northwest",
@@ -413,13 +316,7 @@
     "hasLights": null,
     "openingHours": null,
     "walkOnRules": null,
-    "reservationInfo": null,
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 1,
-    "surface": "Hard",
-    "hours": "Unknown"
+    "reservationInfo": null
   },
   {
     "id": "courts-on-lake-drive-southeast",
@@ -436,13 +333,7 @@
     "hasLights": null,
     "openingHours": null,
     "walkOnRules": null,
-    "reservationInfo": null,
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 2,
-    "surface": "Hard",
-    "hours": "Unknown"
+    "reservationInfo": null
   },
   {
     "id": "courts-on-larkin-street-southwest",
@@ -459,13 +350,7 @@
     "hasLights": false,
     "openingHours": null,
     "walkOnRules": "First come, first served",
-    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)",
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 8,
-    "surface": "Hard",
-    "hours": "Unknown"
+    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)"
   },
   {
     "id": "courts-on-nawench-drive-northwest",
@@ -498,14 +383,7 @@
       }
     ],
     "walkOnRules": "Members only",
-    "reservationInfo": "YMCA membership required; reserve through Reserve My Courts or the YMCA app",
-    "sports": [
-      "tennis",
-      "pickleball"
-    ],
-    "numberOfCourts": 13,
-    "surface": "Hard",
-    "hours": "Mon–Thu 5 AM–10 PM · Fri 5 AM–8 PM · Sat–Sun 7 AM–6 PM"
+    "reservationInfo": "YMCA membership required; reserve through Reserve My Courts or the YMCA app"
   },
   {
     "id": "courts-on-oakland-drive-southwest",
@@ -522,13 +400,7 @@
     "hasLights": false,
     "openingHours": null,
     "walkOnRules": "First come, first served",
-    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)",
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 2,
-    "surface": "Asphalt",
-    "hours": "Unknown"
+    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)"
   },
   {
     "id": "courts-on-paschal-boulevard-northwest",
@@ -545,13 +417,7 @@
     "hasLights": null,
     "openingHours": null,
     "walkOnRules": null,
-    "reservationInfo": null,
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 1,
-    "surface": "Asphalt",
-    "hours": "Unknown"
+    "reservationInfo": null
   },
   {
     "id": "courts-on-pharr-court-s-northwest",
@@ -568,13 +434,7 @@
     "hasLights": null,
     "openingHours": null,
     "walkOnRules": "Members only",
-    "reservationInfo": "Residents only; not open to the public",
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 1,
-    "surface": "Hard",
-    "hours": "Unknown"
+    "reservationInfo": "Residents only; not open to the public"
   },
   {
     "id": "courts-on-pine-heights-drive-northeast",
@@ -591,13 +451,7 @@
     "hasLights": true,
     "openingHours": null,
     "walkOnRules": "Members only",
-    "reservationInfo": "Residents only; not open to the public",
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 1,
-    "surface": "Asphalt",
-    "hours": "Unknown"
+    "reservationInfo": "Residents only; not open to the public"
   },
   {
     "id": "courts-on-rumson-road-northeast",
@@ -614,13 +468,7 @@
     "hasLights": null,
     "openingHours": null,
     "walkOnRules": "Members only",
-    "reservationInfo": "Residents only; not open to the public",
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 1,
-    "surface": "Hard",
-    "hours": "Unknown"
+    "reservationInfo": "Residents only; not open to the public"
   },
   {
     "id": "courts-on-sidney-marcus-boulevard-northeast",
@@ -637,13 +485,7 @@
     "hasLights": null,
     "openingHours": null,
     "walkOnRules": "Members only",
-    "reservationInfo": "Residents only; not open to the public",
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 2,
-    "surface": "Hard",
-    "hours": "Unknown"
+    "reservationInfo": "Residents only; not open to the public"
   },
   {
     "id": "courts-on-south-fork-confluence-trail",
@@ -660,13 +502,7 @@
     "hasLights": null,
     "openingHours": null,
     "walkOnRules": null,
-    "reservationInfo": null,
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 1,
-    "surface": "Hard",
-    "hours": "Unknown"
+    "reservationInfo": null
   },
   {
     "id": "courts-on-summit-north-drive",
@@ -683,13 +519,7 @@
     "hasLights": null,
     "openingHours": null,
     "walkOnRules": "Members only",
-    "reservationInfo": "Residents only; not open to the public",
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 1,
-    "surface": "Hard",
-    "hours": "Unknown"
+    "reservationInfo": "Residents only; not open to the public"
   },
   {
     "id": "courts-on-walker-avenue-southwest",
@@ -706,13 +536,7 @@
     "hasLights": true,
     "openingHours": null,
     "walkOnRules": "Members only",
-    "reservationInfo": "Membership required; not open to the public",
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 2,
-    "surface": "Hard",
-    "hours": "Unknown"
+    "reservationInfo": "Membership required; not open to the public"
   },
   {
     "id": "courts-on-wylie-street-southeast",
@@ -729,13 +553,7 @@
     "hasLights": null,
     "openingHours": null,
     "walkOnRules": "First come, first served",
-    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)",
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 1,
-    "surface": "Asphalt",
-    "hours": "Unknown"
+    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)"
   },
   {
     "id": "dale-way-park",
@@ -752,13 +570,7 @@
     "hasLights": null,
     "openingHours": null,
     "walkOnRules": null,
-    "reservationInfo": null,
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 2,
-    "surface": "Hard",
-    "hours": "Unknown"
+    "reservationInfo": null
   },
   {
     "id": "freedom-park",
@@ -775,13 +587,7 @@
     "hasLights": false,
     "openingHours": null,
     "walkOnRules": "First come, first served",
-    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)",
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 2,
-    "surface": "Hard",
-    "hours": "Unknown"
+    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)"
   },
   {
     "id": "grant-park",
@@ -798,14 +604,7 @@
     "hasLights": true,
     "openingHours": null,
     "walkOnRules": "First come, first served",
-    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)",
-    "sports": [
-      "tennis",
-      "pickleball"
-    ],
-    "numberOfCourts": 4,
-    "surface": "Asphalt",
-    "hours": "Unknown"
+    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)"
   },
   {
     "id": "grove-park",
@@ -822,14 +621,7 @@
     "hasLights": false,
     "openingHours": null,
     "walkOnRules": "First come, first served",
-    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)",
-    "sports": [
-      "tennis",
-      "pickleball"
-    ],
-    "numberOfCourts": 5,
-    "surface": "Asphalt",
-    "hours": "Unknown"
+    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)"
   },
   {
     "id": "hanover-west-tennis-courts",
@@ -846,13 +638,7 @@
     "hasLights": false,
     "openingHours": null,
     "walkOnRules": "Members only",
-    "reservationInfo": "Private club; not open to the public",
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 2,
-    "surface": "Hard",
-    "hours": "Unknown"
+    "reservationInfo": "Private club; not open to the public"
   },
   {
     "id": "ken-byers-tennis-complex",
@@ -880,13 +666,7 @@
       }
     ],
     "walkOnRules": "Members only",
-    "reservationInfo": "Georgia Tech students only (BuzzCard); 4 of 10 courts; no reservations",
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 10,
-    "surface": "Hard",
-    "hours": "Mon–Fri 5 PM–10 PM · Sat 10 AM–2 PM"
+    "reservationInfo": "Georgia Tech students only (BuzzCard); 4 of 10 courts; no reservations"
   },
   {
     "id": "knight-park",
@@ -903,13 +683,7 @@
     "hasLights": false,
     "openingHours": null,
     "walkOnRules": "First come, first served",
-    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)",
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 1,
-    "surface": "Concrete",
-    "hours": "Unknown"
+    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)"
   },
   {
     "id": "lucius-d-simon-sr-memorial-park",
@@ -926,13 +700,7 @@
     "hasLights": null,
     "openingHours": null,
     "walkOnRules": "First come, first served",
-    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)",
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 1,
-    "surface": "Hard",
-    "hours": "Unknown"
+    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)"
   },
   {
     "id": "maddox-park",
@@ -949,14 +717,7 @@
     "hasLights": true,
     "openingHours": null,
     "walkOnRules": "First come, first served",
-    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)",
-    "sports": [
-      "tennis",
-      "pickleball"
-    ],
-    "numberOfCourts": 1,
-    "surface": "Hard",
-    "hours": "Unknown"
+    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)"
   },
   {
     "id": "martin-luther-king-jr-national-historic-site",
@@ -973,13 +734,7 @@
     "hasLights": false,
     "openingHours": null,
     "walkOnRules": null,
-    "reservationInfo": null,
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 1,
-    "surface": "Hard",
-    "hours": "Unknown"
+    "reservationInfo": null
   },
   {
     "id": "maynard-h-jackson-high-school",
@@ -996,13 +751,7 @@
     "hasLights": null,
     "openingHours": null,
     "walkOnRules": "Members only",
-    "reservationInfo": "Atlanta Public Schools use only; not open to the public",
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 1,
-    "surface": "Paved",
-    "hours": "Unknown"
+    "reservationInfo": "Atlanta Public Schools use only; not open to the public"
   },
   {
     "id": "midtown-high-school",
@@ -1019,13 +768,7 @@
     "hasLights": null,
     "openingHours": null,
     "walkOnRules": "Members only",
-    "reservationInfo": "Atlanta Public Schools use only; not open to the public",
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 3,
-    "surface": "Hard",
-    "hours": "Unknown"
+    "reservationInfo": "Atlanta Public Schools use only; not open to the public"
   },
   {
     "id": "morehouse-college",
@@ -1042,13 +785,7 @@
     "hasLights": true,
     "openingHours": null,
     "walkOnRules": "Members only",
-    "reservationInfo": "Morehouse College community only; not open to the public",
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 6,
-    "surface": "Asphalt",
-    "hours": "Unknown"
+    "reservationInfo": "Morehouse College community only; not open to the public"
   },
   {
     "id": "moseley-park",
@@ -1065,13 +802,7 @@
     "hasLights": false,
     "openingHours": null,
     "walkOnRules": "First come, first served",
-    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)",
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 2,
-    "surface": "Hard",
-    "hours": "Unknown"
+    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)"
   },
   {
     "id": "peachtree-hills-park",
@@ -1088,14 +819,7 @@
     "hasLights": true,
     "openingHours": null,
     "walkOnRules": "First come, first served",
-    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)",
-    "sports": [
-      "tennis",
-      "pickleball"
-    ],
-    "numberOfCourts": 11,
-    "surface": "Hard",
-    "hours": "Unknown"
+    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)"
   },
   {
     "id": "peters-parking-deck",
@@ -1112,14 +836,7 @@
     "hasLights": null,
     "openingHours": null,
     "walkOnRules": null,
-    "reservationInfo": null,
-    "sports": [
-      "tennis",
-      "pickleball"
-    ],
-    "numberOfCourts": 4,
-    "surface": "Concrete",
-    "hours": "Unknown"
+    "reservationInfo": null
   },
   {
     "id": "phoenix-ii-park",
@@ -1136,14 +853,7 @@
     "hasLights": false,
     "openingHours": null,
     "walkOnRules": "First come, first served",
-    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)",
-    "sports": [
-      "tennis",
-      "pickleball"
-    ],
-    "numberOfCourts": 2,
-    "surface": "Hard",
-    "hours": "Unknown"
+    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)"
   },
   {
     "id": "piedmont-driving-club",
@@ -1161,14 +871,7 @@
     "hasLights": true,
     "openingHours": null,
     "walkOnRules": "Members only",
-    "reservationInfo": "Private club; members only",
-    "sports": [
-      "tennis",
-      "pickleball"
-    ],
-    "numberOfCourts": 13,
-    "surface": "Clay and hard",
-    "hours": "Unknown"
+    "reservationInfo": "Private club; members only"
   },
   {
     "id": "rawson-washington-park",
@@ -1185,13 +888,7 @@
     "hasLights": false,
     "openingHours": null,
     "walkOnRules": "First come, first served",
-    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)",
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 1,
-    "surface": "Hard",
-    "hours": "Unknown"
+    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)"
   },
   {
     "id": "rosa-l-burney-park",
@@ -1208,13 +905,7 @@
     "hasLights": false,
     "openingHours": null,
     "walkOnRules": "First come, first served",
-    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)",
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 2,
-    "surface": "Hard",
-    "hours": "Unknown"
+    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)"
   },
   {
     "id": "shady-valley-park",
@@ -1231,14 +922,7 @@
     "hasLights": false,
     "openingHours": null,
     "walkOnRules": "First come, first served",
-    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)",
-    "sports": [
-      "tennis",
-      "pickleball"
-    ],
-    "numberOfCourts": 3,
-    "surface": "Asphalt",
-    "hours": "Unknown"
+    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)"
   },
   {
     "id": "sharon-e-lester-tennis-center",
@@ -1266,14 +950,7 @@
       }
     ],
     "walkOnRules": "Reservation required",
-    "reservationInfo": "Book through Agape Tennis + Pickleball Academy up to 3 days ahead",
-    "sports": [
-      "tennis",
-      "pickleball"
-    ],
-    "numberOfCourts": 18,
-    "surface": "Paved",
-    "hours": "Mon–Fri 9 AM–9 PM · Sat–Sun 9 AM–6 PM"
+    "reservationInfo": "Book through Agape Tennis + Pickleball Academy up to 3 days ahead"
   },
   {
     "id": "spelman-college",
@@ -1290,13 +967,7 @@
     "hasLights": null,
     "openingHours": null,
     "walkOnRules": "Members only",
-    "reservationInfo": "Spelman College community only; not open to the public",
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 4,
-    "surface": "Hard",
-    "hours": "Unknown"
+    "reservationInfo": "Spelman College community only; not open to the public"
   },
   {
     "id": "sutton-middle-school",
@@ -1313,13 +984,7 @@
     "hasLights": null,
     "openingHours": null,
     "walkOnRules": "Members only",
-    "reservationInfo": "Atlanta Public Schools use only; not open to the public",
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 3,
-    "surface": "Hard",
-    "hours": "Unknown"
+    "reservationInfo": "Atlanta Public Schools use only; not open to the public"
   },
   {
     "id": "underwood-hills-park",
@@ -1336,13 +1001,7 @@
     "hasLights": false,
     "openingHours": null,
     "walkOnRules": "First come, first served",
-    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)",
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 2,
-    "surface": "Acrylic",
-    "hours": "Unknown"
+    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)"
   },
   {
     "id": "walker-park",
@@ -1359,13 +1018,7 @@
     "hasLights": true,
     "openingHours": null,
     "walkOnRules": null,
-    "reservationInfo": null,
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 1,
-    "surface": "Hard",
-    "hours": "Unknown"
+    "reservationInfo": null
   },
   {
     "id": "washington-park",
@@ -1393,14 +1046,7 @@
       }
     ],
     "walkOnRules": "Reservation required",
-    "reservationInfo": "Book through Agape Tennis + Pickleball Academy up to 3 days ahead",
-    "sports": [
-      "tennis",
-      "pickleball"
-    ],
-    "numberOfCourts": 16,
-    "surface": "Hard",
-    "hours": "Mon–Fri 5 PM–9 PM · Sat–Sun 9 AM–6 PM"
+    "reservationInfo": "Book through Agape Tennis + Pickleball Academy up to 3 days ahead"
   },
   {
     "id": "west-end-park",
@@ -1423,12 +1069,6 @@
       }
     ],
     "walkOnRules": "First come, first served",
-    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)",
-    "sports": [
-      "tennis"
-    ],
-    "numberOfCourts": 2,
-    "surface": "Hard",
-    "hours": "6 AM–11 PM daily"
+    "reservationInfo": "Free to walk on; optional reservation on iParcs ($3–$5.50/hr, 3–90 days ahead)"
   }
 ]

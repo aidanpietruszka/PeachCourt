@@ -107,7 +107,7 @@ test("E2E-26 court detail shows every row for a tennis court", async ({
   await openCourt(page, COURTS.alpha.name);
   await expandDetails(page);
   await expect(infoRow(page, "Tennis courts")).toContainText("4");
-  await expect(infoRow(page, "Pickleball courts")).toContainText("None");
+  await expect(infoRow(page, "Pickleball courts")).toContainText("0");
   await expect(infoRow(page, "Hours")).toContainText("Daily 7 AM–11 PM");
   await expect(infoRow(page, "Reservations")).toContainText("Unknown");
   await expect(infoRow(page, "Walk-on rules")).toContainText(
@@ -129,7 +129,7 @@ test("E2E-27 court detail shows each hours group on its own line", async ({
     .click();
   await openCourt(page, COURTS.gamma.name);
   await expandDetails(page);
-  await expect(infoRow(page, "Tennis courts")).toContainText("None");
+  await expect(infoRow(page, "Tennis courts")).toContainText("0");
   await expect(infoRow(page, "Pickleball courts")).toContainText("6");
   const hours = infoRow(page, "Hours").locator(".court-info__lines");
   await expect(hours).toContainText("Mon–Fri 6 AM–10 PM");
@@ -167,7 +167,7 @@ test("E2E-28 court detail shows multiple surfaces, lines and half-hour times", a
   await openCourt(page, COURTS.delta.name);
   await expandDetails(page);
   await expect(infoRow(page, "Tennis courts")).toContainText("3");
-  await expect(infoRow(page, "Pickleball courts")).toContainText("None");
+  await expect(infoRow(page, "Pickleball courts")).toContainText("0");
   await expect(infoRow(page, "Pickleball lines")).toContainText("Yes");
   await expect(infoRow(page, "Surface")).toContainText("Clay, Hard");
   await expect(infoRow(page, "Hours")).toContainText("Mon–Fri 9:30 AM–9 PM");
