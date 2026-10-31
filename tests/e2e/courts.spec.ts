@@ -288,6 +288,93 @@ test("E2E-83 sport filter applies during search", async ({ browser }) => {
   await context.close();
 });
 
+test("E2E-86 inline clear button clears search and restores normal view", async ({
+  browser,
+}) => {
+  const { context, page } = await newUser(browser, "Sam");
+  const search = page.locator(".courts-page__search-input");
+
+  await search.fill("alpha");
+  const clearBtn = page.locator(".courts-page__search-clear");
+  await expect(clearBtn).toBeVisible();
+  await clearBtn.click();
+  await expect(search).toHaveValue("");
+  await expect(page.locator(".courts-page__map")).toBeVisible();
+  await expect(page.locator("ion-segment")).toBeVisible();
+  await expect(page.locator("#nearby-courts-heading")).toHaveText(
+    /tennis court/,
+  );
+  await context.close();
+});
+
+test("E2E-87 search with no matches shows 0 results", async ({ browser }) => {
+  const { context, page } = await newUser(browser, "Sam");
+  await page.locator(".courts-page__search-input").fill("zzznomatch");
+  await expect(page.locator("#nearby-courts-heading")).toHaveText("0 results");
+  await expect(
+    page.locator(".courts-page__list ion-item").filter({ visible: true }),
+  ).toHaveCount(0);
+  await context.close();
+});
+
+test("E2E-88 search with multiple matches shows plural results", async ({
+  browser,
+}) => {
+  const { context, page } = await newUser(browser, "Sam");
+  await page.locator(".courts-page__search-input").fill("Test");
+  const heading = page.locator("#nearby-courts-heading");
+  await expect(heading).toContainText("results");
+  await expect(heading).not.toContainText("1 result");
+  await context.close();
+});
+
+test("E2E-89 court detail expand toggle and re-collapse", async ({
+  browser,
+}) => {
+  const { context, page } = await newUser(browser, "Sam");
+  await openCourt(page, COURTS.alpha.name);
+
+  const toggle = page.locator(".court-details__toggle");
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await expect(page.locator(".court-info")).toHaveCount(0);
+
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  await expect(page.locator(".court-info")).toBeVisible();
+
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await expect(page.locator(".court-info")).toHaveCount(0);
+  await context.close();
+});
+
+test("E2E-90 collapsed summary for a pickleball court", async ({ browser }) => {
+  const { context, page } = await newUser(browser, "Sam");
+  await page
+    .locator("ion-segment-button")
+    .filter({ hasText: "Pickleball" })
+    .click();
+  await openCourt(page, COURTS.gamma.name);
+  await expect(page.locator(".court-details__summary")).toContainText(
+    "6 pickleball · Concrete",
+  );
+  await context.close();
+});
+
+test("E2E-91 collapsed summary for a mixed court without surfaces", async ({
+  browser,
+}) => {
+  const { context, page } = await newUser(browser, "Sam");
+  await openCourt(page, COURTS.beta.name);
+  await expect(page.locator(".court-details__summary")).toContainText(
+    "2 tennis · 2 pickleball",
+  );
+  await expect(page.locator(".court-details__summary")).not.toContainText(
+    "Unknown",
+  );
+  await context.close();
+});
+
 test("E2E-29 list rows show both court counts and lights", async ({
   browser,
 }) => {

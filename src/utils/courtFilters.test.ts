@@ -865,4 +865,10 @@ describe("searchRows", () => {
   it("U-196 no match returns empty array", () => {
     expect(searchRows(all, "zzznomatch")).toEqual([]);
   });
+
+  it("U-197 court with null address matches only on name", () => {
+    const noAddr = row("Null Address Court", null as unknown as string);
+    expect(searchRows([noAddr], "null address")).toEqual([noAddr]);
+    expect(searchRows([noAddr], "main st")).toEqual([]);
+  });
 });
