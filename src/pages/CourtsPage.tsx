@@ -248,8 +248,6 @@ const CourtsPage: React.FC = () => {
               )}
             </div>
 
-            {!isSearching && <p className="pc-subtitle">Atlanta</p>}
-
             {activeCheckIn && (
               <div className="courts-page__checked-in">
                 <span>Checked in at {checkedInCourt?.name ?? "a court"}</span>
