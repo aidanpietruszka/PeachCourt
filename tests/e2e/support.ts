@@ -257,6 +257,14 @@ export function infoRow(page: Page, label: string) {
     .filter({ has: page.getByText(label, { exact: true }) });
 }
 
+export async function expandDetails(page: Page) {
+  const toggle = page.locator(".court-details__toggle");
+  if ((await toggle.getAttribute("aria-expanded")) !== "true") {
+    await toggle.click();
+  }
+  await expect(page.locator(".court-info")).toBeVisible();
+}
+
 export async function openCourt(page: Page, courtName: string) {
   await page
     .locator("ion-item")
