@@ -173,6 +173,80 @@ test("E2E-28 court detail shows multiple surfaces, lines and half-hour times", a
   await context.close();
 });
 
+test("E2E-79 search by name shows matching courts and results count", async ({
+  browser,
+}) => {
+  const { context, page } = await newUser(browser, "Sam");
+  const search = page.locator(".courts-page__search-input");
+  const list = page.locator(".courts-page__list");
+
+  await search.fill("alpha");
+  await expect(page.locator("#nearby-courts-heading")).toHaveText("1 result");
+  await expect(list.getByText(COURTS.alpha.name)).toBeVisible();
+  await expect(list.getByText(COURTS.beta.name)).toHaveCount(0);
+  await context.close();
+});
+
+test("E2E-80 search by address shows matching courts", async ({ browser }) => {
+  const { context, page } = await newUser(browser, "Sam");
+  const search = page.locator(".courts-page__search-input");
+
+  await search.fill("Test Ave");
+  await expect(
+    page.locator(".courts-page__list").getByText(COURTS.beta.name),
+  ).toBeVisible();
+  await expect(
+    page.locator(".courts-page__list").getByText(COURTS.alpha.name),
+  ).toHaveCount(0);
+  await context.close();
+});
+
+test("E2E-81 search hides the map and segment", async ({ browser }) => {
+  const { context, page } = await newUser(browser, "Sam");
+  const search = page.locator(".courts-page__search-input");
+
+  await expect(page.locator(".courts-page__map")).toBeVisible();
+  await expect(page.locator("ion-segment")).toBeVisible();
+
+  await search.fill("alpha");
+  await expect(page.locator(".courts-page__map")).toHaveCount(0);
+  await expect(page.locator("ion-segment")).toHaveCount(0);
+  await context.close();
+});
+
+test("E2E-82 Cancel clears search and restores normal view", async ({
+  browser,
+}) => {
+  const { context, page } = await newUser(browser, "Sam");
+  const search = page.locator(".courts-page__search-input");
+
+  await search.fill("alpha");
+  await expect(page.locator(".courts-page__search-cancel")).toBeVisible();
+  await page.locator(".courts-page__search-cancel").click();
+  await expect(search).toHaveValue("");
+  await expect(page.locator(".courts-page__map")).toBeVisible();
+  await expect(page.locator("#nearby-courts-heading")).toHaveText(
+    /tennis court/,
+  );
+  await context.close();
+});
+
+test("E2E-83 sport filter applies during search", async ({ browser }) => {
+  const { context, page } = await newUser(browser, "Sam");
+
+  await page
+    .locator("ion-segment-button")
+    .filter({ hasText: "Pickleball" })
+    .click();
+
+  await page.locator(".courts-page__search-input").fill("beta");
+  await expect(
+    page.locator(".courts-page__list").getByText(COURTS.beta.name),
+  ).toBeVisible();
+  await expect(page.locator("#nearby-courts-heading")).toHaveText("1 result");
+  await context.close();
+});
+
 test("E2E-29 list rows show both court counts and lights", async ({
   browser,
 }) => {

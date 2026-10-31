@@ -257,6 +257,17 @@ export function sportMatches(court: Court, sport: Sport): boolean {
   return sport === "tennis" ? tennis : pickleball;
 }
 
+export function searchRows(rows: CourtRow[], text: string): CourtRow[] {
+  const q = text.trim().toLowerCase();
+  if (!q) return rows;
+  return rows.filter(
+    ({ court }) =>
+      court.name.toLowerCase().includes(q) ||
+      (typeof court.address === "string" &&
+        court.address.toLowerCase().includes(q)),
+  );
+}
+
 export function buildRows(
   courts: Court[],
   sport: Sport,

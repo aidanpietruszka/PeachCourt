@@ -12,9 +12,11 @@ import {
   loadFilters,
   parseFilters,
   saveFilters,
+  searchRows,
   sportMatches,
   toggleSurface,
   type CourtFilters,
+  type CourtRow,
 } from "./courtFilters";
 import { courtSummary, timeToMinutes } from "./courts";
 
@@ -823,5 +825,44 @@ describe("buildRows sorting", () => {
       "a-near",
       "b-mid",
     ]);
+  });
+});
+
+describe("searchRows", () => {
+  function row(name: string, address: string): CourtRow {
+    return {
+      court: court("x", { name, address }),
+      reported: null,
+      openGames: 0,
+      players: 0,
+      distance: null,
+    };
+  }
+
+  const alpha = row("Alpha Tennis Center", "1 Main St NW");
+  const beta = row("Beta Park", "2 Park Ave SE");
+  const gamma = row("Gamma Pickleball", "3 North Rd NE");
+  const all = [alpha, beta, gamma];
+
+  it("U-192 empty query returns all rows unchanged", () => {
+    expect(searchRows(all, "")).toBe(all);
+  });
+
+  it("U-193 whitespace-only query returns all rows", () => {
+    expect(searchRows(all, "   ")).toEqual(all);
+  });
+
+  it("U-194 matches court name case-insensitively", () => {
+    expect(searchRows(all, "alpha")).toEqual([alpha]);
+    expect(searchRows(all, "TENNIS")).toEqual([alpha]);
+  });
+
+  it("U-195 matches court address case-insensitively", () => {
+    expect(searchRows(all, "park ave")).toEqual([beta]);
+    expect(searchRows(all, "NW")).toEqual([alpha]);
+  });
+
+  it("U-196 no match returns empty array", () => {
+    expect(searchRows(all, "zzznomatch")).toEqual([]);
   });
 });
