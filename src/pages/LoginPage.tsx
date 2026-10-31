@@ -34,7 +34,7 @@ const LoginPage: React.FC = () => {
       await action();
       const uid = auth.currentUser?.uid;
       const profile = uid ? await UserService.getProfile(uid) : null;
-      ionRouter.push(profile ? "/courts" : "/onboarding", "root", "replace");
+      ionRouter.push(profile?.onboardingDone ? "/courts" : "/onboarding", "root", "replace");
     } catch (e) {
       setError(authErrorMessage(e));
     } finally {

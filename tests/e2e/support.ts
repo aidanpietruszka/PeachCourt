@@ -239,6 +239,10 @@ export async function signUp(page: Page, name: string) {
   await page.locator(".onboarding__skill-row").first().click();
   await page.locator("ion-action-sheet button").filter({ hasText: "3.5" }).click();
   await page.getByRole("button", { name: "Next" }).click();
+  await expect(page.getByText("Use your location")).toBeVisible();
+  await page.getByRole("button", { name: "Skip for now" }).click();
+  await expect(page.getByText("Get game alerts")).toBeVisible();
+  await page.getByRole("button", { name: "Skip for now" }).click();
   await expect(page).toHaveURL(/\/courts$/);
   return email;
 }

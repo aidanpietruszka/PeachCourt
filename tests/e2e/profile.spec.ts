@@ -163,3 +163,64 @@ test("E2E-103 courts tab and profile tab switch correctly", async ({
   await expect(page).toHaveURL(/\/courts$/);
   await context.close();
 });
+
+test("E2E-104 onboarding step 1 Next shows location step", async ({
+  page,
+}) => {
+  const email = `sam-${Date.now()}@test.dev`;
+  await page.goto("/signup");
+  await page.getByPlaceholder("Email").fill(email);
+  await page.getByPlaceholder("Password (6+ characters)").fill("secret123");
+  await page.getByPlaceholder("Confirm password").fill("secret123");
+  await page.getByRole("button", { name: "Sign up", exact: true }).click();
+  await page.getByLabel("First name").fill("Sam");
+  await page.getByLabel("Last name").fill("Test");
+  await page.getByRole("button", { name: "Tennis" }).click();
+  await page.locator(".onboarding__skill-row").first().click();
+  await page.locator("ion-action-sheet button").filter({ hasText: "3.5" }).click();
+  await page.getByRole("button", { name: "Next" }).click();
+  await expect(page).toHaveURL(/\/onboarding$/);
+  await expect(page.getByText("Use your location")).toBeVisible();
+  await expect(page.getByText("Step 2 of 3")).toBeVisible();
+});
+
+test("E2E-105 onboarding step 2 Skip shows notifications step", async ({
+  page,
+}) => {
+  const email = `sam-${Date.now()}@test.dev`;
+  await page.goto("/signup");
+  await page.getByPlaceholder("Email").fill(email);
+  await page.getByPlaceholder("Password (6+ characters)").fill("secret123");
+  await page.getByPlaceholder("Confirm password").fill("secret123");
+  await page.getByRole("button", { name: "Sign up", exact: true }).click();
+  await page.getByLabel("First name").fill("Sam");
+  await page.getByLabel("Last name").fill("Test");
+  await page.getByRole("button", { name: "Tennis" }).click();
+  await page.locator(".onboarding__skill-row").first().click();
+  await page.locator("ion-action-sheet button").filter({ hasText: "3.5" }).click();
+  await page.getByRole("button", { name: "Next" }).click();
+  await page.getByRole("button", { name: "Skip for now" }).click();
+  await expect(page).toHaveURL(/\/onboarding$/);
+  await expect(page.getByText("Get game alerts")).toBeVisible();
+  await expect(page.getByText("Step 3 of 3")).toBeVisible();
+});
+
+test("E2E-106 onboarding step 3 Skip navigates to courts", async ({
+  page,
+}) => {
+  const email = `sam-${Date.now()}@test.dev`;
+  await page.goto("/signup");
+  await page.getByPlaceholder("Email").fill(email);
+  await page.getByPlaceholder("Password (6+ characters)").fill("secret123");
+  await page.getByPlaceholder("Confirm password").fill("secret123");
+  await page.getByRole("button", { name: "Sign up", exact: true }).click();
+  await page.getByLabel("First name").fill("Sam");
+  await page.getByLabel("Last name").fill("Test");
+  await page.getByRole("button", { name: "Tennis" }).click();
+  await page.locator(".onboarding__skill-row").first().click();
+  await page.locator("ion-action-sheet button").filter({ hasText: "3.5" }).click();
+  await page.getByRole("button", { name: "Next" }).click();
+  await page.getByRole("button", { name: "Skip for now" }).click();
+  await page.getByRole("button", { name: "Skip for now" }).click();
+  await expect(page).toHaveURL(/\/courts$/);
+});
