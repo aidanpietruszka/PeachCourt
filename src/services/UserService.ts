@@ -21,6 +21,13 @@ export const UserService = {
     });
   },
 
+  async saveOnboardingPrefs(
+    uid: string,
+    prefs: Partial<Pick<UserProfile, "locationEnabled" | "autoCheckin" | "notificationsEnabled" | "notificationsPrompted" | "onboardingDone">>,
+  ): Promise<void> {
+    await setDoc(doc(db, "users", uid), prefs, { merge: true });
+  },
+
   async getProfile(uid: string): Promise<UserProfile | null> {
     const snap = await getDoc(doc(db, "users", uid));
     if (!snap.exists()) {
@@ -32,6 +39,11 @@ export const UserService = {
       lastName: data.lastName ?? "",
       sports: data.sports ?? [],
       skillLevels: data.skillLevels ?? {},
+      locationEnabled: data.locationEnabled,
+      autoCheckin: data.autoCheckin,
+      notificationsEnabled: data.notificationsEnabled,
+      notificationsPrompted: data.notificationsPrompted,
+      onboardingDone: data.onboardingDone,
     };
   },
 

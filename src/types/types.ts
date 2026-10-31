@@ -29,6 +29,11 @@ export interface UserProfile {
   lastName: string;
   sports: Sport[];
   skillLevels: Partial<Record<Sport, number>>;
+  locationEnabled?: boolean;
+  autoCheckin?: boolean;
+  notificationsEnabled?: boolean;
+  notificationsPrompted?: boolean;
+  onboardingDone?: boolean;
 }
 
 export type MatchFormat = "singles" | "doubles";

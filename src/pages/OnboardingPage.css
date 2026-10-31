@@ -24,6 +24,10 @@
   background: var(--ion-color-primary);
 }
 
+.onboarding__dot--done {
+  background: var(--ion-color-primary);
+}
+
 .onboarding__step-label {
   font-size: 12px;
   color: var(--ion-color-medium);
@@ -138,5 +142,134 @@
 .onboarding__error {
   font-size: 13px;
   color: var(--ion-color-danger);
+  margin: 0;
+}
+
+.onboarding__toggle-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.onboarding__toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--ion-color-light);
+  padding: 12px 16px;
+}
+
+.onboarding__toggle-row--disabled {
+  opacity: 0.45;
+}
+
+.onboarding__toggle-labels {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.onboarding__toggle-title {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ion-color-dark);
+  margin: 0;
+}
+
+.onboarding__toggle-subtitle {
+  font-size: 12px;
+  color: var(--ion-color-medium);
+  margin: 0;
+}
+
+.onboarding__toggle-blocked {
+  font-size: 12px;
+  color: var(--ion-color-danger);
+  margin: 0;
+  margin-top: 2px;
+}
+
+.onboarding__skip-link {
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ion-color-primary);
+  text-align: center;
+  width: 100%;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.onboarding__steps-card {
+  background: #fdf3e1;
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.onboarding__step-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.onboarding__step-number {
+  width: 26px;
+  height: 26px;
+  border-radius: 13px;
+  background: #b7791f;
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.onboarding__step-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ion-color-dark);
+  margin: 0;
+  flex: 1;
+}
+
+.onboarding__notif-preview {
+  background: var(--ion-color-light);
+  border-radius: 14px;
+  padding: 10px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.onboarding__notif-card {
+  background: white;
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.onboarding__notif-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ion-color-dark);
+  margin: 0;
+}
+
+.onboarding__notif-subtitle {
+  font-size: 12px;
+  color: var(--ion-color-medium);
   margin: 0;
 }
