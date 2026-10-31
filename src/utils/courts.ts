@@ -30,7 +30,7 @@ export function formatCount(value: number | null | undefined): string {
   if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
     return UNKNOWN;
   }
-  return value === 0 ? "None" : String(value);
+  return String(value);
 }
 
 export function formatText(value: string | null | undefined): string {
