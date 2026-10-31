@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import {
   COURTS,
+  expandDetails,
   infoRow,
   newUser,
   openCourt,
@@ -82,6 +83,7 @@ test("E2E-09 court detail shows Unknown for every missing value", async ({
 }) => {
   const { context, page } = await newUser(browser, "Sam");
   await openCourt(page, COURTS.beta.name);
+  await expandDetails(page);
   await expect(infoRow(page, "Tennis courts")).toContainText("2");
   await expect(infoRow(page, "Pickleball courts")).toContainText("2");
   for (const label of [
@@ -103,6 +105,7 @@ test("E2E-26 court detail shows every row for a tennis court", async ({
 }) => {
   const { context, page } = await newUser(browser, "Sam");
   await openCourt(page, COURTS.alpha.name);
+  await expandDetails(page);
   await expect(infoRow(page, "Tennis courts")).toContainText("4");
   await expect(infoRow(page, "Pickleball courts")).toContainText("None");
   await expect(infoRow(page, "Hours")).toContainText("Daily 7 AM–11 PM");
@@ -125,6 +128,7 @@ test("E2E-27 court detail shows each hours group on its own line", async ({
     .filter({ hasText: "Pickleball" })
     .click();
   await openCourt(page, COURTS.gamma.name);
+  await expandDetails(page);
   await expect(infoRow(page, "Tennis courts")).toContainText("None");
   await expect(infoRow(page, "Pickleball courts")).toContainText("6");
   const hours = infoRow(page, "Hours").locator(".court-info__lines");
@@ -161,6 +165,7 @@ test("E2E-28 court detail shows multiple surfaces, lines and half-hour times", a
 }) => {
   const { context, page } = await newUser(browser, "Sam");
   await openCourt(page, COURTS.delta.name);
+  await expandDetails(page);
   await expect(infoRow(page, "Tennis courts")).toContainText("3");
   await expect(infoRow(page, "Pickleball courts")).toContainText("None");
   await expect(infoRow(page, "Pickleball lines")).toContainText("Yes");
@@ -170,6 +175,42 @@ test("E2E-28 court detail shows multiple surfaces, lines and half-hour times", a
     "Reservation required",
   );
   await expect(infoRow(page, "Reservations")).toContainText("Book online");
+  await context.close();
+});
+
+test("E2E-84 court detail collapsed shows summary and Directions button", async ({
+  browser,
+}) => {
+  const { context, page } = await newUser(browser, "Sam");
+  await openCourt(page, COURTS.alpha.name);
+  await expect(page.locator(".court-details__summary")).toBeVisible();
+  await expect(page.locator(".court-details__summary")).toContainText(
+    "4 tennis",
+  );
+  await expect(page.locator(".court-directions-btn")).toBeVisible();
+  await expect(page.locator(".court-info")).toHaveCount(0);
+  await context.close();
+});
+
+test("E2E-85 Directions action sheet shows all options and dismisses", async ({
+  browser,
+}) => {
+  const { context, page } = await newUser(browser, "Sam");
+  await openCourt(page, COURTS.alpha.name);
+  await page.locator(".court-directions-btn").click();
+  await expect(
+    page.getByRole("button", { name: "Open in Apple Maps" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Open in Google Maps" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Copy address" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Cancel" }).click();
+  await expect(
+    page.getByRole("button", { name: "Open in Apple Maps" }),
+  ).not.toBeVisible();
   await context.close();
 });
 

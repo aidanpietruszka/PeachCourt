@@ -1,3 +1,70 @@
+.court-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.court-title-row .pc-title {
+  flex: 1;
+  margin: 0;
+}
+
+.court-directions-btn {
+  flex: 0 0 auto;
+  margin-top: 6px;
+  padding: 7px 14px;
+  border: 1.5px solid var(--pc-border);
+  border-radius: 10px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--pc-text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.court-details {
+  margin: 0 0 8px;
+  border-radius: 12px;
+  background: var(--pc-card-bg);
+  overflow: hidden;
+}
+
+.court-details__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--pc-text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.court-details__chevron {
+  flex: 0 0 auto;
+  color: var(--pc-text-muted);
+  transition: transform 0.2s;
+}
+
+.court-details__chevron--up {
+  transform: rotate(180deg);
+}
+
+.court-details__summary {
+  margin: 0;
+  padding: 0 16px 12px;
+  font-size: 13px;
+  color: var(--pc-text-muted);
+}
+
 .court-info {
   margin: 0 0 16px;
 }

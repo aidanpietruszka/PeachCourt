@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  IonActionSheet,
   IonAlert,
   IonBackButton,
   IonButton,
@@ -27,6 +28,7 @@ import { CourtService } from "../services/CourtService";
 import { EventService } from "../services/EventService";
 import type { Court } from "../types/types";
 import {
+  courtSummary,
   formatCount,
   formatHours,
   formatSurfaces,
@@ -44,6 +46,7 @@ const CHECK_IN_MINUTES = 60;
 const DISTANCE_WARNING_METERS = 150;
 const FEEDBACK_PROMPT_KEY = "peachcourt-checkin-feedback-asked";
 const TRUST_PROMPT_KEY = "peachcourt-trust-asked";
+const DETAILS_EXPANDED_KEY = "peachcourt-details-expanded";
 const TRUST_PROMPT_DELAY_MS = 5_000;
 const HEAD_COUNT_INPUTS: AlertInput[] = [
   { name: "playerCount", type: "number", value: 1, min: 1, max: 20 },
@@ -69,6 +72,22 @@ function setSessionFlag(key: string) {
   }
 }
 
+function loadDetailsExpanded(): boolean {
+  try {
+    return localStorage.getItem(DETAILS_EXPANDED_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+function saveDetailsExpanded(value: boolean) {
+  try {
+    localStorage.setItem(DETAILS_EXPANDED_KEY, String(value));
+  } catch (error) {
+    console.warn("Unable to save details state", error);
+  }
+}
+
 const CourtDetailPage: React.FC = () => {
   const { courtId } = useParams<{ courtId: string }>();
   const { user } = useAuth();
@@ -91,7 +110,11 @@ const CourtDetailPage: React.FC = () => {
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [isTrustOpen, setIsTrustOpen] = useState(false);
   const [isPostOpen, setIsPostOpen] = useState(false);
+  const [isDirectionsOpen, setIsDirectionsOpen] = useState(false);
   const [checkInStartedAt, setCheckInStartedAt] = useState(0);
+  const [isDetailsExpanded, setIsDetailsExpanded] = useState(
+    loadDetailsExpanded,
+  );
 
   const courtActivity = (courtId && activity[courtId]) || EMPTY_ACTIVITY;
   const validActiveCheckIn =
@@ -176,6 +199,12 @@ const CourtDetailPage: React.FC = () => {
     }, TRUST_PROMPT_DELAY_MS);
     return () => window.clearTimeout(timer);
   }, [courtLoaded, hasReport]);
+
+  const toggleDetails = () => {
+    const next = !isDetailsExpanded;
+    setIsDetailsExpanded(next);
+    saveDetailsExpanded(next);
+  };
 
   const startCheckIn = () => {
     setCheckInStartedAt(performance.now());
@@ -293,6 +322,14 @@ const CourtDetailPage: React.FC = () => {
     }
   };
 
+  const detailsSummary = court
+    ? (() => {
+        const base = courtSummary(court);
+        const surfaces = formatSurfaces(court.surfaces);
+        return surfaces === "Unknown" ? base : `${base} · ${surfaces}`;
+      })()
+    : "";
+
   return (
     <IonPage>
       <IonHeader className="ion-no-border">
@@ -308,53 +345,20 @@ const CourtDetailPage: React.FC = () => {
             <p className="pc-subtitle">Loading court…</p>
           ) : court ? (
             <>
-              <h1 className="pc-title">{court.name}</h1>
-              <p className="pc-subtitle">{court.address}</p>
-
-              <IonList inset className="court-info">
-                <IonItem>
-                  <IonLabel>Distance</IonLabel>
-                  <IonText>
-                    {distance === null ? "Unknown" : formatDistance(distance)}
-                  </IonText>
-                </IonItem>
-                <IonItem>
-                  <IonLabel>Tennis courts</IonLabel>
-                  <IonText>{formatCount(court.tennisCourts)}</IonText>
-                </IonItem>
-                <IonItem>
-                  <IonLabel>Pickleball courts</IonLabel>
-                  <IonText>{formatCount(court.pickleballCourts)}</IonText>
-                </IonItem>
-                <IonItem>
-                  <IonLabel>Hours</IonLabel>
-                  <IonText className="court-info__lines">
-                    {hoursLines.length > 0 ? hoursLines.join("\n") : "Unknown"}
-                  </IonText>
-                </IonItem>
-                <IonItem>
-                  <IonLabel>Reservations</IonLabel>
-                  <IonText className="court-info__lines">
-                    {formatText(court.reservationInfo)}
-                  </IonText>
-                </IonItem>
-                <IonItem>
-                  <IonLabel>Walk-on rules</IonLabel>
-                  <IonText>{formatText(court.walkOnRules)}</IonText>
-                </IonItem>
-                <IonItem>
-                  <IonLabel>Lights</IonLabel>
-                  <IonText>{formatYesNo(court.hasLights)}</IonText>
-                </IonItem>
-                <IonItem>
-                  <IonLabel>Surface</IonLabel>
-                  <IonText>{formatSurfaces(court.surfaces)}</IonText>
-                </IonItem>
-                <IonItem>
-                  <IonLabel>Pickleball lines</IonLabel>
-                  <IonText>{formatYesNo(court.pickleballLines)}</IonText>
-                </IonItem>
-              </IonList>
+              <div className="court-title-row">
+                <h1 className="pc-title">{court.name}</h1>
+                <button
+                  type="button"
+                  className="court-directions-btn"
+                  onClick={() => setIsDirectionsOpen(true)}
+                >
+                  Directions
+                </button>
+              </div>
+              <p className="pc-subtitle">
+                {court.address}
+                {distance !== null ? ` · ${formatDistance(distance)}` : ""}
+              </p>
 
               <section className="live-card" aria-live="polite">
                 <p className="live-card__count">
@@ -378,6 +382,78 @@ const CourtDetailPage: React.FC = () => {
                   </p>
                 )}
               </section>
+
+              <div className="court-details">
+                <button
+                  type="button"
+                  className="court-details__toggle"
+                  aria-expanded={isDetailsExpanded}
+                  onClick={toggleDetails}
+                >
+                  <span>Court details</span>
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    aria-hidden="true"
+                    className={`court-details__chevron${isDetailsExpanded ? " court-details__chevron--up" : ""}`}
+                  >
+                    <polyline
+                      points="3,6 8,11 13,6"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+                {!isDetailsExpanded && (
+                  <p className="court-details__summary">{detailsSummary}</p>
+                )}
+                {isDetailsExpanded && (
+                  <IonList inset className="court-info">
+                    <IonItem>
+                      <IonLabel>Tennis courts</IonLabel>
+                      <IonText>{formatCount(court.tennisCourts)}</IonText>
+                    </IonItem>
+                    <IonItem>
+                      <IonLabel>Pickleball courts</IonLabel>
+                      <IonText>{formatCount(court.pickleballCourts)}</IonText>
+                    </IonItem>
+                    <IonItem>
+                      <IonLabel>Hours</IonLabel>
+                      <IonText className="court-info__lines">
+                        {hoursLines.length > 0
+                          ? hoursLines.join("\n")
+                          : "Unknown"}
+                      </IonText>
+                    </IonItem>
+                    <IonItem>
+                      <IonLabel>Reservations</IonLabel>
+                      <IonText className="court-info__lines">
+                        {formatText(court.reservationInfo)}
+                      </IonText>
+                    </IonItem>
+                    <IonItem>
+                      <IonLabel>Walk-on rules</IonLabel>
+                      <IonText>{formatText(court.walkOnRules)}</IonText>
+                    </IonItem>
+                    <IonItem>
+                      <IonLabel>Lights</IonLabel>
+                      <IonText>{formatYesNo(court.hasLights)}</IonText>
+                    </IonItem>
+                    <IonItem>
+                      <IonLabel>Surface</IonLabel>
+                      <IonText>{formatSurfaces(court.surfaces)}</IonText>
+                    </IonItem>
+                    <IonItem>
+                      <IonLabel>Pickleball lines</IonLabel>
+                      <IonText>{formatYesNo(court.pickleballLines)}</IonText>
+                    </IonItem>
+                  </IonList>
+                )}
+              </div>
 
               <MatchBoard
                 court={court}
@@ -427,6 +503,49 @@ const CourtDetailPage: React.FC = () => {
             </div>
           </IonToolbar>
         </IonFooter>
+      )}
+
+      {court && (
+        <IonActionSheet
+          isOpen={isDirectionsOpen}
+          header={court.address}
+          buttons={[
+            {
+              text: "Open in Apple Maps",
+              handler: () => {
+                window.open(
+                  `maps://maps.apple.com/?ll=${court.latitude},${court.longitude}`,
+                  "_blank",
+                );
+              },
+            },
+            {
+              text: "Open in Google Maps",
+              handler: () => {
+                window.open(
+                  `https://www.google.com/maps/search/?api=1&query=${court.latitude},${court.longitude}`,
+                  "_blank",
+                );
+              },
+            },
+            {
+              text: "Copy address",
+              handler: () => {
+                navigator.clipboard
+                  .writeText(court.address)
+                  .then(() => setToastMessage("Copied"))
+                  .catch((error: unknown) =>
+                    console.error("Unable to copy address", error),
+                  );
+              },
+            },
+            {
+              text: "Cancel",
+              role: "cancel",
+            },
+          ]}
+          onDidDismiss={() => setIsDirectionsOpen(false)}
+        />
       )}
 
       <IonAlert
