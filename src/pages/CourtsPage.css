@@ -149,3 +149,75 @@
   margin: 16px;
   color: var(--pc-text-muted);
 }
+
+.courts-page__search-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0 4px;
+}
+
+.courts-page__search-bar {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1.5px solid var(--pc-border);
+  border-radius: 10px;
+  background: var(--pc-card-bg);
+}
+
+.courts-page__search-icon {
+  flex: 0 0 auto;
+  color: var(--pc-text-muted);
+}
+
+.courts-page__search-input {
+  flex: 1;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--pc-text);
+  outline: none;
+  min-width: 0;
+}
+
+.courts-page__search-input::placeholder {
+  color: var(--pc-text-muted);
+}
+
+.courts-page__search-input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.courts-page__search-clear {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: var(--pc-text-muted);
+  color: #fff;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.courts-page__search-cancel {
+  flex: 0 0 auto;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--pc-green);
+  cursor: pointer;
+  padding: 0;
+  white-space: nowrap;
+}

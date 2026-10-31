@@ -25,6 +25,7 @@ import {
   activeFilterChips,
   buildRows,
   clearFilters,
+  searchRows,
 } from "../utils/courtFilters";
 import { courtSummary } from "../utils/courts";
 import { formatDistance } from "../utils/geo";
@@ -45,6 +46,7 @@ const CourtsPage: React.FC = () => {
   const [isBusy, setIsBusy] = useState(false);
   const [filters, changeFilters] = useCourtFilters();
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [searchText, setSearchText] = useState("");
   const [now, setNow] = useState(() => Date.now());
   const [toastMessage, setToastMessage] = useState("");
   const gotLocation = useRef(false);
@@ -126,14 +128,19 @@ const CourtsPage: React.FC = () => {
   }, []);
 
   const hasLocation = userLocation !== null;
+  const isSearching = searchText.length > 0;
   const rows = useMemo(
     () => buildRows(courts, sport, filters, activity, userLocation, now),
     [courts, sport, filters, activity, userLocation, now],
   );
+  const visibleRows = useMemo(
+    () => (isSearching ? searchRows(rows, searchText) : rows),
+    [isSearching, rows, searchText],
+  );
   const chips = activeFilterChips(filters, hasLocation);
   const sportName = sport === "tennis" ? "tennis" : "pickleball";
 
-  const items: CourtMapItem[] = rows.map(({ court, reported, openGames }) => ({
+  const items: CourtMapItem[] = visibleRows.map(({ court, reported, openGames }) => ({
     court,
     reported,
     openGames,
@@ -183,7 +190,65 @@ const CourtsPage: React.FC = () => {
                 Log out
               </IonButton>
             </div>
-            <p className="pc-subtitle">Atlanta</p>
+
+            <div className="courts-page__search-row">
+              <div className="courts-page__search-bar">
+                <svg
+                  className="courts-page__search-icon"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <circle
+                    cx="6.5"
+                    cy="6.5"
+                    r="5"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                  />
+                  <line
+                    x1="10.5"
+                    y1="10.5"
+                    x2="14.5"
+                    y2="14.5"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <input
+                  type="search"
+                  className="courts-page__search-input"
+                  placeholder="Search courts"
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  aria-label="Search courts"
+                />
+                {isSearching && (
+                  <button
+                    type="button"
+                    className="courts-page__search-clear"
+                    aria-label="Clear search"
+                    onClick={() => setSearchText("")}
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+              {isSearching && (
+                <button
+                  type="button"
+                  className="courts-page__search-cancel"
+                  onClick={() => setSearchText("")}
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
+
+            {!isSearching && <p className="pc-subtitle">Atlanta</p>}
 
             {activeCheckIn && (
               <div className="courts-page__checked-in">
@@ -199,27 +264,31 @@ const CourtsPage: React.FC = () => {
               </div>
             )}
 
-            <IonSegment
-              value={sport}
-              onIonChange={(event) => setSport(event.detail.value as Sport)}
-              className="courts-page__segment"
-            >
-              <IonSegmentButton value="pickleball">
-                <IonLabel>Pickleball</IonLabel>
-              </IonSegmentButton>
-              <IonSegmentButton value="tennis">
-                <IonLabel>Tennis</IonLabel>
-              </IonSegmentButton>
-            </IonSegment>
+            {!isSearching && (
+              <IonSegment
+                value={sport}
+                onIonChange={(event) => setSport(event.detail.value as Sport)}
+                className="courts-page__segment"
+              >
+                <IonSegmentButton value="pickleball">
+                  <IonLabel>Pickleball</IonLabel>
+                </IonSegmentButton>
+                <IonSegmentButton value="tennis">
+                  <IonLabel>Tennis</IonLabel>
+                </IonSegmentButton>
+              </IonSegment>
+            )}
           </div>
 
-          <div className="courts-page__map">
-            <CourtMap
-              items={items}
-              userLocation={userLocation}
-              fitToItems={chips.length > 0}
-            />
-          </div>
+          {!isSearching && (
+            <div className="courts-page__map">
+              <CourtMap
+                items={items}
+                userLocation={userLocation}
+                fitToItems={chips.length > 0}
+              />
+            </div>
+          )}
 
           <section
             className="courts-page__list"
@@ -227,37 +296,41 @@ const CourtsPage: React.FC = () => {
           >
             <div className="courts-page__list-header">
               <h2 id="nearby-courts-heading" className="pc-section-heading">
-                {chips.length > 0
-                  ? `${rows.length} of ${courts.length} courts`
-                  : `${rows.length} ${sportName} ${rows.length === 1 ? "court" : "courts"}`}
+                {isSearching
+                  ? `${visibleRows.length} ${visibleRows.length === 1 ? "result" : "results"}`
+                  : chips.length > 0
+                    ? `${rows.length} of ${courts.length} courts`
+                    : `${rows.length} ${sportName} ${rows.length === 1 ? "court" : "courts"}`}
               </h2>
-              <div className="courts-page__list-actions">
-                {chips.length > 0 && (
+              {!isSearching && (
+                <div className="courts-page__list-actions">
+                  {chips.length > 0 && (
+                    <button
+                      type="button"
+                      className="courts-page__link"
+                      onClick={() => changeFilters(clearFilters)}
+                    >
+                      Clear
+                    </button>
+                  )}
                   <button
                     type="button"
-                    className="courts-page__link"
-                    onClick={() => changeFilters(clearFilters)}
+                    className={`courts-chip courts-chip--filter${chips.length > 0 ? " courts-chip--on" : ""}`}
+                    onClick={() => setSheetOpen(true)}
                   >
-                    Clear
+                    {chips.length > 0
+                      ? `Filter courts · ${chips.length}`
+                      : "Filter courts"}
                   </button>
-                )}
-                <button
-                  type="button"
-                  className={`courts-chip courts-chip--filter${chips.length > 0 ? " courts-chip--on" : ""}`}
-                  onClick={() => setSheetOpen(true)}
-                >
-                  {chips.length > 0
-                    ? `Filter courts · ${chips.length}`
-                    : "Filter courts"}
-                </button>
-              </div>
+                </div>
+              )}
             </div>
-            {!userLocation && (
+            {!isSearching && !userLocation && (
               <p className="courts-page__location-note">
                 Allow location access to sort courts by distance.
               </p>
             )}
-            {rows.length === 0 && chips.length > 0 && (
+            {!isSearching && rows.length === 0 && chips.length > 0 && (
               <div className="courts-page__empty">
                 <p>No courts match</p>
                 <IonButton
@@ -270,7 +343,7 @@ const CourtsPage: React.FC = () => {
               </div>
             )}
             <IonList inset>
-              {rows.map(({ court, reported, openGames, distance }) => (
+              {visibleRows.map(({ court, reported, openGames, distance }) => (
                 <IonItem
                   key={court.id}
                   button
