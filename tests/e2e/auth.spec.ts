@@ -39,9 +39,9 @@ test("E2E-04 signed-out users are sent to login", async ({ page }) => {
   await expectLoginPageShown(page);
 });
 
-test("E2E-05 continue as guest reaches the courts page", async ({ page }) => {
+test("E2E-05 welcome page has no guest option", async ({ page }) => {
   await page.goto("/");
-  await page.getByText("Continue as guest").click();
-  await expect(page).toHaveURL(/\/courts$/);
-  await expect(visibleText(page, "Courts near you")).toBeVisible();
+  await expect(page.getByText("Continue as guest")).not.toBeVisible();
+  await expect(page.getByRole("button", { name: "Log in" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Create account" })).toBeVisible();
 });

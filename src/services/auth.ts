@@ -1,11 +1,7 @@
 import {
   AuthError,
   createUserWithEmailAndPassword,
-  EmailAuthProvider,
   GoogleAuthProvider,
-  linkWithCredential,
-  linkWithPopup,
-  signInAnonymously,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
@@ -14,14 +10,7 @@ import {
 import { auth } from './firebase';
 
 export async function signUpWithEmail(name: string, email: string, password: string) {
-  const current = auth.currentUser;
-  let user;
-  if (current?.isAnonymous) {
-    const credential = EmailAuthProvider.credential(email, password);
-    user = (await linkWithCredential(current, credential)).user;
-  } else {
-    user = (await createUserWithEmailAndPassword(auth, email, password)).user;
-  }
+  const user = (await createUserWithEmailAndPassword(auth, email, password)).user;
   if (name.trim()) {
     await updateProfile(user, { displayName: name.trim() });
   }
@@ -33,20 +22,7 @@ export async function signInWithEmail(email: string, password: string) {
 
 export async function signInWithGoogle() {
   const provider = new GoogleAuthProvider();
-  const current = auth.currentUser;
-  if (current?.isAnonymous) {
-    try {
-      await linkWithPopup(current, provider);
-      return;
-    } catch (error) {
-      if ((error as AuthError).code !== 'auth/credential-already-in-use') throw error;
-    }
-  }
   await signInWithPopup(auth, provider);
-}
-
-export async function continueAsGuest() {
-  if (!auth.currentUser) await signInAnonymously(auth);
 }
 
 export async function logout() {

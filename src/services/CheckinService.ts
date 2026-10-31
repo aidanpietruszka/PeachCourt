@@ -1,4 +1,3 @@
-import { signInAnonymously } from "firebase/auth";
 import {
   addDoc,
   collection,
@@ -26,12 +25,7 @@ const activeCheckInRef = (uid: string) => doc(db, "activeCheckins", uid);
 
 async function getUid(): Promise<string> {
   await auth.authStateReady();
-  if (auth.currentUser) {
-    return auth.currentUser.uid;
-  }
-
-  const credential = await signInAnonymously(auth);
-  return credential.user.uid;
+  return auth.currentUser!.uid;
 }
 
 export const CheckinService = {
