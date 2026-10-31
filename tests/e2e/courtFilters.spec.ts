@@ -63,7 +63,7 @@ async function applyFlag(page: Page, label: string) {
 }
 
 async function returnToCourts(page: Page) {
-  await expect(page.locator("ion-router-outlet")).not.toHaveAttribute(
+  await expect(page.locator("ion-router-outlet").first()).not.toHaveAttribute(
     "aria-hidden",
     "true",
   );

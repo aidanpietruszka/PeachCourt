@@ -1,11 +1,13 @@
 import { Route } from "react-router-dom";
 import { IonApp, IonRouterOutlet, setupIonicReact } from "@ionic/react";
 import { IonReactRouter } from "@ionic/react-router";
-import CourtsPage from "./pages/CourtsPage";
-import CourtDetailPage from "./pages/CourtDetailPage";
 import WelcomePage from "./pages/WelcomePage";
 import LoginPage from "./pages/LoginPage";
 import SignUpPage from "./pages/SignUpPage";
+import CourtDetailPage from "./pages/CourtDetailPage";
+import OnboardingPage from "./pages/OnboardingPage";
+import EditProfilePage from "./pages/EditProfilePage";
+import TabsLayout from "./components/TabsLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./hooks/useAuth";
 
@@ -35,10 +37,18 @@ const App: React.FC = () => (
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignUpPage />} />
           <Route
-            path="/courts"
+            path="/onboarding"
             element={
               <ProtectedRoute>
-                <CourtsPage />
+                <OnboardingPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile/edit"
+            element={
+              <ProtectedRoute>
+                <EditProfilePage />
               </ProtectedRoute>
             }
           />
@@ -50,6 +60,8 @@ const App: React.FC = () => (
               </ProtectedRoute>
             }
           />
+          <Route path="/courts" element={<TabsLayout />} />
+          <Route path="/profile" element={<TabsLayout />} />
         </IonRouterOutlet>
       </IonReactRouter>
     </AuthProvider>

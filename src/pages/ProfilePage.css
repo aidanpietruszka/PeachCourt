@@ -1,0 +1,53 @@
+.profile-page {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.profile-page__name {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--ion-color-dark);
+  margin: 0;
+}
+
+.profile-page__section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ion-color-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 6px;
+}
+
+.profile-page__section {
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-page__sport-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 14px;
+  border-radius: 18px;
+  border: 1.5px solid var(--ion-color-primary);
+  background: #e3f5ef;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ion-color-primary);
+  margin-right: 8px;
+}
+
+.profile-page__sports {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.profile-page__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: auto;
+}

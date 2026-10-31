@@ -28,7 +28,7 @@ const SignUpPage: React.FC = () => {
     setBusy(true);
     try {
       await action();
-      ionRouter.push('/courts', 'root', 'replace');
+      ionRouter.push('/onboarding', 'root', 'replace');
     } catch (e) {
       setError(authErrorMessage(e));
     } finally {

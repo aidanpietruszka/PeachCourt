@@ -762,6 +762,43 @@ describe("events", () => {
   });
 });
 
+describe("users", () => {
+  const profile = {
+    firstName: "Sam",
+    lastName: "Test",
+    sports: ["tennis"],
+    skillLevels: { tennis: 3.5 },
+  };
+
+  it("R-40 a user can write their own profile", async () => {
+    await assertSucceeds(
+      setDoc(doc(asUser("alice"), "users/alice"), profile),
+    );
+  });
+
+  it("R-41 a user can read their own profile", async () => {
+    await seed("users/alice", profile);
+    await assertSucceeds(getDoc(doc(asUser("alice"), "users/alice")));
+  });
+
+  it("R-42 a user cannot read another user's profile", async () => {
+    await seed("users/alice", profile);
+    await assertFails(getDoc(doc(asUser("bob"), "users/alice")));
+  });
+
+  it("R-43 a user cannot write to another user's profile", async () => {
+    await assertFails(
+      setDoc(doc(asUser("bob"), "users/alice"), profile),
+    );
+  });
+
+  it("R-44 an unauthenticated user cannot read or write profiles", async () => {
+    await seed("users/alice", profile);
+    await assertFails(getDoc(doc(asGuest(), "users/alice")));
+    await assertFails(setDoc(doc(asGuest(), "users/alice"), profile));
+  });
+});
+
 describe("anonymous users are blocked", () => {
   it("R-anon-01 anonymous user cannot read checkins", async () => {
     await seed("checkins/c1", checkinData("alice"));
@@ -809,5 +846,11 @@ describe("anonymous users are blocked", () => {
         eventData("anon-uid", "court_viewed", { courtId: "court-1", reportedCount: null }),
       ),
     );
+  });
+
+  it("R-anon-08 anonymous user cannot read or write profiles", async () => {
+    const profile = { firstName: "Sam", lastName: "Test", sports: ["tennis"], skillLevels: { tennis: 3.5 } };
+    await assertFails(getDoc(doc(asAnonymous(), "users/anon-uid")));
+    await assertFails(setDoc(doc(asAnonymous(), "users/anon-uid"), profile));
   });
 });

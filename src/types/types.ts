@@ -24,6 +24,13 @@ export interface Court {
   reservationInfo: string | null;
 }
 
+export interface UserProfile {
+  firstName: string;
+  lastName: string;
+  sports: Sport[];
+  skillLevels: Partial<Record<Sport, number>>;
+}
+
 export type MatchFormat = "singles" | "doubles";
 
 export type SkillLevel = number | "any";

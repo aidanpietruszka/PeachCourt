@@ -16,6 +16,8 @@ import {
   signInWithEmail,
   signInWithGoogle,
 } from "../services/auth";
+import { auth } from "../services/firebase";
+import { UserService } from "../services/UserService";
 import "./AuthPages.css";
 
 const LoginPage: React.FC = () => {
@@ -30,7 +32,9 @@ const LoginPage: React.FC = () => {
     setBusy(true);
     try {
       await action();
-      ionRouter.push("/courts", "root", "replace");
+      const uid = auth.currentUser?.uid;
+      const profile = uid ? await UserService.getProfile(uid) : null;
+      ionRouter.push(profile ? "/courts" : "/onboarding", "root", "replace");
     } catch (e) {
       setError(authErrorMessage(e));
     } finally {

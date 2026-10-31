@@ -21,6 +21,10 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    match /users/{uid} {
+      allow read, write: if signedInAs(uid);
+    }
+
     match /checkins/{checkinId} {
       allow create: if signedIn()
         && request.resource.data.uid == request.auth.uid
