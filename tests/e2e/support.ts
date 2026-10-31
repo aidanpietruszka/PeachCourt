@@ -232,6 +232,13 @@ export async function signUp(page: Page, name: string) {
   await page.getByPlaceholder("Password (6+ characters)").fill("secret123");
   await page.getByPlaceholder("Confirm password").fill("secret123");
   await page.getByRole("button", { name: "Sign up", exact: true }).click();
+  await expect(page).toHaveURL(/\/onboarding$/);
+  await page.getByLabel("First name").fill(name);
+  await page.getByLabel("Last name").fill("Test");
+  await page.getByRole("button", { name: "Tennis" }).click();
+  await page.locator(".onboarding__skill-row").first().click();
+  await page.locator("ion-action-sheet button").filter({ hasText: "3.5" }).click();
+  await page.getByRole("button", { name: "Next" }).click();
   await expect(page).toHaveURL(/\/courts$/);
   return email;
 }

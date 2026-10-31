@@ -1,0 +1,142 @@
+.onboarding {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 8px 16px 16px;
+  gap: 12px;
+}
+
+.onboarding__progress {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.onboarding__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--ion-color-medium-shade);
+}
+
+.onboarding__dot--active {
+  width: 28px;
+  background: var(--ion-color-primary);
+}
+
+.onboarding__step-label {
+  font-size: 12px;
+  color: var(--ion-color-medium);
+  margin: 0;
+}
+
+.onboarding__title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--ion-color-dark);
+  margin: 0;
+}
+
+.onboarding__subtitle {
+  font-size: 13px;
+  color: var(--ion-color-medium);
+  margin: 0;
+}
+
+.onboarding__field {
+  background: var(--ion-color-light);
+  border-radius: 12px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.onboarding__field-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ion-color-medium);
+  margin: 0;
+}
+
+.onboarding__field-input {
+  font-size: 16px;
+  color: var(--ion-color-dark);
+  background: transparent;
+  border: none;
+  outline: none;
+  width: 100%;
+  padding: 0;
+  font-family: inherit;
+}
+
+.onboarding__caption {
+  font-size: 12px;
+  color: var(--ion-color-medium);
+  margin: 0;
+}
+
+.onboarding__section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ion-color-dark);
+  margin: 0;
+}
+
+.onboarding__sports {
+  display: flex;
+  gap: 8px;
+}
+
+.onboarding__sport-chip {
+  padding: 7px 14px;
+  border-radius: 18px;
+  border: 1.5px solid var(--ion-color-medium-shade);
+  background: transparent;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ion-color-medium);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.onboarding__sport-chip--selected {
+  border-color: var(--ion-color-primary);
+  background: #e3f5ef;
+  color: var(--ion-color-primary);
+}
+
+.onboarding__skill-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--ion-color-light);
+  padding: 13px 16px;
+  border-radius: 0;
+  cursor: pointer;
+  border: none;
+  width: 100%;
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--ion-color-dark);
+}
+
+.onboarding__skill-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.onboarding__skill-value {
+  color: var(--ion-color-medium);
+}
+
+.onboarding__spacer {
+  flex: 1;
+}
+
+.onboarding__error {
+  font-size: 13px;
+  color: var(--ion-color-danger);
+  margin: 0;
+}
