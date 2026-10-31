@@ -32,6 +32,7 @@ export interface UserProfile {
   locationEnabled?: boolean;
   autoCheckin?: boolean;
   notificationsEnabled?: boolean;
+  notificationsPrompted?: boolean;
   onboardingDone?: boolean;
 }
 

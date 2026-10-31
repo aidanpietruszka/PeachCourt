@@ -211,11 +211,12 @@ const OnboardingPage: React.FC<Props> = ({ onComplete }) => {
     setNotificationsEnabled(result === "granted");
   };
 
-  const handleFinish = async (notifEnabled: boolean) => {
+  const handleFinish = async (notifEnabled: boolean, prompted: boolean) => {
     setBusy(true);
     try {
       await UserService.saveOnboardingPrefs(user!.uid, {
         notificationsEnabled: notifEnabled,
+        ...(prompted ? { notificationsPrompted: true } : {}),
         onboardingDone: true,
       });
     } catch {
@@ -455,7 +456,7 @@ const OnboardingPage: React.FC<Props> = ({ onComplete }) => {
             <IonButton
               expand="block"
               disabled={busy}
-              onClick={() => void handleFinish(false)}
+              onClick={() => void handleFinish(false, false)}
             >
               {busy ? <IonSpinner name="dots" /> : "Continue"}
             </IonButton>
@@ -516,14 +517,14 @@ const OnboardingPage: React.FC<Props> = ({ onComplete }) => {
           <IonButton
             expand="block"
             disabled={busy}
-            onClick={() => void handleFinish(notificationsEnabled)}
+            onClick={() => void handleFinish(notificationsEnabled, true)}
           >
             {busy ? <IonSpinner name="dots" /> : "Next"}
           </IonButton>
           <button
             type="button"
             className="onboarding__skip-link"
-            onClick={() => void handleFinish(false)}
+            onClick={() => void handleFinish(false, true)}
           >
             Skip for now
           </button>

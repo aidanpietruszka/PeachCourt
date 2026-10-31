@@ -23,7 +23,7 @@ export const UserService = {
 
   async saveOnboardingPrefs(
     uid: string,
-    prefs: Partial<Pick<UserProfile, "locationEnabled" | "autoCheckin" | "notificationsEnabled" | "onboardingDone">>,
+    prefs: Partial<Pick<UserProfile, "locationEnabled" | "autoCheckin" | "notificationsEnabled" | "notificationsPrompted" | "onboardingDone">>,
   ): Promise<void> {
     await setDoc(doc(db, "users", uid), prefs, { merge: true });
   },
@@ -42,6 +42,7 @@ export const UserService = {
       locationEnabled: data.locationEnabled,
       autoCheckin: data.autoCheckin,
       notificationsEnabled: data.notificationsEnabled,
+      notificationsPrompted: data.notificationsPrompted,
       onboardingDone: data.onboardingDone,
     };
   },
