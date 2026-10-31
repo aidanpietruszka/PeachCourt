@@ -17,6 +17,7 @@ interface CourtMapProps {
   items: CourtMapItem[];
   userLocation: [number, number] | null;
   fitToItems?: boolean;
+  centerSerial?: number;
 }
 
 interface FitToItemsProps {
@@ -26,6 +27,7 @@ interface FitToItemsProps {
 
 interface CenterOnUserProps {
   position: [number, number] | null;
+  centerSerial: number;
 }
 
 const FixSize: React.FC = () => {
@@ -37,16 +39,16 @@ const FixSize: React.FC = () => {
   return null;
 };
 
-const CenterOnUser: React.FC<CenterOnUserProps> = ({ position }) => {
+const CenterOnUser: React.FC<CenterOnUserProps> = ({ position, centerSerial }) => {
   const map = useMap();
-  const hasCentered = useRef(false);
+  const centeredForSerial = useRef(0);
 
   useEffect(() => {
-    if (position && !hasCentered.current) {
+    if (position && centeredForSerial.current !== centerSerial) {
       map.setView(position, map.getZoom(), { animate: true });
-      hasCentered.current = true;
+      centeredForSerial.current = centerSerial;
     }
-  }, [map, position]);
+  }, [map, position, centerSerial]);
 
   return null;
 };
@@ -94,6 +96,7 @@ const CourtMap: React.FC<CourtMapProps> = ({
   items,
   userLocation,
   fitToItems = false,
+  centerSerial = 1,
 }) => (
   <MapContainer
     center={PIEDMONT_PARK}
@@ -106,7 +109,7 @@ const CourtMap: React.FC<CourtMapProps> = ({
       url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
     />
     <FixSize />
-    <CenterOnUser position={userLocation} />
+    <CenterOnUser position={userLocation} centerSerial={centerSerial} />
     <FitToItems items={items} enabled={fitToItems} />
     {userLocation && (
       <Marker
