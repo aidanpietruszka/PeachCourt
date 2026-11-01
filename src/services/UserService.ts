@@ -4,7 +4,8 @@ import {
   onSnapshot,
   setDoc,
 } from "firebase/firestore";
-import { db } from "./firebase";
+import { httpsCallable } from "firebase/functions";
+import { db, functions } from "./firebase";
 import type { UserProfile } from "../types/types";
 import { SKILL_LEVELS } from "../utils/skill";
 
@@ -56,6 +57,10 @@ export const UserService = {
       gameRemindersAlert: data.gameRemindersAlert,
       chatMessagesAlert: data.chatMessagesAlert,
     };
+  },
+
+  async deleteAccount(): Promise<void> {
+    await httpsCallable(functions, "deleteAccount")();
   },
 
   subscribeToProfile(

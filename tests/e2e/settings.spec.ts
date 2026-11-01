@@ -592,3 +592,57 @@ test("E2E-148 notifications home-screen tab shows add-to-home-screen steps", asy
   await expect(modal.getByText("Tap Add to Home Screen")).toBeVisible();
   await context.close();
 });
+
+test("E2E-149 Delete button shows confirmation alert", async ({ browser }) => {
+  const { context, page } = await newUser(browser, "Sam");
+  await page.goto("/settings");
+  await page.getByRole("button", { name: "Delete my account and data" }).click();
+  await expect(page.getByText("Delete your account?")).toBeVisible();
+  await expect(
+    page.getByText(/permanently deletes your profile/),
+  ).toBeVisible();
+  await context.close();
+});
+
+test("E2E-150 Cancel dismisses the delete confirmation alert", async ({
+  browser,
+}) => {
+  const { context, page } = await newUser(browser, "Sam");
+  await page.goto("/settings");
+  await page.getByRole("button", { name: "Delete my account and data" }).click();
+  await expect(page.getByText("Delete your account?")).toBeVisible();
+  await page.getByRole("button", { name: "Cancel" }).click();
+  await expect(page.getByText("Delete your account?")).not.toBeVisible();
+  await expect(page).toHaveURL(/\/settings$/);
+  await context.close();
+});
+
+test("E2E-151 Delete confirms, calls function, and navigates to login", async ({
+  browser,
+}) => {
+  const { context, page } = await newUser(browser, "Sam");
+  await page.route("**/deleteAccount**", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ result: null }) }),
+  );
+  await page.goto("/settings");
+  await page.getByRole("button", { name: "Delete my account and data" }).click();
+  await expect(page.getByText("Delete your account?")).toBeVisible();
+  await page.getByRole("button", { name: "Delete" }).click();
+  await expect(page).toHaveURL(/\/(login|signup)$/, { timeout: 10000 });
+  await context.close();
+});
+
+test("E2E-152 delete alert header and body match Figma copy", async ({
+  browser,
+}) => {
+  const { context, page } = await newUser(browser, "Sam");
+  await page.goto("/settings");
+  await page.getByRole("button", { name: "Delete my account and data" }).click();
+  await expect(page.getByText("Delete your account?")).toBeVisible();
+  await expect(
+    page.getByText("This can't be undone."),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Cancel" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Delete" })).toBeVisible();
+  await context.close();
+});
