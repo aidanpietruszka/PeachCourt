@@ -34,6 +34,10 @@ export interface UserProfile {
   notificationsEnabled?: boolean;
   notificationsPrompted?: boolean;
   onboardingDone?: boolean;
+  newGamesAlert?: boolean;
+  changesGamesAlert?: boolean;
+  gameRemindersAlert?: boolean;
+  chatMessagesAlert?: boolean;
 }
 
 export type MatchFormat = "singles" | "doubles";

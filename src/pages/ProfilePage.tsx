@@ -110,6 +110,15 @@ const ProfilePage: React.FC = () => {
                 Edit profile
               </IonButton>
             )}
+            {!loading && profile && (
+              <IonButton
+                expand="block"
+                fill="outline"
+                onClick={() => ionRouter.push("/settings", "forward")}
+              >
+                Settings
+              </IonButton>
+            )}
             <IonButton
               expand="block"
               fill="outline"

@@ -237,6 +237,7 @@ export async function signUp(page: Page, name: string) {
   await page.getByLabel("Last name").fill("Test");
   await page.getByRole("button", { name: "Tennis" }).click();
   await page.locator(".onboarding__skill-row").first().click();
+  await expect(page.locator("ion-action-sheet")).toBeVisible();
   await page.locator("ion-action-sheet button").filter({ hasText: "3.5" }).click();
   await page.getByRole("button", { name: "Next" }).click();
   await expect(page.getByText("Use your location")).toBeVisible();
