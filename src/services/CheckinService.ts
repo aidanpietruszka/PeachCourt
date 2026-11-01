@@ -6,9 +6,11 @@ import {
   runTransaction,
   serverTimestamp,
   Timestamp,
+  writeBatch,
   type Unsubscribe,
 } from "firebase/firestore";
 import { auth, db } from "./firebase";
+import { CROWD_RANGE_MINS } from "../utils/crowdRange";
 
 const ALLOWED_DURATIONS_MINUTES = [30, 60] as const;
 
@@ -43,6 +45,9 @@ export const CheckinService = {
       )
     ) {
       throw new Error("Choose a valid check-in duration.");
+    }
+    if (!CROWD_RANGE_MINS.includes(playerCount as (typeof CROWD_RANGE_MINS)[number])) {
+      throw new Error("Choose a valid number of players.");
     }
     if (!Number.isFinite(requestedArrivalAt) || requestedArrivalAt < 0) {
       throw new Error("Choose a valid arrival time.");
@@ -211,6 +216,52 @@ export const CheckinService = {
       },
       onError,
     );
+  },
+
+  async updateCount(courtId: string, playerCount: number): Promise<void> {
+    const uid = await getUid();
+    const batch = writeBatch(db);
+    batch.set(doc(db, "courtStatus", courtId), {
+      playerCount,
+      reportedBy: uid,
+      reportedAt: serverTimestamp(),
+    });
+    batch.set(doc(collection(db, "events")), {
+      eventName: "count_updated",
+      uid,
+      courtId,
+      playerCount,
+      timestamp: Timestamp.now(),
+    });
+    await batch.commit();
+  },
+
+  async confirmStillHere(courtId: string, playerCount: number): Promise<void> {
+    const uid = await getUid();
+    const batch = writeBatch(db);
+    batch.set(doc(db, "courtStatus", courtId), {
+      playerCount,
+      reportedBy: uid,
+      reportedAt: serverTimestamp(),
+    });
+    batch.set(doc(collection(db, "events")), {
+      eventName: "still_here_yes",
+      uid,
+      courtId,
+      playerCount,
+      timestamp: Timestamp.now(),
+    });
+    await batch.commit();
+  },
+
+  async stillHereSkipped(courtId: string): Promise<void> {
+    const uid = await getUid();
+    await addDoc(collection(db, "events"), {
+      eventName: "still_here_skipped",
+      uid,
+      courtId,
+      timestamp: Timestamp.now(),
+    });
   },
 
   async recordFeedback(answer: string): Promise<void> {

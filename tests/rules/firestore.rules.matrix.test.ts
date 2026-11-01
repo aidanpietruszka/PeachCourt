@@ -48,7 +48,7 @@ function checkinData(uid: string): Data {
   return {
     uid,
     courtId: "court-1",
-    playerCount: 3,
+    playerCount: 2,
     checkedInAt: minutesFromNow(0),
     scheduledArrivalAt: minutesFromNow(0),
     durationMinutes: 60,
@@ -64,7 +64,7 @@ function activeCheckinData(uid: string): Data {
     uid,
     checkinId: "checkin-1",
     courtId: "court-1",
-    playerCount: 3,
+    playerCount: 2,
     checkedInAt: minutesFromNow(0),
     scheduledArrivalAt: minutesFromNow(0),
     durationMinutes: 60,
@@ -135,6 +135,9 @@ const badDurations: [string, unknown][] = [
 const badCounts: [string, unknown][] = [
   ["0", 0],
   ["-1", -1],
+  ["3", 3],
+  ["4", 4],
+  ["6", 6],
   ["21", 21],
   ["3.5", 3.5],
   ["a string", "3"],
@@ -223,13 +226,12 @@ describe("matrix: checkins create", () => {
     );
   });
 
-  it("M-09 playerCount accepts 1 and 20", async () => {
-    await assertSucceeds(
-      create(asUser("alice"), { ...checkinData("alice"), playerCount: 1 }),
-    );
-    await assertSucceeds(
-      create(asUser("alice"), { ...checkinData("alice"), playerCount: 20 }),
-    );
+  it("M-09 playerCount accepts valid range minimums", async () => {
+    for (const ok of [1, 2, 5, 9, 16]) {
+      await assertSucceeds(
+        create(asUser("alice"), { ...checkinData("alice"), playerCount: ok }),
+      );
+    }
   });
 
   it.each(badCounts)("M-10 playerCount rejects %s", async (_n, bad) => {
@@ -388,8 +390,8 @@ describe("matrix: activeCheckins", () => {
     );
   });
 
-  it("M-27 playerCount boundaries", async () => {
-    for (const ok of [1, 20]) {
+  it("M-27 playerCount accepts valid range minimums", async () => {
+    for (const ok of [1, 2, 5, 9, 16]) {
       await assertSucceeds(
         setDoc(doc(asUser("alice"), "activeCheckins/alice"), {
           ...activeCheckinData("alice"),
@@ -414,9 +416,14 @@ describe("matrix: activeCheckins", () => {
         playerCount: 21,
       }),
     );
-    await assertSucceeds(
+    await assertFails(
       updateDoc(doc(asUser("alice"), "activeCheckins/alice"), {
         playerCount: 4,
+      }),
+    );
+    await assertSucceeds(
+      updateDoc(doc(asUser("alice"), "activeCheckins/alice"), {
+        playerCount: 5,
       }),
     );
   });
@@ -445,7 +452,7 @@ describe("matrix: courtStatus", () => {
       courtId: activeCourt,
     });
     batch.set(doc(db, `courtStatus/${target}`), {
-      playerCount: 3,
+      playerCount: 2,
       reportedBy: uid,
       reportedAt: serverTimestamp(),
       ...fields,
@@ -457,9 +464,10 @@ describe("matrix: courtStatus", () => {
     await assertSucceeds(report("alice", {}));
   });
 
-  it("M-31 playerCount boundaries", async () => {
-    await assertSucceeds(report("alice", { playerCount: 1 }));
-    await assertSucceeds(report("alice", { playerCount: 20 }));
+  it("M-31 playerCount accepts valid range minimums", async () => {
+    for (const ok of [1, 2, 5, 9, 16]) {
+      await assertSucceeds(report("alice", { playerCount: ok }));
+    }
     for (const [, bad] of badCounts) {
       await assertFails(report("alice", { playerCount: bad }));
     }
@@ -908,6 +916,9 @@ describe("matrix: events", () => {
     trust_skipped: { courtId: "c1", liveCount: 3 },
     court_viewed: { courtId: "c1", reportedCount: null },
     feedback_skipped: {},
+    count_updated: { courtId: "c1", playerCount: 2 },
+    still_here_yes: { courtId: "c1", playerCount: 2 },
+    still_here_skipped: { courtId: "c1" },
   };
 
   it.each(Object.keys(valid))("M-66 valid %s is accepted", async (name) => {
@@ -1172,7 +1183,20 @@ describe("matrix: events", () => {
     }
   });
 
-  it("M-81 events are write-only", async () => {
+  it("M-81 count_updated and still_here_yes playerCount must be an int", async () => {
+    for (const name of ["count_updated", "still_here_yes"]) {
+      for (const bad of [3.5, "2", null]) {
+        await assertFails(
+          send(
+            asUser("alice"),
+            eventData("alice", name, { courtId: "c1", playerCount: bad }),
+          ),
+        );
+      }
+    }
+  });
+
+  it("M-82 events are write-only", async () => {
     const ref = await send(
       asUser("alice"),
       eventData("alice", "feedback_skipped", {}),
@@ -1184,3 +1208,4 @@ describe("matrix: events", () => {
     await assertFails(deleteDoc(doc(asUser("alice"), `events/${ref.id}`)));
   });
 });
+

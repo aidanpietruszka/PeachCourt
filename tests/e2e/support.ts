@@ -204,6 +204,26 @@ export async function seedReport(courtId: string, playerCount: number) {
   expect(response.ok).toBe(true);
 }
 
+export async function backdateReport(courtId: string, minutesAgo = 31) {
+  const oldDate = new Date(Date.now() - minutesAgo * 60 * 1000);
+  const response = await fetch(
+    `${FIRESTORE}/v1/projects/${PROJECT_ID}/databases/(default)/documents/courtStatus/${courtId}?updateMask.fieldPaths=reportedAt`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer owner",
+      },
+      body: JSON.stringify({
+        fields: {
+          reportedAt: { timestampValue: oldDate.toISOString() },
+        },
+      }),
+    },
+  );
+  expect(response.ok).toBe(true);
+}
+
 type StoredValue = {
   stringValue?: string;
   integerValue?: string;
@@ -363,10 +383,39 @@ export function alertButton(page: Page, text: string) {
   return openAlert(page).locator("button").filter({ hasText: text }).first();
 }
 
+function rangeLabel(headCount: number): string {
+  if (headCount === 1) return "Just me";
+  if (headCount <= 4) return "A few";
+  if (headCount <= 8) return "Busy";
+  if (headCount <= 15) return "Packed";
+  return "Very packed";
+}
+
 export async function checkIn(page: Page, headCount: number) {
   await ionButton(page.locator("ion-footer"), "Check in").click();
-  await alertInput(page).fill(String(headCount));
-  await alertButton(page, "Check in").click();
+  const moveAlert = page
+    .locator("ion-alert")
+    .filter({ hasText: "Move your check-in?" });
+  await moveAlert
+    .waitFor({ state: "visible", timeout: 2_000 })
+    .catch(() => null);
+  if (await moveAlert.isVisible()) {
+    await moveAlert.locator("button").filter({ hasText: "Move here" }).click();
+  }
+  await page
+    .locator(".range-picker__row")
+    .filter({ hasText: rangeLabel(headCount) })
+    .first()
+    .waitFor({ state: "visible" });
+  await page
+    .locator(".range-picker__row")
+    .filter({ hasText: rangeLabel(headCount) })
+    .first()
+    .click();
+  await ionButton(
+    page.locator("ion-modal").filter({ visible: true }).last(),
+    "Check in",
+  ).click();
   await expect(visibleText(page, "You're checked in")).toBeVisible();
 }
 

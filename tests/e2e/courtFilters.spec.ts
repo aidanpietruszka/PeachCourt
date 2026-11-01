@@ -359,11 +359,11 @@ test("E2E-61 Open now shows the empty state outside every court's hours", async 
 });
 
 test("E2E-62 Players now keeps courts with a report", async ({ browser }) => {
-  await seedReport(COURTS.beta.id, 4);
+  await seedReport(COURTS.beta.id, 5);
   const { context, page } = await newUser(browser, "Sam");
   await applyFlag(page, "Players there now");
   await expect(rowNames(page)).toHaveText([names.beta]);
-  await expect(page.locator(".courts-page__list")).toContainText("4 reported");
+  await expect(page.locator(".courts-page__list")).toContainText("5–8 players");
   await context.close();
 });
 

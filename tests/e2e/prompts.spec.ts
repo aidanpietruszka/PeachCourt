@@ -27,14 +27,14 @@ function trustPrompt(page: Page) {
 test("E2E-23 the trust question shows once per session on courts with a report", async ({
   browser,
 }) => {
-  await seedReport(COURTS.alpha.id, 3);
+  await seedReport(COURTS.alpha.id, 2);
   await seedReport(COURTS.beta.id, 2);
   const { context, page } = await newUser(browser, "Ana", {
     skipPrompts: false,
   });
   await openCourt(page, COURTS.alpha.name);
   await expect(
-    visibleText(page, /How much do you trust "3 reported"/),
+    visibleText(page, /How much do you trust "2–4 players"/),
   ).toBeVisible({
     timeout: 10_000,
   });
@@ -42,7 +42,7 @@ test("E2E-23 the trust question shows once per session on courts with a report",
   await expect(visibleText(page, "Thanks for your rating.")).toBeVisible();
   await expect
     .poll(() => loggedEvents("trust_rating"))
-    .toEqual([expect.objectContaining({ rating: 4, liveCount: 3 })]);
+    .toEqual([expect.objectContaining({ rating: 4, liveCount: 2 })]);
 
   await backToCourts(page);
   await openCourt(page, COURTS.beta.name);
@@ -54,7 +54,7 @@ test("E2E-23 the trust question shows once per session on courts with a report",
         .map((event) => `${event.courtId}:${event.reportedCount}`)
         .sort(),
     )
-    .toEqual([`${COURTS.alpha.id}:3`, `${COURTS.beta.id}:2`]);
+    .toEqual([`${COURTS.alpha.id}:2`, `${COURTS.beta.id}:2`]);
   await context.close();
 });
 
