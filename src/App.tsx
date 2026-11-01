@@ -7,6 +7,7 @@ import SignUpPage from "./pages/SignUpPage";
 import CourtDetailPage from "./pages/CourtDetailPage";
 import OnboardingPage from "./pages/OnboardingPage";
 import EditProfilePage from "./pages/EditProfilePage";
+import SettingsPage from "./pages/SettingsPage";
 import TabsLayout from "./components/TabsLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./hooks/useAuth";
@@ -49,6 +50,14 @@ const App: React.FC = () => (
             element={
               <ProtectedRoute>
                 <EditProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <SettingsPage />
               </ProtectedRoute>
             }
           />

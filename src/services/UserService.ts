@@ -28,6 +28,13 @@ export const UserService = {
     await setDoc(doc(db, "users", uid), prefs, { merge: true });
   },
 
+  async saveSettings(
+    uid: string,
+    settings: Partial<Pick<UserProfile, "locationEnabled" | "autoCheckin" | "notificationsEnabled" | "newGamesAlert" | "changesGamesAlert" | "gameRemindersAlert" | "chatMessagesAlert">>,
+  ): Promise<void> {
+    await setDoc(doc(db, "users", uid), settings, { merge: true });
+  },
+
   async getProfile(uid: string): Promise<UserProfile | null> {
     const snap = await getDoc(doc(db, "users", uid));
     if (!snap.exists()) {
@@ -44,6 +51,10 @@ export const UserService = {
       notificationsEnabled: data.notificationsEnabled,
       notificationsPrompted: data.notificationsPrompted,
       onboardingDone: data.onboardingDone,
+      newGamesAlert: data.newGamesAlert,
+      changesGamesAlert: data.changesGamesAlert,
+      gameRemindersAlert: data.gameRemindersAlert,
+      chatMessagesAlert: data.chatMessagesAlert,
     };
   },
 
@@ -65,6 +76,15 @@ export const UserService = {
           lastName: data.lastName ?? "",
           sports: data.sports ?? [],
           skillLevels: data.skillLevels ?? {},
+          locationEnabled: data.locationEnabled,
+          autoCheckin: data.autoCheckin,
+          notificationsEnabled: data.notificationsEnabled,
+          notificationsPrompted: data.notificationsPrompted,
+          onboardingDone: data.onboardingDone,
+          newGamesAlert: data.newGamesAlert,
+          changesGamesAlert: data.changesGamesAlert,
+          gameRemindersAlert: data.gameRemindersAlert,
+          chatMessagesAlert: data.chatMessagesAlert,
         });
       },
       onError,
