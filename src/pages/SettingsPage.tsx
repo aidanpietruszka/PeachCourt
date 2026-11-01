@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  IonAlert,
   IonBackButton,
   IonButton,
   IonButtons,
@@ -11,9 +12,11 @@ import {
   IonTitle,
   IonToggle,
   IonToolbar,
+  useIonRouter,
 } from "@ionic/react";
 import { Geolocation } from "@capacitor/geolocation";
 import { useAuth } from "../hooks/useAuth";
+import { logout } from "../services/auth";
 import { UserService } from "../services/UserService";
 import type { UserProfile } from "../types/types";
 import "./SettingsPage.css";
@@ -76,12 +79,15 @@ const SUB_TOGGLES: Array<{
 
 const SettingsPage: React.FC = () => {
   const { user } = useAuth();
+  const ionRouter = useIonRouter();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [locationBlocked, setLocationBlocked] = useState(false);
   const [helpSheet, setHelpSheet] = useState<HelpSheet>(null);
   const [locationTab, setLocationTab] = useState<LocationTab>("iphone");
   const [notifTab, setNotifTab] = useState<NotifTab>("home-screen");
+  const [showDeleteAlert, setShowDeleteAlert] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const isIPhone = /iPhone/.test(navigator.userAgent);
   const isStandalone =
@@ -168,6 +174,17 @@ const SettingsPage: React.FC = () => {
     }
     const result = await Notification.requestPermission();
     save({ notificationsEnabled: result === "granted" });
+  };
+
+  const handleDeleteConfirm = async () => {
+    setDeleting(true);
+    try {
+      await UserService.deleteAccount();
+      await logout();
+      ionRouter.push("/login", "root", "replace");
+    } catch {
+      setDeleting(false);
+    }
   };
 
   const subDisabled = notifUnavailable || !profile?.notificationsEnabled;
@@ -330,10 +347,27 @@ const SettingsPage: React.FC = () => {
             type="button"
             className="settings-page__delete-btn"
             aria-label="Delete my account and data"
+            disabled={deleting}
+            onClick={() => setShowDeleteAlert(true)}
           >
-            Delete my account and data
+            {deleting ? <IonSpinner name="dots" /> : "Delete my account and data"}
           </button>
         </div>
+
+        <IonAlert
+          isOpen={showDeleteAlert}
+          onDidDismiss={() => setShowDeleteAlert(false)}
+          header="Delete your account?"
+          message="This permanently deletes your profile, check-ins, and messages, and removes you from your games. This can't be undone."
+          buttons={[
+            { text: "Cancel", role: "cancel" },
+            {
+              text: "Delete",
+              role: "destructive",
+              handler: () => { void handleDeleteConfirm(); },
+            },
+          ]}
+        />
 
         <IonModal
           isOpen={helpSheet === "location"}

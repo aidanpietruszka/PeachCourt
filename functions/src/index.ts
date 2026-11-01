@@ -1,6 +1,13 @@
+import { getApps, initializeApp } from "firebase-admin/app";
 import { setGlobalOptions } from "firebase-functions/v2";
 import { onRequest } from "firebase-functions/v2/https";
 import { onMessagePublished } from "firebase-functions/v2/pubsub";
+
+if (!getApps().length) {
+  initializeApp();
+}
+
+export { deleteAccount } from "./deleteAccount";
 import type { CloudEvent } from "firebase-functions/v2";
 import type { MessagePublishedData } from "firebase-functions/v2/pubsub";
 
