@@ -30,8 +30,7 @@ service cloud.firestore {
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.courtId is string
         && request.resource.data.playerCount is int
-        && request.resource.data.playerCount >= 1
-        && request.resource.data.playerCount <= 20
+        && request.resource.data.playerCount in [1, 2, 5, 9, 16]
         && request.resource.data.checkedInAt is timestamp
         && request.resource.data.scheduledArrivalAt is timestamp
         && request.resource.data.durationMinutes in [30, 60]
@@ -63,8 +62,7 @@ service cloud.firestore {
         && request.resource.data.checkinId is string
         && request.resource.data.courtId is string
         && request.resource.data.playerCount is int
-        && request.resource.data.playerCount >= 1
-        && request.resource.data.playerCount <= 20
+        && request.resource.data.playerCount in [1, 2, 5, 9, 16]
         && request.resource.data.checkedInAt is timestamp
         && request.resource.data.scheduledArrivalAt is timestamp
         && request.resource.data.durationMinutes in [30, 60]
@@ -78,8 +76,7 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['playerCount', 'reportedBy', 'reportedAt'])
         && request.resource.data.reportedBy == request.auth.uid
         && request.resource.data.playerCount is int
-        && request.resource.data.playerCount >= 1
-        && request.resource.data.playerCount <= 20
+        && request.resource.data.playerCount in [1, 2, 5, 9, 16]
         && request.resource.data.reportedAt == request.time
         && getAfter(/databases/$(database)/documents/activeCheckins/$(request.auth.uid)).data.courtId == courtId;
       allow delete: if false;
@@ -213,6 +210,20 @@ service cloud.firestore {
             )
           )
           || request.resource.data.eventName == 'feedback_skipped'
+          || (
+            request.resource.data.eventName == 'count_updated'
+            && request.resource.data.courtId is string
+            && request.resource.data.playerCount is int
+          )
+          || (
+            request.resource.data.eventName == 'still_here_yes'
+            && request.resource.data.courtId is string
+            && request.resource.data.playerCount is int
+          )
+          || (
+            request.resource.data.eventName == 'still_here_skipped'
+            && request.resource.data.courtId is string
+          )
         );
       allow read, update, delete: if false;
     }

@@ -44,7 +44,7 @@ function checkinData(uid: string, overrides: Record<string, unknown> = {}) {
   return {
     uid,
     courtId: "court-1",
-    playerCount: 3,
+    playerCount: 2,
     checkedInAt: minutesFromNow(0),
     scheduledArrivalAt: minutesFromNow(0),
     durationMinutes: 60,
@@ -61,7 +61,7 @@ function activeCheckinData(uid: string, courtId = "court-1") {
     uid,
     checkinId: "checkin-1",
     courtId,
-    playerCount: 3,
+    playerCount: 2,
     checkedInAt: minutesFromNow(0),
     scheduledArrivalAt: minutesFromNow(0),
     durationMinutes: 60,
@@ -147,26 +147,30 @@ describe("checkins", () => {
     );
   });
 
-  it("R-06 head count must be 1 to 20", async () => {
+  it("R-06 head count must be a valid range minimum", async () => {
     const db = asUser("alice");
-    await assertFails(
-      addDoc(
-        collection(db, "checkins"),
-        checkinData("alice", { playerCount: 0 }),
-      ),
-    );
-    await assertFails(
-      addDoc(
-        collection(db, "checkins"),
-        checkinData("alice", { playerCount: 21 }),
-      ),
-    );
+    for (const bad of [0, 3, 4, 6, 20, 21]) {
+      await assertFails(
+        addDoc(
+          collection(db, "checkins"),
+          checkinData("alice", { playerCount: bad }),
+        ),
+      );
+    }
     await assertFails(
       addDoc(
         collection(db, "checkins"),
         checkinData("alice", { playerCount: 2.5 }),
       ),
     );
+    for (const ok of [1, 2, 5, 9, 16]) {
+      await assertSucceeds(
+        addDoc(
+          collection(db, "checkins"),
+          checkinData("alice", { playerCount: ok }),
+        ),
+      );
+    }
   });
 
   it("R-07 duration must be an allowed value", async () => {
@@ -652,6 +656,9 @@ describe("events", () => {
     ["trust_skipped", { courtId: "court-1", liveCount: 2 }],
     ["court_viewed", { courtId: "court-1", reportedCount: 3 }],
     ["feedback_skipped", {}],
+    ["count_updated", { courtId: "court-1", playerCount: 2 }],
+    ["still_here_yes", { courtId: "court-1", playerCount: 2 }],
+    ["still_here_skipped", { courtId: "court-1" }],
   ];
 
   for (const [name, fields] of valid) {
@@ -757,6 +764,33 @@ describe("events", () => {
       addDoc(
         collection(db, "events"),
         eventData("alice", "trust_skipped", { courtId: "court-1" }),
+      ),
+    );
+    await assertFails(
+      addDoc(
+        collection(db, "events"),
+        eventData("alice", "count_updated", { courtId: "court-1" }),
+      ),
+    );
+    await assertFails(
+      addDoc(
+        collection(db, "events"),
+        eventData("alice", "count_updated", {
+          courtId: "court-1",
+          playerCount: 3.5,
+        }),
+      ),
+    );
+    await assertFails(
+      addDoc(
+        collection(db, "events"),
+        eventData("alice", "still_here_yes", { courtId: "court-1" }),
+      ),
+    );
+    await assertFails(
+      addDoc(
+        collection(db, "events"),
+        eventData("alice", "still_here_skipped", {}),
       ),
     );
   });

@@ -30,6 +30,7 @@ import {
 } from "../utils/courtFilters";
 import { courtSummary } from "../utils/courts";
 import { formatDistance } from "../utils/geo";
+import { displayRange } from "../utils/crowdRange";
 import "./CourtsPage.css";
 
 const CourtsPage: React.FC = () => {
@@ -373,7 +374,7 @@ const CourtsPage: React.FC = () => {
                     >
                       {reported === null
                         ? "No reports"
-                        : `${reported} reported`}
+                        : displayRange(reported)}
                     </span>
                     {openGames > 0 && (
                       <span className="courts-page__games">

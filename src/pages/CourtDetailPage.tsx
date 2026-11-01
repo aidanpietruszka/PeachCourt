@@ -16,7 +16,6 @@ import {
   IonText,
   IonToast,
   IonToolbar,
-  type AlertInput,
 } from "@ionic/react";
 import { Geolocation } from "@capacitor/geolocation";
 import { useParams } from "react-router-dom";
@@ -40,17 +39,19 @@ import {
   formatDistance,
   formatMinutesAgo,
 } from "../utils/geo";
+import { CROWD_RANGES, displayRange } from "../utils/crowdRange";
 import "./CourtDetailPage.css";
 
 const CHECK_IN_MINUTES = 60;
 const DISTANCE_WARNING_METERS = 150;
 const FEEDBACK_PROMPT_KEY = "peachcourt-checkin-feedback-asked";
 const TRUST_PROMPT_KEY = "peachcourt-trust-asked";
+const STILL_HERE_KEY = "peachcourt-still-here";
 const DETAILS_EXPANDED_KEY = "peachcourt-details-expanded";
 const TRUST_PROMPT_DELAY_MS = 5_000;
-const HEAD_COUNT_INPUTS: AlertInput[] = [
-  { name: "playerCount", type: "number", value: 1, min: 1, max: 20 },
-];
+const STILL_HERE_DELAY_MS = 30 * 60 * 1000;
+
+type RangePickerMode = "checkin" | "update" | "stillhere";
 
 function isSkip(role: string | undefined): boolean {
   return role === "cancel" || role === "backdrop";
@@ -103,7 +104,12 @@ const CourtDetailPage: React.FC = () => {
   const [now, setNow] = useState(() => Date.now());
   const [isBusy, setIsBusy] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
-  const [isCountPromptOpen, setIsCountPromptOpen] = useState(false);
+  const [isRangePickerOpen, setIsRangePickerOpen] = useState(false);
+  const [rangePickerMode, setRangePickerMode] =
+    useState<RangePickerMode>("checkin");
+  const [selectedRange, setSelectedRange] = useState<number | null>(null);
+  const [isMoveAlertOpen, setIsMoveAlertOpen] = useState(false);
+  const [isStillHereOpen, setIsStillHereOpen] = useState(false);
   const [confirmation, setConfirmation] = useState<{ players: number } | null>(
     null,
   );
@@ -134,6 +140,7 @@ const CourtDetailPage: React.FC = () => {
         )
       : null;
   const hoursLines = court ? formatHours(court.openingHours) : [];
+  const reportedAtMs = courtActivity.reportedAt?.getTime() ?? null;
 
   useEffect(() => {
     if (!courtId) {
@@ -200,24 +207,48 @@ const CourtDetailPage: React.FC = () => {
     return () => window.clearTimeout(timer);
   }, [courtLoaded, hasReport]);
 
+  useEffect(() => {
+    if (!checkedInHere || reportedAtMs === null) return;
+    if (now - reportedAtMs < STILL_HERE_DELAY_MS) return;
+    let lastPromptMs = 0;
+    try {
+      lastPromptMs = Number(sessionStorage.getItem(STILL_HERE_KEY) ?? "0");
+    } catch {
+      lastPromptMs = 0;
+    }
+    if (now - lastPromptMs < STILL_HERE_DELAY_MS) return;
+    try {
+      sessionStorage.setItem(STILL_HERE_KEY, String(now));
+    } catch {
+      /* ignore */
+    }
+    setIsStillHereOpen(true);
+  }, [checkedInHere, reportedAtMs, now]);
+
   const toggleDetails = () => {
     const next = !isDetailsExpanded;
     setIsDetailsExpanded(next);
     saveDetailsExpanded(next);
   };
 
-  const startCheckIn = () => {
-    setCheckInStartedAt(performance.now());
-    setIsCountPromptOpen(true);
+  const openRangePicker = (mode: RangePickerMode, defaultRange?: number) => {
+    setRangePickerMode(mode);
+    setSelectedRange(defaultRange ?? null);
+    setIsRangePickerOpen(true);
   };
 
-  const handleCheckIn = async (selectedCourt: Court, rawCount: string) => {
-    const playerCount = Math.round(Number(rawCount));
-    if (!Number.isFinite(playerCount) || playerCount < 1 || playerCount > 20) {
-      setToastMessage("Enter a number of players from 1 to 20.");
-      return;
+  const startCheckIn = () => {
+    setCheckInStartedAt(performance.now());
+    if (validActiveCheckIn && !checkedInHere) {
+      setIsMoveAlertOpen(true);
+    } else {
+      openRangePicker("checkin");
     }
+  };
 
+  const handleCheckIn = async (selectedCourt: Court, playerCount: number) => {
+    setIsRangePickerOpen(false);
+    setSelectedRange(null);
     setIsBusy(true);
     try {
       await CheckinService.checkIn(
@@ -244,6 +275,57 @@ const CourtDetailPage: React.FC = () => {
     }
   };
 
+  const handleUpdateCount = async (
+    selectedCourt: Court,
+    playerCount: number,
+  ) => {
+    setIsRangePickerOpen(false);
+    setSelectedRange(null);
+    setIsBusy(true);
+    try {
+      await CheckinService.updateCount(selectedCourt.id, playerCount);
+      setToastMessage("Count updated.");
+    } catch (error) {
+      console.error("Unable to update count", error);
+      setToastMessage(
+        `Update failed: ${error instanceof Error ? error.message : "Please try again."}`,
+      );
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const handleConfirmStillHere = async (
+    selectedCourt: Court,
+    playerCount: number,
+  ) => {
+    setIsRangePickerOpen(false);
+    setSelectedRange(null);
+    setIsBusy(true);
+    try {
+      await CheckinService.confirmStillHere(selectedCourt.id, playerCount);
+      setToastMessage("Count updated.");
+    } catch (error) {
+      console.error("Unable to confirm still here", error);
+      setToastMessage(
+        `Update failed: ${error instanceof Error ? error.message : "Please try again."}`,
+      );
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const handleRangePickerConfirm = () => {
+    if (!court || selectedRange === null) return;
+    if (rangePickerMode === "update") {
+      void handleUpdateCount(court, selectedRange);
+    } else if (rangePickerMode === "stillhere") {
+      void handleConfirmStillHere(court, selectedRange);
+    } else {
+      void handleCheckIn(court, selectedRange);
+    }
+  };
+
   const handleCheckOut = async () => {
     setIsBusy(true);
     try {
@@ -258,6 +340,18 @@ const CourtDetailPage: React.FC = () => {
     } finally {
       setIsBusy(false);
     }
+  };
+
+  const handleStillHereNo = async () => {
+    setIsStillHereOpen(false);
+    if (court) {
+      try {
+        await CheckinService.stillHereSkipped(court.id);
+      } catch (error) {
+        console.error("Unable to log still here skipped", error);
+      }
+    }
+    void handleCheckOut();
   };
 
   const closeConfirmation = () => {
@@ -330,6 +424,11 @@ const CourtDetailPage: React.FC = () => {
       })()
     : "";
 
+  const reportedLabel =
+    courtActivity.reported === null
+      ? "No recent reports"
+      : displayRange(courtActivity.reported);
+
   return (
     <IonPage>
       <IonHeader className="ion-no-border">
@@ -361,11 +460,7 @@ const CourtDetailPage: React.FC = () => {
               </p>
 
               <section className="live-card" aria-live="polite">
-                <p className="live-card__count">
-                  {courtActivity.reported === null
-                    ? "No recent reports"
-                    : `${courtActivity.reported} reported`}
-                </p>
+                <p className="live-card__count">{reportedLabel}</p>
                 <p className="live-card__updated">
                   {courtActivity.checkedIn} checked in
                   {courtActivity.reportedAt
@@ -485,10 +580,15 @@ const CourtDetailPage: React.FC = () => {
                 <IonButton
                   expand="block"
                   fill="outline"
-                  disabled={isBusy}
-                  onClick={() => void handleCheckOut()}
+                  disabled={isBusy || !uid}
+                  onClick={() =>
+                    openRangePicker(
+                      "update",
+                      validActiveCheckIn?.playerCount ?? undefined,
+                    )
+                  }
                 >
-                  {isBusy ? "Please wait…" : "Check out"}
+                  Update count
                 </IonButton>
               ) : (
                 <IonButton
@@ -549,23 +649,61 @@ const CourtDetailPage: React.FC = () => {
       )}
 
       <IonAlert
-        isOpen={isCountPromptOpen}
-        header="Check in"
-        message="How many people are here right now, including you?"
-        inputs={HEAD_COUNT_INPUTS}
+        isOpen={isMoveAlertOpen}
+        header="Move your check-in?"
+        message={`You're currently checked in at ${validActiveCheckIn ? "another court" : "a court"}. Checking in here will move you.`}
         buttons={[
           { text: "Cancel", role: "cancel" },
           {
-            text: "Check in",
-            handler: (values: { playerCount?: string }) => {
-              if (court) {
-                void handleCheckIn(court, values.playerCount ?? "1");
-              }
+            text: "Move here",
+            handler: () => {
+              setIsMoveAlertOpen(false);
+              openRangePicker("checkin");
             },
           },
         ]}
-        onDidDismiss={() => setIsCountPromptOpen(false)}
+        onDidDismiss={() => setIsMoveAlertOpen(false)}
       />
+
+      <IonModal
+        isOpen={isRangePickerOpen}
+        breakpoints={[0, 1]}
+        initialBreakpoint={1}
+        onDidDismiss={() => {
+          setIsRangePickerOpen(false);
+          setSelectedRange(null);
+        }}
+      >
+        <IonContent>
+          <div className="range-picker">
+            <h2 className="range-picker__title">
+              {rangePickerMode === "update" ? "Update count" : "Check in at"}{" "}
+              {court?.name}
+            </h2>
+            <p className="range-picker__subtitle">
+              How many people are here right now, including you?
+            </p>
+            {CROWD_RANGES.map(({ min, label, countText }) => (
+              <button
+                key={min}
+                type="button"
+                className={`range-picker__row${selectedRange === min ? " range-picker__row--selected" : ""}`}
+                onClick={() => setSelectedRange(min)}
+              >
+                <span className="range-picker__label">{label}</span>
+                <span className="range-picker__count">{countText}</span>
+              </button>
+            ))}
+            <IonButton
+              expand="block"
+              disabled={selectedRange === null || isBusy}
+              onClick={handleRangePickerConfirm}
+            >
+              {rangePickerMode === "update" ? "Update" : "Check in"}
+            </IonButton>
+          </div>
+        </IonContent>
+      </IonModal>
 
       <IonModal isOpen={confirmation !== null} onDidDismiss={closeConfirmation}>
         <IonContent>
@@ -575,7 +713,8 @@ const CourtDetailPage: React.FC = () => {
             </div>
             <h1 className="checked-in__title">You're checked in</h1>
             <p className="checked-in__subtitle">
-              {court?.name} · {confirmation?.players ?? 0} reported here
+              {court?.name} ·{" "}
+              {confirmation !== null ? displayRange(confirmation.players) : ""}
             </p>
             <p className="checked-in__note">
               Others can now see this court is in use. Your check-in ends after
@@ -595,6 +734,32 @@ const CourtDetailPage: React.FC = () => {
           </div>
         </IonContent>
       </IonModal>
+
+      {court && (
+        <IonAlert
+          isOpen={isStillHereOpen}
+          header="Still here?"
+          message={`Are you still at ${court.name}?`}
+          buttons={[
+            {
+              text: "No, I left",
+              role: "cancel",
+              handler: () => void handleStillHereNo(),
+            },
+            {
+              text: "Yes, update count",
+              handler: () => {
+                setIsStillHereOpen(false);
+                openRangePicker(
+                  "stillhere",
+                  validActiveCheckIn?.playerCount ?? undefined,
+                );
+              },
+            },
+          ]}
+          onDidDismiss={() => setIsStillHereOpen(false)}
+        />
+      )}
 
       <IonAlert
         isOpen={isFeedbackOpen}
@@ -624,7 +789,7 @@ const CourtDetailPage: React.FC = () => {
       <IonAlert
         isOpen={isTrustOpen}
         header="Quick question"
-        message={`How much do you trust "${courtActivity.reported === null ? "No recent reports" : `${courtActivity.reported} reported`}"? 1 = not at all, 5 = completely.`}
+        message={`How much do you trust "${reportedLabel}"? 1 = not at all, 5 = completely.`}
         buttons={[
           ...[1, 2, 3, 4, 5].map((rating) => ({
             text: String(rating),

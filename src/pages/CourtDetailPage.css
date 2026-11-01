@@ -157,3 +157,57 @@
   font-size: 15px;
   color: var(--pc-text-muted);
 }
+
+.range-picker {
+  padding: 24px 20px 32px;
+}
+
+.range-picker__title {
+  margin: 0 0 6px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--pc-text);
+}
+
+.range-picker__subtitle {
+  margin: 0 0 20px;
+  font-size: 14px;
+  color: var(--pc-text-muted);
+}
+
+.range-picker__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  border: 1.5px solid var(--pc-border);
+  border-radius: 12px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--pc-text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.range-picker__row--selected {
+  border-color: var(--pc-green);
+  background: var(--pc-green-light);
+  color: var(--pc-green);
+}
+
+.range-picker__label {
+  font-weight: 600;
+}
+
+.range-picker__count {
+  font-size: 14px;
+  color: var(--pc-text-muted);
+}
+
+.range-picker__row--selected .range-picker__count {
+  color: var(--pc-green);
+}

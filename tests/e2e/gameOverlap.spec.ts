@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import {
+  checkIn,
   COURTS,
   gameCard,
   ionButton,
@@ -264,10 +265,7 @@ test("E2E-43 conflict note shows game court name from description", async ({
 test("E2E-44 check-in confirmation says 1 hour", async ({ browser }) => {
   const { context, page } = await newUser(browser, "Ana");
   await openCourt(page, COURTS.alpha.name);
-  await ionButton(page.locator("ion-footer"), "Check in").click();
-  const alert = page.locator("ion-alert").filter({ visible: true }).last();
-  await alert.locator("input").fill("2");
-  await alert.locator("button").filter({ hasText: "Check in" }).first().click();
+  await checkIn(page, 2);
   const modal = page.locator("ion-modal").filter({ visible: true }).last();
   await expect(modal).toContainText("1 hour or when you check out");
   await context.close();
