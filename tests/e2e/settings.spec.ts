@@ -1,5 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
-import { newUser, resetData } from "./support";
+import { expect, test, type Browser, type Page } from "@playwright/test";
+import { newUser, resetData, signUp, getUidByEmail, seedUserProfile } from "./support";
 
 test.beforeEach(async () => {
   await resetData();
@@ -19,6 +19,34 @@ async function mockLocationDenied(page: Page) {
       configurable: true,
     });
   });
+}
+
+async function newUserWithNotifs(
+  browser: Browser,
+  name: string,
+): Promise<{ context: Awaited<ReturnType<Browser["newContext"]>>; page: Page }> {
+  const context = await browser.newContext({
+    baseURL: "http://127.0.0.1:5174",
+    viewport: { width: 390, height: 844 },
+    geolocation: { latitude: 33.7851, longitude: -84.3738 },
+    permissions: ["geolocation", "notifications"],
+  });
+  await context.addInitScript(() => {
+    try {
+      window.sessionStorage.setItem("peachcourt-trust-asked", "true");
+    } catch {
+      return;
+    }
+    if ("Notification" in window) {
+      Object.defineProperty(Notification, "permission", {
+        get: () => "granted",
+        configurable: true,
+      });
+    }
+  });
+  const page = await context.newPage();
+  await signUp(page, name);
+  return { context, page };
 }
 
 async function mockNotifDenied(page: Page) {
@@ -165,43 +193,7 @@ test("E2E-118 sub-toggles are disabled when notifications are off", async ({
 test("E2E-119 turning on Notifications enables sub-toggles", async ({
   browser,
 }) => {
-  const context = await browser.newContext({
-    baseURL: "http://127.0.0.1:5174",
-    viewport: { width: 390, height: 844 },
-    geolocation: { latitude: 33.7851, longitude: -84.3738 },
-    permissions: ["geolocation", "notifications"],
-  });
-  await context.addInitScript(() => {
-    try {
-      window.sessionStorage.setItem("peachcourt-trust-asked", "true");
-    } catch {
-      return;
-    }
-    if ("Notification" in window) {
-      Object.defineProperty(Notification, "permission", {
-        get: () => "granted",
-        configurable: true,
-      });
-    }
-  });
-  const page = await context.newPage();
-  const email = `sam-${Date.now()}@test.dev`;
-  await page.goto("/signup");
-  await page.getByPlaceholder("Name (optional)").fill("Sam");
-  await page.getByPlaceholder("Email").fill(email);
-  await page.getByPlaceholder("Password (6+ characters)").fill("secret123");
-  await page.getByPlaceholder("Confirm password").fill("secret123");
-  await page.getByRole("button", { name: "Sign up", exact: true }).click();
-  await page.getByLabel("First name").fill("Sam");
-  await page.getByLabel("Last name").fill("Test");
-  await page.getByRole("button", { name: "Tennis" }).click();
-  await page.locator(".onboarding__skill-row").first().click();
-  await page.locator("ion-action-sheet button").filter({ hasText: "3.5" }).click();
-  await page.getByRole("button", { name: "Next" }).click();
-  await page.getByRole("button", { name: "Skip for now" }).click();
-  await page.getByRole("button", { name: "Skip for now" }).click();
-  await expect(page).toHaveURL(/\/courts$/);
-
+  const { context, page } = await newUserWithNotifs(browser, "Sam");
   await page.goto("/settings");
   const notifToggle = page.locator("ion-toggle[aria-label='Notifications']");
   await expect(notifToggle).not.toBeDisabled();
@@ -470,5 +462,133 @@ test("E2E-140 settings page reachable directly via URL", async ({
   await expect(
     page.getByRole("heading", { name: "Settings" }).first(),
   ).toBeVisible();
+  await context.close();
+});
+
+test("E2E-141 new games alert saves off and persists on reload", async ({
+  browser,
+}) => {
+  const { context, page } = await newUserWithNotifs(browser, "Sam");
+  await page.goto("/settings");
+  await page.locator("ion-toggle[aria-label='Notifications']").click();
+  await expect(
+    page.locator("ion-toggle[aria-label='New games for my sport & skill']"),
+  ).not.toBeDisabled();
+  await page.locator("ion-toggle[aria-label='New games for my sport & skill']").click();
+  await expect(
+    page.locator("ion-toggle[aria-label='New games for my sport & skill']"),
+  ).not.toBeChecked();
+  await page.reload();
+  await expect(
+    page.locator("ion-toggle[aria-label='New games for my sport & skill']"),
+  ).not.toBeChecked();
+  await context.close();
+});
+
+test("E2E-142 changes to my games alert saves off and persists on reload", async ({
+  browser,
+}) => {
+  const { context, page } = await newUserWithNotifs(browser, "Sam");
+  await page.goto("/settings");
+  await page.locator("ion-toggle[aria-label='Notifications']").click();
+  await expect(
+    page.locator("ion-toggle[aria-label='Changes to my games']"),
+  ).not.toBeDisabled();
+  await page.locator("ion-toggle[aria-label='Changes to my games']").click();
+  await expect(
+    page.locator("ion-toggle[aria-label='Changes to my games']"),
+  ).not.toBeChecked();
+  await page.reload();
+  await expect(
+    page.locator("ion-toggle[aria-label='Changes to my games']"),
+  ).not.toBeChecked();
+  await context.close();
+});
+
+test("E2E-143 game reminders alert saves off and persists on reload", async ({
+  browser,
+}) => {
+  const { context, page } = await newUserWithNotifs(browser, "Sam");
+  await page.goto("/settings");
+  await page.locator("ion-toggle[aria-label='Notifications']").click();
+  await expect(
+    page.locator("ion-toggle[aria-label='Game reminders']"),
+  ).not.toBeDisabled();
+  await page.locator("ion-toggle[aria-label='Game reminders']").click();
+  await expect(
+    page.locator("ion-toggle[aria-label='Game reminders']"),
+  ).not.toBeChecked();
+  await page.reload();
+  await expect(
+    page.locator("ion-toggle[aria-label='Game reminders']"),
+  ).not.toBeChecked();
+  await context.close();
+});
+
+test("E2E-144 auto check-in toggle is enabled when locationEnabled is true in profile", async ({
+  browser,
+}) => {
+  const { context, page, email } = await newUser(browser, "Sam");
+  const uid = await getUidByEmail(email);
+  await seedUserProfile(uid, { locationEnabled: true });
+  await page.goto("/settings");
+  await expect(
+    page.locator("ion-toggle[aria-label='Automatic check-in']"),
+  ).not.toBeDisabled();
+  await context.close();
+});
+
+test("E2E-145 disabling location clears auto check-in", async ({ browser }) => {
+  const { context, page, email } = await newUser(browser, "Sam");
+  const uid = await getUidByEmail(email);
+  await seedUserProfile(uid, { locationEnabled: true, autoCheckin: true });
+  await page.goto("/settings");
+  await expect(
+    page.locator("ion-toggle[aria-label='Automatic check-in']"),
+  ).toBeChecked();
+  await page.locator("ion-toggle[aria-label='Use my location']").click();
+  await expect(
+    page.locator("ion-toggle[aria-label='Automatic check-in']"),
+  ).not.toBeChecked();
+  await page.reload();
+  await expect(
+    page.locator("ion-toggle[aria-label='Automatic check-in']"),
+  ).not.toBeChecked();
+  await context.close();
+});
+
+test("E2E-146 notifications blocked tab shows phone settings steps", async ({
+  browser,
+}) => {
+  const { context, page } = await newUser(browser, "Sam");
+  await mockNotifDenied(page);
+  await page.goto("/settings");
+  await page.locator(".settings-page__help-link").last().click();
+  const modal = page.locator("ion-modal").filter({ visible: true }).last();
+  await modal.getByText("Blocked", { exact: true }).click();
+  await expect(
+    modal.getByText("Tap the lock icon in Chrome's address bar"),
+  ).toBeVisible();
+  await context.close();
+});
+
+test("E2E-147 stored sheet mentions email address", async ({ browser }) => {
+  const { context, page } = await newUser(browser, "Sam");
+  await page.goto("/settings");
+  await page.getByText("See what's stored").click();
+  await expect(page.getByText(/email address/)).toBeVisible();
+  await context.close();
+});
+
+test("E2E-148 notifications home-screen tab shows add-to-home-screen steps", async ({
+  browser,
+}) => {
+  const { context, page } = await newUser(browser, "Sam");
+  await mockNotifDenied(page);
+  await page.goto("/settings");
+  await page.locator(".settings-page__help-link").last().click();
+  const modal = page.locator("ion-modal").filter({ visible: true }).last();
+  await modal.getByText("Add to Home Screen").click();
+  await expect(modal.getByText("Tap Add to Home Screen")).toBeVisible();
   await context.close();
 });

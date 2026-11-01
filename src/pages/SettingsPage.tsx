@@ -110,9 +110,21 @@ const SettingsPage: React.FC = () => {
         setNotifTab("blocked");
       }
 
-      const p = await UserService.getProfile(user.uid);
-      setProfile(p);
-      setLoading(false);
+      try {
+        const p = await UserService.getProfile(user.uid);
+        const seeds: Partial<UserProfile> = {};
+        for (const { key, defaultOn } of SUB_TOGGLES) {
+          if (p?.[key] === undefined) {
+            (seeds as Record<string, boolean>)[key] = defaultOn;
+          }
+        }
+        if (Object.keys(seeds).length > 0) {
+          void UserService.saveSettings(user.uid, seeds);
+        }
+        setProfile(p ? { ...p, ...seeds } : p);
+      } finally {
+        setLoading(false);
+      }
     };
 
     void init();
@@ -173,6 +185,14 @@ const SettingsPage: React.FC = () => {
   if (loading) {
     return (
       <IonPage>
+        <IonHeader className="ion-no-border">
+          <IonToolbar>
+            <IonButtons slot="start">
+              <IonBackButton defaultHref="/profile" text="Profile" />
+            </IonButtons>
+            <IonTitle />
+          </IonToolbar>
+        </IonHeader>
         <IonContent>
           <div className="settings-page settings-page--loading">
             <IonSpinner name="dots" />

@@ -145,6 +145,44 @@ export async function resetData() {
   }
 }
 
+export async function getUidByEmail(email: string): Promise<string> {
+  const response = await fetch(
+    `${AUTH}/identitytoolkit.googleapis.com/v1/accounts:lookup`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer owner" },
+      body: JSON.stringify({ email: [email] }),
+    },
+  );
+  const body = (await response.json()) as {
+    users?: Array<{ localId: string }>;
+  };
+  const user = (body.users ?? [])[0];
+  if (!user) throw new Error(`No account found for email: ${email}`);
+  return user.localId;
+}
+
+export async function seedUserProfile(
+  uid: string,
+  data: Record<string, unknown>,
+) {
+  const fields = Object.fromEntries(
+    Object.entries(data).map(([key, value]) => [key, toValue(value)]),
+  );
+  const mask = Object.keys(data)
+    .map((k) => `updateMask.fieldPaths=${encodeURIComponent(k)}`)
+    .join("&");
+  const response = await fetch(
+    `${FIRESTORE}/v1/projects/${PROJECT_ID}/databases/(default)/documents/users/${uid}?${mask}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer owner" },
+      body: JSON.stringify({ fields }),
+    },
+  );
+  expect(response.ok).toBe(true);
+}
+
 export async function seedReport(courtId: string, playerCount: number) {
   const response = await fetch(
     `${FIRESTORE}/v1/projects/${PROJECT_ID}/databases/(default)/documents/courtStatus?documentId=${courtId}`,
