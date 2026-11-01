@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import {
+  backdateReport,
   backToCourts,
   checkIn,
   closeConfirmation,
@@ -7,6 +8,7 @@ import {
   dismissFeedbackIfShown,
   ionButton,
   liveCard,
+  loggedEvents,
   newUser,
   openCourt,
   resetData,
@@ -225,5 +227,72 @@ test("E2E-18 move confirmation appears when checking in at a different court", a
   await moveAlert.locator("button").filter({ hasText: "Cancel" }).click();
   await expect(moveAlert).not.toBeVisible();
   await expect(liveCard(page)).toContainText("checked in at another court");
+  await context.close();
+});
+
+test("E2E-19 Still here? No, I left checks out and logs the event", async ({
+  browser,
+}) => {
+  const { context, page } = await newUser(browser, "Ana");
+  await openCourt(page, COURTS.alpha.name);
+  await checkIn(page, 2);
+  await closeConfirmation(page);
+  await dismissFeedbackIfShown(page);
+
+  await backdateReport(COURTS.alpha.id);
+
+  const stillHereAlert = page
+    .locator("ion-alert")
+    .filter({ hasText: "Still here?" });
+  await expect(stillHereAlert).toBeVisible({ timeout: 10_000 });
+
+  await stillHereAlert
+    .locator("button")
+    .filter({ hasText: "No, I left" })
+    .click();
+  await expect(visibleText(page, "You are checked out.")).toBeVisible();
+
+  const events = await loggedEvents("still_here_skipped");
+  expect(events.length).toBeGreaterThanOrEqual(1);
+  expect(events.at(-1)?.courtId).toBe(COURTS.alpha.id);
+  await context.close();
+});
+
+test("E2E-20 Still here? Yes, update count updates the reported range", async ({
+  browser,
+}) => {
+  const { context, page } = await newUser(browser, "Ana");
+  await openCourt(page, COURTS.alpha.name);
+  await checkIn(page, 2);
+  await closeConfirmation(page);
+  await dismissFeedbackIfShown(page);
+
+  await backdateReport(COURTS.alpha.id);
+
+  const stillHereAlert = page
+    .locator("ion-alert")
+    .filter({ hasText: "Still here?" });
+  await expect(stillHereAlert).toBeVisible({ timeout: 10_000 });
+
+  await stillHereAlert
+    .locator("button")
+    .filter({ hasText: "Yes, update count" })
+    .click();
+
+  await page.locator(".range-picker").waitFor({ state: "visible" });
+  await page
+    .locator(".range-picker__row")
+    .filter({ hasText: "Busy" })
+    .click();
+  await ionButton(
+    page.locator("ion-modal").filter({ visible: true }).last(),
+    "Check in",
+  ).click();
+  await expect(visibleText(page, "Count updated.")).toBeVisible();
+  await expect(liveCard(page)).toContainText("5–8 players");
+
+  const events = await loggedEvents("still_here_yes");
+  expect(events.length).toBeGreaterThanOrEqual(1);
+  expect(events.at(-1)?.courtId).toBe(COURTS.alpha.id);
   await context.close();
 });
