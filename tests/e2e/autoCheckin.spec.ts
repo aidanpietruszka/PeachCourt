@@ -48,7 +48,10 @@ test("E2E-153 auto check-in banner appears after near-timer elapses", async ({
 
   const events = await loggedEvents("check_in");
   expect(events.length).toBeGreaterThanOrEqual(1);
-  expect(events.at(-1)?.method).toBe("auto");
+  const last = events.at(-1)!;
+  expect(last.method).toBe("auto");
+  expect(last.playerCount).toBe(1);
+  expect(last.courtId).toBe(COURTS.alpha.id);
   await context.close();
 });
 
@@ -65,6 +68,12 @@ test("E2E-154 tapping a range chip records the count and dismisses the banner", 
   await banner.locator(".auto-banner__chip").filter({ hasText: "5–8" }).click();
 
   await expect(banner).not.toBeVisible();
+
+  const checkedInBar = page
+    .locator(".courts-page__checked-in")
+    .filter({ visible: true });
+  await expect(checkedInBar).toBeVisible();
+
   await openCourt(page, COURTS.alpha.name);
   await expect(liveCard(page)).toContainText("5–8 players");
 
@@ -111,6 +120,10 @@ test("E2E-156 Wrong court undoes the auto check-in", async ({ browser }) => {
     .locator(".courts-page__checked-in")
     .filter({ visible: true });
   await expect(checkedInBar).toHaveCount(0);
+
+  const events = await loggedEvents("check_out");
+  expect(events.length).toBeGreaterThanOrEqual(1);
+  expect(events.at(-1)?.courtId).toBe(COURTS.alpha.id);
   await context.close();
 });
 
@@ -133,6 +146,10 @@ test("E2E-157 auto check-out fires after away-timer elapses", async ({
 
   await page.context().setGeolocation({ latitude: 33.85, longitude: -84.5 });
   await expect(checkedInBar).toHaveCount(0, { timeout: 10_000 });
+
+  const events = await loggedEvents("check_out");
+  expect(events.length).toBeGreaterThanOrEqual(1);
+  expect(events.at(-1)?.courtId).toBe(COURTS.alpha.id);
   await context.close();
 });
 
@@ -185,6 +202,10 @@ test("E2E-159 auto check-in does not fire when already checked in manually", asy
 
   await page.goto("/courts");
   await waitForCourts(page);
+  const checkedInBar = page
+    .locator(".courts-page__checked-in")
+    .filter({ visible: true });
+  await expect(checkedInBar).toBeVisible();
   await page.waitForTimeout(4_000);
 
   await expect(page.locator(".auto-banner")).not.toBeVisible();
