@@ -21,6 +21,7 @@ export interface ActiveCheckIn {
   expiresAt: Timestamp;
   scheduledArrivalAt: Timestamp;
   durationMinutes: number;
+  method?: string;
 }
 
 const activeCheckInRef = (uid: string) => doc(db, "activeCheckins", uid);
@@ -212,6 +213,7 @@ export const CheckinService = {
             typeof data.durationMinutes === "number"
               ? data.durationMinutes
               : 90,
+          method: typeof data.method === "string" ? data.method : undefined,
         });
       },
       onError,
@@ -261,6 +263,90 @@ export const CheckinService = {
       uid,
       courtId,
       timestamp: Timestamp.now(),
+    });
+  },
+
+  async autoCheckIn(courtId: string, distance: number | null): Promise<void> {
+    const uid = await getUid();
+    const activeRef = activeCheckInRef(uid);
+    const newCheckinRef = doc(collection(db, "checkins"));
+    const checkInEventRef = doc(collection(db, "events"));
+
+    await runTransaction(db, async (transaction) => {
+      const activeSnapshot = await transaction.get(activeRef);
+      const previousCheckinId = activeSnapshot.data()?.checkinId as
+        | string
+        | undefined;
+      const previousRef = previousCheckinId
+        ? doc(db, "checkins", previousCheckinId)
+        : null;
+      const previousSnapshot = previousRef
+        ? await transaction.get(previousRef)
+        : null;
+
+      const now = Date.now();
+      const checkedInAt = Timestamp.fromMillis(now);
+      const scheduledArrivalAt = checkedInAt;
+      const durationMinutes = 60;
+      const expiresAt = Timestamp.fromMillis(now + durationMinutes * 60 * 1000);
+
+      if (
+        previousRef &&
+        previousSnapshot?.exists() &&
+        previousSnapshot.data().active
+      ) {
+        const previous = previousSnapshot.data();
+        const checkoutEventRef = doc(collection(db, "events"));
+        transaction.update(previousRef, {
+          active: false,
+          checkedOutAt: checkedInAt,
+        });
+        transaction.set(checkoutEventRef, {
+          eventName: "check_out",
+          uid,
+          courtId: previous.courtId,
+          timestamp: checkedInAt,
+          timeToCheckIn: previous.timeToCheckIn ?? null,
+          distance: previous.distance ?? null,
+        });
+      }
+
+      transaction.set(newCheckinRef, {
+        courtId,
+        uid,
+        playerCount: 1,
+        method: "auto",
+        checkedInAt,
+        scheduledArrivalAt,
+        durationMinutes,
+        expiresAt,
+        distance,
+        timeToCheckIn: 0,
+        active: true,
+      });
+      transaction.set(activeRef, {
+        checkinId: newCheckinRef.id,
+        uid,
+        courtId,
+        playerCount: 1,
+        method: "auto",
+        checkedInAt,
+        scheduledArrivalAt,
+        durationMinutes,
+        expiresAt,
+      });
+      transaction.set(checkInEventRef, {
+        eventName: "check_in",
+        uid,
+        courtId,
+        timestamp: checkedInAt,
+        scheduledArrivalAt,
+        durationMinutes,
+        timeToCheckIn: 0,
+        distance,
+        playerCount: 1,
+        method: "auto",
+      });
     });
   },
 

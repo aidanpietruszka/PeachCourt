@@ -209,6 +209,76 @@
   padding: 0;
 }
 
+.auto-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 14px;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+}
+
+.auto-banner__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--pc-text);
+}
+
+.auto-banner__subtitle {
+  font-size: 13px;
+  color: var(--pc-text-muted);
+}
+
+.auto-banner__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.auto-banner__chip {
+  padding: 7px 12px;
+  border: none;
+  border-radius: 18px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--pc-text);
+  background: var(--pc-card-bg);
+  cursor: pointer;
+}
+
+.auto-banner__chip:active {
+  opacity: 0.7;
+}
+
+.auto-banner__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.auto-banner__btn {
+  flex: 1;
+  height: 50px;
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.auto-banner__btn--secondary {
+  border: none;
+  color: var(--pc-text);
+  background: var(--pc-card-bg);
+}
+
+.auto-banner__btn--outline {
+  border: 1.5px solid var(--pc-green);
+  color: var(--pc-green);
+  background: #fff;
+}
+
 .courts-page__search-cancel {
   flex: 0 0 auto;
   border: none;

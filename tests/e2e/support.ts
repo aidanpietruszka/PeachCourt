@@ -204,6 +204,23 @@ export async function seedReport(courtId: string, playerCount: number) {
   expect(response.ok).toBe(true);
 }
 
+export async function enableAutoCheckin(uid: string) {
+  const response = await fetch(
+    `${FIRESTORE}/v1/projects/${PROJECT_ID}/databases/(default)/documents/users/${uid}?updateMask.fieldPaths=autoCheckin&updateMask.fieldPaths=locationEnabled`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer owner" },
+      body: JSON.stringify({
+        fields: {
+          autoCheckin: { booleanValue: true },
+          locationEnabled: { booleanValue: true },
+        },
+      }),
+    },
+  );
+  expect(response.ok).toBe(true);
+}
+
 export async function backdateReport(courtId: string, minutesAgo = 31) {
   const oldDate = new Date(Date.now() - minutesAgo * 60 * 1000);
   const response = await fetch(

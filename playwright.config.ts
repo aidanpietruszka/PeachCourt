@@ -30,6 +30,9 @@ export default defineConfig({
       VITE_FIREBASE_STORAGE_BUCKET: "",
       VITE_FIREBASE_MESSAGING_SENDER_ID: "",
       VITE_FIREBASE_APP_ID: "demo-app",
+      VITE_AUTO_NEAR_MS: "2000",
+      VITE_AUTO_AWAY_MS: "2000",
+      VITE_AUTO_INTERVAL_MS: "400",
     },
   },
 });
