@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
   IonButton,
   IonContent,
@@ -19,6 +19,8 @@ import { useLiveCourtData } from "../hooks/useLiveCourtData";
 import { logout } from "../services/auth";
 import { CheckinService, type ActiveCheckIn } from "../services/CheckinService";
 import { CourtService } from "../services/CourtService";
+import { UserService } from "../services/UserService";
+import type { UserProfile } from "../types/types";
 import type { Court, Sport } from "../types/types";
 import CourtFilterSheet from "../components/CourtFilterSheet";
 import { useCourtFilters } from "../hooks/useCourtFilters";
@@ -30,8 +32,20 @@ import {
 } from "../utils/courtFilters";
 import { courtSummary } from "../utils/courts";
 import { formatDistance } from "../utils/geo";
-import { displayRange } from "../utils/crowdRange";
+import { CROWD_RANGES, displayRange } from "../utils/crowdRange";
+import { distanceBetweenMeters } from "../utils/geo";
 import "./CourtsPage.css";
+
+const AUTO_RADIUS_M = 100;
+const AUTO_NEAR_MS = import.meta.env.VITE_AUTO_NEAR_MS
+  ? Number(import.meta.env.VITE_AUTO_NEAR_MS)
+  : 3 * 60 * 1000;
+const AUTO_AWAY_MS = import.meta.env.VITE_AUTO_AWAY_MS
+  ? Number(import.meta.env.VITE_AUTO_AWAY_MS)
+  : 5 * 60 * 1000;
+const AUTO_INTERVAL_MS = import.meta.env.VITE_AUTO_INTERVAL_MS
+  ? Number(import.meta.env.VITE_AUTO_INTERVAL_MS)
+  : 10_000;
 
 const CourtsPage: React.FC = () => {
   const ionRouter = useIonRouter();
@@ -46,6 +60,10 @@ const CourtsPage: React.FC = () => {
     null,
   );
   const [isBusy, setIsBusy] = useState(false);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [autoBannerCourtId, setAutoBannerCourtId] = useState<string | null>(null);
+  const nearRef = useRef<{ courtId: string; since: number } | null>(null);
+  const awaySinceRef = useRef<number | null>(null);
   const [filters, changeFilters] = useCourtFilters();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [searchText, setSearchText] = useState("");
@@ -75,6 +93,16 @@ const CourtsPage: React.FC = () => {
         console.error("Unable to load your active check-in", error);
       },
     );
+  }, [uid]);
+
+  useEffect(() => {
+    if (!uid) {
+      setProfile(null);
+      return;
+    }
+    return UserService.subscribeToProfile(uid, setProfile, (error) => {
+      console.error("Unable to load profile", error);
+    });
   }, [uid]);
 
   useEffect(() => {
@@ -130,6 +158,108 @@ const CourtsPage: React.FC = () => {
       }
     };
   }, []);
+
+  const autoEnabled = !!(profile?.autoCheckin && profile?.locationEnabled);
+
+  useEffect(() => {
+    if (!autoEnabled || !userLocation) {
+      nearRef.current = null;
+      return;
+    }
+    const nearbyCourts = courts.filter(
+      (c) =>
+        distanceBetweenMeters(userLocation[0], userLocation[1], c.latitude, c.longitude) <=
+        AUTO_RADIUS_M,
+    );
+    if (nearbyCourts.length === 1) {
+      const courtId = nearbyCourts[0].id;
+      if (nearRef.current?.courtId !== courtId) {
+        nearRef.current = { courtId, since: Date.now() };
+      }
+    } else {
+      nearRef.current = null;
+    }
+  }, [autoEnabled, userLocation, courts]);
+
+  useEffect(() => {
+    if (!autoEnabled || !activeCheckIn || activeCheckIn.method !== "auto" || !userLocation) {
+      awaySinceRef.current = null;
+      return;
+    }
+    const checkedInCourt = courts.find((c) => c.id === activeCheckIn.courtId);
+    if (!checkedInCourt) return;
+    const dist = distanceBetweenMeters(
+      userLocation[0],
+      userLocation[1],
+      checkedInCourt.latitude,
+      checkedInCourt.longitude,
+    );
+    if (dist > AUTO_RADIUS_M) {
+      if (awaySinceRef.current === null) awaySinceRef.current = Date.now();
+    } else {
+      awaySinceRef.current = null;
+    }
+  }, [autoEnabled, activeCheckIn, userLocation, courts]);
+
+  useEffect(() => {
+    if (!autoEnabled) return;
+    const tick = () => {
+      const n = Date.now();
+      if (
+        activeCheckIn?.method === "auto" &&
+        awaySinceRef.current !== null &&
+        n - awaySinceRef.current >= AUTO_AWAY_MS
+      ) {
+        awaySinceRef.current = null;
+        void CheckinService.checkOut().catch((error: unknown) => {
+          console.error("Auto check-out failed", error);
+        });
+        return;
+      }
+      if (!activeCheckIn && nearRef.current && n - nearRef.current.since >= AUTO_NEAR_MS) {
+        const { courtId } = nearRef.current;
+        nearRef.current = null;
+        const court = courts.find((c) => c.id === courtId);
+        const dist =
+          court && userLocation
+            ? distanceBetweenMeters(
+                userLocation[0],
+                userLocation[1],
+                court.latitude,
+                court.longitude,
+              )
+            : null;
+        void CheckinService.autoCheckIn(courtId, dist)
+          .then(() => setAutoBannerCourtId(courtId))
+          .catch((error: unknown) => {
+            console.error("Auto check-in failed", error);
+          });
+      }
+    };
+    const timer = window.setInterval(tick, AUTO_INTERVAL_MS);
+    return () => window.clearInterval(timer);
+  }, [autoEnabled, activeCheckIn, courts, userLocation]);
+
+  const dismissAutoBanner = useCallback(() => setAutoBannerCourtId(null), []);
+
+  const handleBannerRange = useCallback(
+    (playerCount: number) => {
+      const cid = autoBannerCourtId;
+      dismissAutoBanner();
+      if (!cid) return;
+      void CheckinService.updateCount(cid, playerCount).catch((error: unknown) => {
+        console.error("Unable to update count from banner", error);
+      });
+    },
+    [autoBannerCourtId, dismissAutoBanner],
+  );
+
+  const handleWrongCourt = useCallback(() => {
+    dismissAutoBanner();
+    void CheckinService.checkOut().catch((error: unknown) => {
+      console.error("Wrong court check-out failed", error);
+    });
+  }, [dismissAutoBanner]);
 
   const hasLocation = userLocation !== null;
   const isSearching = searchText.length > 0;
@@ -251,6 +381,45 @@ const CourtsPage: React.FC = () => {
                 </button>
               )}
             </div>
+
+            {autoBannerCourtId && (
+              <div className="auto-banner">
+                <p className="auto-banner__title">
+                  {`You're checked in at ${courts.find((c) => c.id === autoBannerCourtId)?.name ?? "a court"}`}
+                </p>
+                <p className="auto-banner__subtitle">
+                  Checked in automatically. How many players are here?
+                </p>
+                <div className="auto-banner__chips">
+                  {CROWD_RANGES.map(({ min, label, countText }) => (
+                    <button
+                      key={min}
+                      type="button"
+                      className="auto-banner__chip"
+                      onClick={() => handleBannerRange(min)}
+                    >
+                      {min === 1 ? label : countText}
+                    </button>
+                  ))}
+                </div>
+                <div className="auto-banner__actions">
+                  <button
+                    type="button"
+                    className="auto-banner__btn auto-banner__btn--secondary"
+                    onClick={handleWrongCourt}
+                  >
+                    Wrong court
+                  </button>
+                  <button
+                    type="button"
+                    className="auto-banner__btn auto-banner__btn--outline"
+                    onClick={dismissAutoBanner}
+                  >
+                    Skip
+                  </button>
+                </div>
+              </div>
+            )}
 
             {activeCheckIn && (
               <div className="courts-page__checked-in">
