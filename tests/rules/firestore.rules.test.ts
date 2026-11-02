@@ -173,6 +173,22 @@ describe("checkins", () => {
     }
   });
 
+  it("R-06b method: auto is accepted as an extra field on checkins and activeCheckins", async () => {
+    await assertSucceeds(
+      addDoc(
+        collection(asUser("alice"), "checkins"),
+        checkinData("alice", { method: "auto" }),
+      ),
+    );
+    await seed("activeCheckins/alice", activeCheckinData("alice"));
+    await assertSucceeds(
+      setDoc(doc(asUser("alice"), "activeCheckins/alice"), {
+        ...activeCheckinData("alice"),
+        method: "auto",
+      }),
+    );
+  });
+
   it("R-07 duration must be an allowed value", async () => {
     await assertFails(
       addDoc(
