@@ -145,15 +145,17 @@ test("E2E-38 conflict note appears in post modal when time overlaps existing gam
   await postGame(b.page, { skill: "Any level", time: "10:00" });
 
   await ionButton(a.page.locator("ion-footer"), "Post a game").click();
-  const modal = a.page.locator("ion-modal").filter({ visible: true }).last();
-  await modal.locator("ion-select").nth(0).click();
+  const form = a.page.locator("ion-modal").filter({ visible: true }).last();
+  await form.locator("ion-select").nth(0).click();
   await a.page
     .locator("ion-popover")
     .getByText("Tomorrow", { exact: true })
     .click();
-  await modal.locator('input[type="time"]').fill("10:30");
-  await expect(modal.locator(".match-conflict")).toBeVisible();
-  await expect(ionButton(modal, "Post game")).toHaveAttribute("aria-disabled", "true");
+  await form.locator('input[type="time"]').fill("10:30");
+  await ionButton(form, "Post game").click();
+  const confirmSheet = a.page.locator("ion-modal").filter({ visible: true }).last();
+  await expect(confirmSheet.locator(".confirm-sheet__conflict")).toBeVisible();
+  await expect(ionButton(confirmSheet, "Post game")).toHaveAttribute("aria-disabled", "true");
   await a.context.close();
   await b.context.close();
 });
@@ -166,15 +168,17 @@ test("E2E-39 no conflict in post modal when times are exactly 60 min apart", asy
   await postGame(page, { skill: "Any level", time: "10:00" });
 
   await ionButton(page.locator("ion-footer"), "Post a game").click();
-  const modal = page.locator("ion-modal").filter({ visible: true }).last();
-  await modal.locator("ion-select").nth(0).click();
+  const form = page.locator("ion-modal").filter({ visible: true }).last();
+  await form.locator("ion-select").nth(0).click();
   await page
     .locator("ion-popover")
     .getByText("Tomorrow", { exact: true })
     .click();
-  await modal.locator('input[type="time"]').fill("11:00");
-  await expect(modal.locator(".match-conflict")).toHaveCount(0);
-  await expect(ionButton(modal, "Post game")).not.toBeDisabled();
+  await form.locator('input[type="time"]').fill("11:00");
+  await ionButton(form, "Post game").click();
+  const confirmSheet = page.locator("ion-modal").filter({ visible: true }).last();
+  await expect(confirmSheet.locator(".confirm-sheet__conflict")).toHaveCount(0);
+  await expect(ionButton(confirmSheet, "Post game")).not.toBeDisabled();
   await context.close();
 });
 
@@ -205,14 +209,16 @@ test("E2E-41 post modal conflict note ends with the 1-hour message", async ({
   await postGame(page, { skill: "Any level", time: "10:00" });
 
   await ionButton(page.locator("ion-footer"), "Post a game").click();
-  const modal = page.locator("ion-modal").filter({ visible: true }).last();
-  await modal.locator("ion-select").nth(0).click();
+  const form = page.locator("ion-modal").filter({ visible: true }).last();
+  await form.locator("ion-select").nth(0).click();
   await page
     .locator("ion-popover")
     .getByText("Tomorrow", { exact: true })
     .click();
-  await modal.locator('input[type="time"]').fill("10:30");
-  await expect(modal.locator(".match-conflict")).toContainText(
+  await form.locator('input[type="time"]').fill("10:30");
+  await ionButton(form, "Post game").click();
+  const confirmSheet = page.locator("ion-modal").filter({ visible: true }).last();
+  await expect(confirmSheet.locator(".confirm-sheet__conflict")).toContainText(
     "Pick a time at least 1 hour apart.",
   );
   await context.close();

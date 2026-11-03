@@ -490,6 +490,9 @@ export async function postGame(
     .getByText(options.skill, { exact: true })
     .click();
   await ionButton(modal, "Post game").click();
+  const confirmSheet = page.locator('ion-modal[aria-label="Confirm game"]');
+  await expect(confirmSheet).toBeVisible();
+  await ionButton(confirmSheet, "Post game").click();
   await expect(visibleText(page, "Your game is posted.")).toBeVisible();
 }
 

@@ -121,6 +121,7 @@ const MatchBoard: React.FC<MatchBoardProps> = ({
   const [toastMessage, setToastMessage] = useState("");
   const [filters, setFilters] = useState<GameFilters>(DEFAULT_FILTERS);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
   const myGames = useMyGames(uid);
 
@@ -168,6 +169,7 @@ const MatchBoard: React.FC<MatchBoardProps> = ({
       setDay("today");
       setTime("");
       setSkillLevel("any");
+      setIsConfirmOpen(false);
     }
   }, [isPostOpen, sports]);
 
@@ -217,6 +219,7 @@ const MatchBoard: React.FC<MatchBoardProps> = ({
         skillLevel,
       );
       saveName(postName);
+      setIsConfirmOpen(false);
       onClosePost();
       setToastMessage("Your game is posted.");
     } catch (error) {
@@ -694,7 +697,13 @@ const MatchBoard: React.FC<MatchBoardProps> = ({
         </IonContent>
       </IonModal>
 
-      <IonModal isOpen={isPostOpen} onDidDismiss={onClosePost}>
+      <IonModal
+        isOpen={isPostOpen}
+        onDidDismiss={() => {
+          setIsConfirmOpen(false);
+          onClosePost();
+        }}
+      >
         <IonHeader>
           <IonToolbar>
             <IonButtons slot="start">
@@ -795,12 +804,77 @@ const MatchBoard: React.FC<MatchBoardProps> = ({
               {SPOTS_BY_FORMAT[format] === 1 ? "" : "s"}. Anyone viewing this
               court can join.
             </p>
+            <IonButton
+              expand="block"
+              onClick={() => {
+                const startAt = buildStart(day, time);
+                if (!startAt) {
+                  setToastMessage("Choose a start time.");
+                  return;
+                }
+                if (startAt.getTime() <= Date.now()) {
+                  setToastMessage("Choose a start time later than now.");
+                  return;
+                }
+                setIsConfirmOpen(true);
+              }}
+            >
+              Post game
+            </IonButton>
+          </div>
+        </IonContent>
+      </IonModal>
+
+      <IonModal
+        isOpen={isConfirmOpen}
+        breakpoints={[0, 1]}
+        initialBreakpoint={1}
+        onDidDismiss={() => setIsConfirmOpen(false)}
+        aria-label="Confirm game"
+      >
+        <IonContent>
+          <div className="confirm-sheet">
+            <h2 className="confirm-sheet__title">Check your game</h2>
+            <div className="confirm-sheet__rows">
+              <div className="confirm-sheet__row">
+                <span className="confirm-sheet__label">Court</span>
+                <span className="confirm-sheet__value">{court.name}</span>
+              </div>
+              <div className="confirm-sheet__row">
+                <span className="confirm-sheet__label">Sport</span>
+                <span className="confirm-sheet__value">{SPORT_LABEL[sport]}</span>
+              </div>
+              <div className="confirm-sheet__row">
+                <span className="confirm-sheet__label">Format</span>
+                <span className="confirm-sheet__value">
+                  {FORMAT_LABEL[format]} ({1 + SPOTS_BY_FORMAT[format]} players)
+                </span>
+              </div>
+              <div className="confirm-sheet__row">
+                <span className="confirm-sheet__label">When</span>
+                <span className="confirm-sheet__value">
+                  {postStartAt
+                    ? `${day === "today" ? "Today" : "Tomorrow"}, ${postStartAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`
+                    : "—"}
+                </span>
+              </div>
+              <div className="confirm-sheet__row">
+                <span className="confirm-sheet__label">Skill level</span>
+                <span className="confirm-sheet__value">
+                  {skillLevel === "any" ? "Any level" : formatSkill(sport, skillLevel as number)}
+                </span>
+              </div>
+            </div>
             {postConflict && (
-              <p className="match-conflict">
-                You&apos;re already in a game at this time.{" "}
-                {describeGame(postConflict, postConflict.courtName, now)} Pick a
-                time at least 1 hour apart.
-              </p>
+              <div className="confirm-sheet__conflict">
+                <p className="confirm-sheet__conflict-title">
+                  You&apos;re already in a game at this time
+                </p>
+                <p className="confirm-sheet__conflict-body">
+                  {describeGame(postConflict, postConflict.courtName, now)} Pick
+                  a time at least 1 hour apart.
+                </p>
+              </div>
             )}
             <IonButton
               expand="block"
@@ -808,6 +882,14 @@ const MatchBoard: React.FC<MatchBoardProps> = ({
               onClick={() => void handlePost()}
             >
               {isBusy ? "Posting…" : "Post game"}
+            </IonButton>
+            <IonButton
+              expand="block"
+              fill="outline"
+              disabled={isBusy}
+              onClick={() => setIsConfirmOpen(false)}
+            >
+              Go back
             </IonButton>
           </div>
         </IonContent>
