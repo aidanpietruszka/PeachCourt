@@ -500,3 +500,9 @@ export function gameCard(page: Page, hostName: string) {
     .filter({ visible: true })
     .first();
 }
+
+export async function joinGame(page: Page, card: Locator) {
+  await ionButton(card, "Join").click();
+  const sheet = page.locator("ion-modal").filter({ visible: true }).last();
+  await ionButton(sheet, "Join game").click();
+}

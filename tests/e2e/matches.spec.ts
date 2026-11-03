@@ -1,11 +1,10 @@
 import { expect, test } from "@playwright/test";
 import {
-  alertButton,
-  alertInput,
   backToCourts,
   COURTS,
   gameCard,
   ionButton,
+  joinGame,
   newUser,
   openCourt,
   postGame,
@@ -25,40 +24,41 @@ test("E2E-17 post, join and leave a game", async ({ browser }) => {
 
   await postGame(a.page, { skill: "3.5" });
   const hostCard = gameCard(a.page, "Ana");
-  await expect(hostCard).toContainText("Tennis · 3.5");
-  await expect(hostCard).toContainText("3 spots left");
+  await expect(hostCard).toContainText("Doubles · Tennis");
+  await expect(hostCard).toContainText("Skill 3.5");
+  await expect(hostCard).toContainText("1 of 4 · Host Ana");
   await expect(hostCard).toContainText("Your game");
 
   const guestCard = gameCard(b.page, "Ana");
-  await ionButton(guestCard, "Join").click();
-  await expect(alertInput(b.page)).toHaveValue("");
-  await alertInput(b.page).fill("Ben");
-  await alertButton(b.page, "Join").click();
+  await joinGame(b.page, guestCard);
+  await expect(visibleText(b.page, /You joined Doubles at/)).toBeVisible();
   await expect(guestCard).toContainText("You're in");
-  await expect(hostCard).toContainText("2 spots left");
+  await expect(hostCard).toContainText("2 of 4 · Host Ana");
   await expect(hostCard).toContainText("Joined: Ben");
 
   await ionButton(guestCard, "Leave").click();
   await expect(visibleText(b.page, "You left Ana's game.")).toBeVisible();
-  await expect(hostCard).toContainText("3 spots left");
-  await expect(hostCard).toContainText("No one has joined yet.");
+  await expect(hostCard).toContainText("1 of 4 · Host Ana");
+  await expect(hostCard).not.toContainText("Joined:");
 
   await a.context.close();
   await b.context.close();
 });
 
-test("E2E-18 joining needs a name", async ({ browser }) => {
+test("E2E-18 join sheet cancel does not join the game", async ({ browser }) => {
   const a = await newUser(browser, "Ana");
   const b = await newUser(browser, "Ben");
   await openCourt(a.page, COURTS.alpha.name);
   await postGame(a.page, { skill: "Any level" });
   await openCourt(b.page, COURTS.alpha.name);
-  await ionButton(gameCard(b.page, "Ana"), "Join").click();
-  await alertButton(b.page, "Join").click();
-  await expect(
-    visibleText(b.page, "Enter your first name to join."),
-  ).toBeVisible();
-  await expect(gameCard(b.page, "Ana")).toContainText("3 spots left");
+  const card = gameCard(b.page, "Ana");
+  await ionButton(card, "Join").click();
+  const joinSheet = b.page.locator("ion-modal").filter({ visible: true }).last();
+  await expect(joinSheet).toContainText("Ana");
+  await ionButton(joinSheet, "Cancel").click();
+  await expect(joinSheet).not.toBeVisible();
+  await expect(card).toContainText("1 of 4 · Host Ana");
+  await expect(card).not.toContainText("You're in");
   await a.context.close();
   await b.context.close();
 });
@@ -102,7 +102,8 @@ test("E2E-21 courts with both sports ask which sport", async ({ browser }) => {
   const { context, page } = await newUser(browser, "Ana");
   await openCourt(page, COURTS.beta.name);
   await postGame(page, { sport: "Pickleball", skill: "5.0+" });
-  await expect(gameCard(page, "Ana")).toContainText("Pickleball · 5.0+");
+  await expect(gameCard(page, "Ana")).toContainText("Doubles · Pickleball");
+  await expect(gameCard(page, "Ana")).toContainText("Skill 5.0+");
   await context.close();
 });
 

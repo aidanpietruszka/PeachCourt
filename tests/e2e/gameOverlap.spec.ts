@@ -4,6 +4,7 @@ import {
   COURTS,
   gameCard,
   ionButton,
+  joinGame,
   newUser,
   openCourt,
   postGame,
@@ -49,11 +50,8 @@ test("E2E-33 conflict note appears when joined game overlaps", async ({
 
   await openCourt(c.page, COURTS.alpha.name);
   const anaCard = gameCard(c.page, "Ana");
-  await ionButton(anaCard, "Join").click();
-  const alert = c.page.locator("ion-alert").filter({ visible: true }).last();
-  await alert.locator("input").fill("Cal");
-  await alert.locator("button").filter({ hasText: "Join" }).first().click();
-  await expect(visibleText(c.page, "You joined Ana's game.")).toBeVisible();
+  await joinGame(c.page, anaCard);
+  await expect(visibleText(c.page, /You joined Doubles at/)).toBeVisible();
 
   const benCard = gameCard(c.page, "Ben");
   await expect(benCard.locator(".match-conflict")).toBeVisible();
@@ -84,11 +82,8 @@ test("E2E-35 no conflict note for a game you have already joined", async ({
 
   await openCourt(b.page, COURTS.alpha.name);
   const anaCard = gameCard(b.page, "Ana");
-  await ionButton(anaCard, "Join").click();
-  const alert = b.page.locator("ion-alert").filter({ visible: true }).last();
-  await alert.locator("input").fill("Ben");
-  await alert.locator("button").filter({ hasText: "Join" }).first().click();
-  await expect(visibleText(b.page, "You joined Ana's game.")).toBeVisible();
+  await joinGame(b.page, anaCard);
+  await expect(visibleText(b.page, /You joined Doubles at/)).toBeVisible();
 
   await expect(anaCard.locator(".match-conflict")).toHaveCount(0);
   await a.context.close();
