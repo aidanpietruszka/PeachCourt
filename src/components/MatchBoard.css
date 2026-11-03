@@ -469,6 +469,65 @@
   cursor: pointer;
 }
 
+.confirm-sheet {
+  padding: 24px 20px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.confirm-sheet__title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--pc-text);
+}
+
+.confirm-sheet__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.confirm-sheet__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 16px;
+  background: var(--pc-card-bg);
+  font-size: 15px;
+}
+
+.confirm-sheet__label {
+  color: var(--pc-text);
+}
+
+.confirm-sheet__value {
+  color: var(--pc-text-muted);
+  text-align: right;
+}
+
+.confirm-sheet__conflict {
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--pc-full-bg);
+}
+
+.confirm-sheet__conflict-title {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--pc-full-text);
+}
+
+.confirm-sheet__conflict-body {
+  margin: 0;
+  font-size: 13px;
+  color: var(--pc-text);
+}
+
 .pc-screen {
   padding: 16px;
   display: flex;
