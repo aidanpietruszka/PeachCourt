@@ -38,6 +38,11 @@ const EVENT_COLUMNS = [
   ["skill_level", (event) => event.skillLevel],
   ["spots_total", (event) => event.spotsTotal],
   ["minutes_to_join", (event) => event.minutesToJoin],
+  ["auto_was_on", (event) => event.wasOn],
+  ["auto_is_on", (event) => event.isOn],
+  ["change_screen", (event) => event.source],
+  ["change_cause", (event) => event.cause],
+  ["variant", (event) => event.variant],
 ];
 
 const PARTICIPANT_COLUMNS = [
@@ -50,6 +55,12 @@ const PARTICIPANT_COLUMNS = [
   ["trust_ratings", (row) => row.trustRatings],
   ["games_posted", (row) => row.gamesPosted],
   ["games_joined", (row) => row.gamesJoined],
+  ["variant", (row) => row.variant],
+  ["location_on", (row) => row.locationOn],
+  ["auto_checkin_now", (row) => row.autoCheckinNow],
+  ["auto_on_to_off", (row) => row.autoOnToOff],
+  ["auto_off_to_on", (row) => row.autoOffToOn],
+  ["auto_off_by_location", (row) => row.autoOffByLocation],
 ];
 
 const SUMMARY_COLUMNS = [
@@ -183,6 +194,11 @@ courtNames = Object.fromEntries(
   ]),
 );
 
+const usersSnapshot = await db.collection("users").get();
+const profilesByUid = new Map(
+  usersSnapshot.docs.map((item) => [item.id, item.data()]),
+);
+
 const eventsSnapshot = await db
   .collection("events")
   .where("timestamp", ">=", Timestamp.fromDate(since))
@@ -212,6 +228,9 @@ const testers = [...testerUids]
       uid,
       signedUpAt: user ? Date.parse(user.metadata.creationTime) : null,
       method: user ? signUpMethod(user) : "Unknown",
+      variant: profilesByUid.get(uid)?.checkinVariant ?? null,
+      locationEnabled: profilesByUid.get(uid)?.locationEnabled ?? null,
+      autoCheckin: profilesByUid.get(uid)?.autoCheckin ?? null,
     };
   })
   .sort(
@@ -231,6 +250,9 @@ const participants = testers.map((tester) => ({
   id: participantIds.get(tester.uid),
   signedUpAt: tester.signedUpAt,
   method: tester.method,
+  variant: tester.variant,
+  locationEnabled: tester.locationEnabled,
+  autoCheckin: tester.autoCheckin,
 }));
 
 const events = rawEvents

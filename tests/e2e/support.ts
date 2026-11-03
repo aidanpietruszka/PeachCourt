@@ -204,6 +204,20 @@ export async function seedReport(courtId: string, playerCount: number) {
   expect(response.ok).toBe(true);
 }
 
+export async function getAbGroup(uid: string): Promise<"auto_on" | "auto_off" | null> {
+  const response = await fetch(
+    `${FIRESTORE}/v1/projects/${PROJECT_ID}/databases/(default)/documents/users/${uid}`,
+    { headers: { Authorization: "Bearer owner" } },
+  );
+  if (!response.ok) return null;
+  const body = (await response.json()) as {
+    fields?: Record<string, { stringValue?: string }>;
+  };
+  const val = body.fields?.checkinVariant?.stringValue;
+  if (val === "auto_on" || val === "auto_off") return val;
+  return null;
+}
+
 export async function enableAutoCheckin(uid: string) {
   const response = await fetch(
     `${FIRESTORE}/v1/projects/${PROJECT_ID}/databases/(default)/documents/users/${uid}?updateMask.fieldPaths=autoCheckin&updateMask.fieldPaths=locationEnabled`,

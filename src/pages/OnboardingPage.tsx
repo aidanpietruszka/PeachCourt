@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   IonButton,
   IonContent,
@@ -10,12 +10,14 @@ import {
 } from "@ionic/react";
 import { Geolocation } from "@capacitor/geolocation";
 import { useAuth } from "../hooks/useAuth";
+import { EventService } from "../services/EventService";
 import {
   UserService,
   TENNIS_SKILL_LEVELS,
   PICKLEBALL_SKILL_LEVELS,
 } from "../services/UserService";
-import type { Sport, UserProfile } from "../types/types";
+import type { CheckinVariant, Sport, UserProfile } from "../types/types";
+import { variantDefaultsToOn } from "../utils/abTest";
 import "./OnboardingPage.css";
 
 const SPORTS: { value: Sport; label: string }[] = [
@@ -57,6 +59,8 @@ const OnboardingPage: React.FC<Props> = ({ onComplete }) => {
   const [locationEnabled, setLocationEnabled] = useState(false);
   const [autoCheckin, setAutoCheckin] = useState(false);
   const [locationBlocked, setLocationBlocked] = useState(false);
+  const [variant, setVariant] = useState<CheckinVariant | undefined>();
+  const defaultApplied = useRef(false);
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
@@ -141,6 +145,12 @@ const OnboardingPage: React.FC<Props> = ({ onComplete }) => {
         skillLevels,
       };
       await UserService.saveProfile(user!.uid, profile);
+      try {
+        setVariant(await UserService.assignCheckinVariant(user!.uid));
+      } catch {
+        // Onboarding continues without a test group; this player is left out
+        // of the comparison and gets the normal default (off).
+      }
       setStep(2);
     } catch {
       setError("Could not save your profile. Please try again.");
@@ -149,25 +159,67 @@ const OnboardingPage: React.FC<Props> = ({ onComplete }) => {
     }
   };
 
+  const handleAutoCheckinToggle = (checked: boolean) => {
+    if (checked === autoCheckin) {
+      return;
+    }
+    setAutoCheckin(checked);
+    void EventService.recordAutoCheckinChange({
+      from: autoCheckin,
+      to: checked,
+      source: "onboarding",
+      cause: "user",
+      variant,
+    }).catch(() => undefined);
+  };
+
   const handleLocationToggle = async (checked: boolean) => {
     if (!checked) {
+      if (autoCheckin) {
+        void EventService.recordAutoCheckinChange({
+          from: true,
+          to: false,
+          source: "onboarding",
+          cause: "location_off",
+          variant,
+        }).catch(() => undefined);
+      }
       setLocationEnabled(false);
       setAutoCheckin(false);
       setLocationBlocked(false);
       return;
     }
+    const applyDefault = () => {
+      if (!defaultApplied.current) {
+        defaultApplied.current = true;
+        setAutoCheckin(variantDefaultsToOn(variant));
+      }
+    };
     try {
       const perm = await Geolocation.requestPermissions();
       if (perm.location === "granted") {
         setLocationEnabled(true);
         setLocationBlocked(false);
+        applyDefault();
       } else {
         setLocationEnabled(false);
         setLocationBlocked(true);
       }
     } catch {
-      setLocationEnabled(false);
-      setLocationBlocked(true);
+      try {
+        const status = await navigator.permissions.query({ name: "geolocation" as PermissionName });
+        if (status.state === "granted") {
+          setLocationEnabled(true);
+          setLocationBlocked(false);
+          applyDefault();
+        } else {
+          setLocationEnabled(false);
+          setLocationBlocked(true);
+        }
+      } catch {
+        setLocationEnabled(false);
+        setLocationBlocked(true);
+      }
     }
   };
 
@@ -387,7 +439,7 @@ const OnboardingPage: React.FC<Props> = ({ onComplete }) => {
                   aria-label="Automatic check-in"
                   checked={autoCheckin}
                   disabled={!locationEnabled}
-                  onIonChange={(e) => setAutoCheckin(e.detail.checked)}
+                  onIonChange={(e) => handleAutoCheckinToggle(e.detail.checked)}
                 />
               </div>
             </div>

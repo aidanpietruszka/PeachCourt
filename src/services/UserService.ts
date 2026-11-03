@@ -2,11 +2,13 @@ import {
   doc,
   getDoc,
   onSnapshot,
+  runTransaction,
   setDoc,
 } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { db, functions } from "./firebase";
-import type { UserProfile } from "../types/types";
+import type { CheckinVariant, UserProfile } from "../types/types";
+import { isCheckinVariant, pickCheckinVariant } from "../utils/abTest";
 import { SKILL_LEVELS } from "../utils/skill";
 
 export const TENNIS_SKILL_LEVELS = SKILL_LEVELS.tennis;
@@ -14,11 +16,28 @@ export const PICKLEBALL_SKILL_LEVELS = SKILL_LEVELS.pickleball;
 
 export const UserService = {
   async saveProfile(uid: string, profile: UserProfile): Promise<void> {
-    await setDoc(doc(db, "users", uid), {
-      firstName: profile.firstName,
-      lastName: profile.lastName,
-      sports: profile.sports,
-      skillLevels: profile.skillLevels,
+    await setDoc(
+      doc(db, "users", uid),
+      {
+        firstName: profile.firstName,
+        lastName: profile.lastName,
+        sports: profile.sports,
+        skillLevels: profile.skillLevels,
+      },
+      { merge: true },
+    );
+  },
+
+  async assignCheckinVariant(uid: string): Promise<CheckinVariant> {
+    const ref = doc(db, "users", uid);
+    return runTransaction(db, async (transaction) => {
+      const existing = (await transaction.get(ref)).data()?.checkinVariant;
+      if (isCheckinVariant(existing)) {
+        return existing;
+      }
+      const variant = pickCheckinVariant();
+      transaction.set(ref, { checkinVariant: variant }, { merge: true });
+      return variant;
     });
   },
 
@@ -49,6 +68,9 @@ export const UserService = {
       skillLevels: data.skillLevels ?? {},
       locationEnabled: data.locationEnabled,
       autoCheckin: data.autoCheckin,
+      checkinVariant: isCheckinVariant(data.checkinVariant)
+        ? data.checkinVariant
+        : undefined,
       notificationsEnabled: data.notificationsEnabled,
       notificationsPrompted: data.notificationsPrompted,
       onboardingDone: data.onboardingDone,
@@ -83,6 +105,9 @@ export const UserService = {
           skillLevels: data.skillLevels ?? {},
           locationEnabled: data.locationEnabled,
           autoCheckin: data.autoCheckin,
+          checkinVariant: isCheckinVariant(data.checkinVariant)
+            ? data.checkinVariant
+            : undefined,
           notificationsEnabled: data.notificationsEnabled,
           notificationsPrompted: data.notificationsPrompted,
           onboardingDone: data.onboardingDone,
