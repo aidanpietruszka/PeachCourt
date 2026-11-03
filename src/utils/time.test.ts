@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildStart, formatStart } from "./time";
+import { buildStart, formatInMinutes, formatStart } from "./time";
 
 describe("buildStart", () => {
   const now = new Date(2026, 9, 24, 15, 30);
@@ -27,6 +27,39 @@ describe("buildStart", () => {
   it("U-23 returns null without a time", () => {
     expect(buildStart("today", "", now)).toBeNull();
     expect(buildStart("today", "abc", now)).toBeNull();
+  });
+});
+
+describe("formatInMinutes", () => {
+  const now = new Date(2026, 9, 24, 15, 30).getTime();
+
+  it("U-27 returns null for past time", () => {
+    expect(formatInMinutes(now - 60_000, now)).toBeNull();
+  });
+
+  it("U-28 returns null for time exactly now", () => {
+    expect(formatInMinutes(now, now)).toBeNull();
+  });
+
+  it("U-29 returns 'in 45 min' for 45 minutes away", () => {
+    expect(formatInMinutes(now + 45 * 60_000, now)).toBe("in 45 min");
+  });
+
+  it("U-30 returns 'in 120 min' at the 2-hour boundary", () => {
+    expect(formatInMinutes(now + 120 * 60_000, now)).toBe("in 120 min");
+  });
+
+  it("U-31 returns null beyond 2 hours", () => {
+    expect(formatInMinutes(now + 121 * 60_000, now)).toBeNull();
+  });
+
+  it("U-32 rounds to nearest minute", () => {
+    expect(formatInMinutes(now + 45 * 60_000 + 29_999, now)).toBe("in 45 min");
+    expect(formatInMinutes(now + 45 * 60_000 + 30_000, now)).toBe("in 46 min");
+  });
+
+  it("U-33 clamps below 1 to in 1 min", () => {
+    expect(formatInMinutes(now + 1, now)).toBe("in 1 min");
   });
 });
 

@@ -25,6 +25,13 @@ export function formatStart(startAt: Date, now: number): string {
   return `${startAt.toLocaleDateString()} ${time}`;
 }
 
+export function formatInMinutes(startMs: number, now: number): string | null {
+  const diffMs = startMs - now;
+  if (diffMs <= 0 || diffMs > 120 * 60 * 1000) return null;
+  const mins = Math.round(diffMs / 60_000);
+  return `in ${Math.max(1, mins)} min`;
+}
+
 export function buildStart(
   day: StartDay,
   time: string,
