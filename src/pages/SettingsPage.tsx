@@ -18,6 +18,7 @@ import { Geolocation } from "@capacitor/geolocation";
 import { useAuth } from "../hooks/useAuth";
 import { logout } from "../services/auth";
 import { UserService } from "../services/UserService";
+import { EventService } from "../services/EventService";
 import type { UserProfile } from "../types/types";
 import "./SettingsPage.css";
 
@@ -142,9 +143,39 @@ const SettingsPage: React.FC = () => {
     void UserService.saveSettings(user.uid, updates);
   };
 
+  const logAutoCheckinChange = (
+    from: boolean,
+    to: boolean,
+    cause: "user" | "location_off",
+  ) => {
+    void EventService.recordAutoCheckinChange({
+      from,
+      to,
+      source: "settings",
+      cause,
+      variant: profile?.checkinVariant,
+    }).catch(() => undefined);
+  };
+
+  const handleAutoCheckinToggle = (checked: boolean) => {
+    const from = !!profile?.autoCheckin;
+    if (checked === from) {
+      return;
+    }
+    save({ autoCheckin: checked });
+    logAutoCheckinChange(from, checked, "user");
+  };
+
+  const switchLocationOff = () => {
+    if (profile?.autoCheckin) {
+      logAutoCheckinChange(true, false, "location_off");
+    }
+    save({ locationEnabled: false, autoCheckin: false });
+  };
+
   const handleLocationToggle = async (checked: boolean) => {
     if (!checked) {
-      save({ locationEnabled: false, autoCheckin: false });
+      switchLocationOff();
       return;
     }
     try {
@@ -279,7 +310,7 @@ const SettingsPage: React.FC = () => {
                 aria-label="Automatic check-in"
                 checked={!!profile?.autoCheckin}
                 disabled={!profile?.locationEnabled || locationBlocked}
-                onIonChange={(e) => save({ autoCheckin: e.detail.checked })}
+                onIonChange={(e) => handleAutoCheckinToggle(e.detail.checked)}
               />
             </div>
           </div>

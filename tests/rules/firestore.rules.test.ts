@@ -9,6 +9,7 @@ import {
   addDoc,
   collection,
   deleteDoc,
+  deleteField,
   doc,
   getDoc,
   serverTimestamp,
@@ -675,6 +676,26 @@ describe("events", () => {
     ["count_updated", { courtId: "court-1", playerCount: 2 }],
     ["still_here_yes", { courtId: "court-1", playerCount: 2 }],
     ["still_here_skipped", { courtId: "court-1" }],
+    [
+      "auto_checkin_changed",
+      {
+        wasOn: true,
+        isOn: false,
+        source: "settings",
+        cause: "user",
+        variant: "auto_on",
+      },
+    ],
+    [
+      "auto_checkin_changed",
+      {
+        wasOn: true,
+        isOn: false,
+        source: "onboarding",
+        cause: "location_off",
+        variant: null,
+      },
+    ],
   ];
 
   for (const [name, fields] of valid) {
@@ -810,6 +831,31 @@ describe("events", () => {
       ),
     );
   });
+
+  it("R-52 auto_checkin_changed must be a real change from the app's screens", async () => {
+    const good = {
+      wasOn: false,
+      isOn: true,
+      source: "settings",
+      cause: "user",
+      variant: "auto_off",
+    };
+    const bad: Array<Record<string, unknown>> = [
+      { ...good, isOn: false },
+      { ...good, wasOn: "yes" },
+      { ...good, source: "dashboard" },
+      { ...good, cause: "admin" },
+      { ...good, variant: "auto_maybe" },
+    ];
+    for (const fields of bad) {
+      await assertFails(
+        addDoc(
+          collection(asUser("alice"), "events"),
+          eventData("alice", "auto_checkin_changed", fields),
+        ),
+      );
+    }
+  });
 });
 
 describe("users", () => {
@@ -846,6 +892,103 @@ describe("users", () => {
     await seed("users/alice", profile);
     await assertFails(getDoc(doc(asGuest(), "users/alice")));
     await assertFails(setDoc(doc(asGuest(), "users/alice"), profile));
+  });
+
+});
+
+describe("users: write-once check-in variant (SAC-50)", () => {
+  const profile = {
+    firstName: "Sam",
+    lastName: "Test",
+    sports: ["tennis"],
+    skillLevels: { tennis: 3.5 },
+  };
+
+  it("R-53 a user can be given a variant once, on create or when they have none", async () => {
+    await assertSucceeds(
+      setDoc(doc(asUser("alice"), "users/alice"), {
+        ...profile,
+        checkinVariant: "auto_on",
+      }),
+    );
+    await seed("users/bob", profile);
+    await assertSucceeds(
+      setDoc(
+        doc(asUser("bob"), "users/bob"),
+        { checkinVariant: "auto_off" },
+        { merge: true },
+      ),
+    );
+  });
+
+  it("R-54 a variant cannot be changed once set", async () => {
+    await seed("users/alice", { ...profile, checkinVariant: "auto_on" });
+    await assertFails(
+      setDoc(
+        doc(asUser("alice"), "users/alice"),
+        { checkinVariant: "auto_off" },
+        { merge: true },
+      ),
+    );
+    await assertFails(
+      updateDoc(doc(asUser("alice"), "users/alice"), {
+        checkinVariant: "auto_off",
+      }),
+    );
+  });
+
+  it("R-55 a variant cannot be removed or overwritten away", async () => {
+    await seed("users/alice", { ...profile, checkinVariant: "auto_on" });
+    await assertFails(setDoc(doc(asUser("alice"), "users/alice"), profile));
+    await assertFails(
+      updateDoc(doc(asUser("alice"), "users/alice"), {
+        checkinVariant: deleteField(),
+      }),
+    );
+  });
+
+  it("R-56 only auto_on and auto_off are valid variants", async () => {
+    await assertFails(
+      setDoc(doc(asUser("alice"), "users/alice"), {
+        ...profile,
+        checkinVariant: "auto_maybe",
+      }),
+    );
+    await seed("users/bob", profile);
+    await assertFails(
+      setDoc(
+        doc(asUser("bob"), "users/bob"),
+        { checkinVariant: "both" },
+        { merge: true },
+      ),
+    );
+  });
+
+  it("R-57 other profile fields still save after a variant is set", async () => {
+    await seed("users/alice", { ...profile, checkinVariant: "auto_on" });
+    await assertSucceeds(
+      setDoc(
+        doc(asUser("alice"), "users/alice"),
+        { firstName: "Samuel", autoCheckin: true },
+        { merge: true },
+      ),
+    );
+  });
+
+  it("R-58 a profile document cannot be deleted, so a variant cannot be re-rolled", async () => {
+    await seed("users/alice", { ...profile, checkinVariant: "auto_on" });
+    await assertFails(deleteDoc(doc(asUser("alice"), "users/alice")));
+  });
+
+  it("R-59 a user cannot set a variant on someone else's profile", async () => {
+    await seed("users/alice", profile);
+    await assertFails(
+      setDoc(
+        doc(asUser("bob"), "users/alice"),
+        { checkinVariant: "auto_on" },
+        { merge: true },
+      ),
+    );
   });
 });
 

@@ -24,6 +24,8 @@ export interface Court {
   reservationInfo: string | null;
 }
 
+export type CheckinVariant = "auto_on" | "auto_off";
+
 export interface UserProfile {
   firstName: string;
   lastName: string;
@@ -31,6 +33,7 @@ export interface UserProfile {
   skillLevels: Partial<Record<Sport, number>>;
   locationEnabled?: boolean;
   autoCheckin?: boolean;
+  checkinVariant?: CheckinVariant;
   notificationsEnabled?: boolean;
   notificationsPrompted?: boolean;
   onboardingDone?: boolean;

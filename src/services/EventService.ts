@@ -1,4 +1,5 @@
 import { addDoc, collection, doc, getDoc, Timestamp } from "firebase/firestore";
+import type { CheckinVariant } from "../types/types";
 import { REPORT_WINDOW_MINUTES } from "../utils/activity";
 import { auth, db } from "./firebase";
 
@@ -37,7 +38,28 @@ async function currentReport(courtId: string): Promise<number | null> {
   return data.playerCount;
 }
 
+export interface AutoCheckinChange {
+  from: boolean;
+  to: boolean;
+  source: "onboarding" | "settings";
+  cause: "user" | "location_off";
+  variant?: CheckinVariant;
+}
+
 export const EventService = {
+  async recordAutoCheckinChange(change: AutoCheckinChange): Promise<void> {
+    if (change.from === change.to) {
+      return;
+    }
+    await logEvent("auto_checkin_changed", {
+      wasOn: change.from,
+      isOn: change.to,
+      source: change.source,
+      cause: change.cause,
+      variant: change.variant ?? null,
+    });
+  },
+
   async recordCourtView(courtId: string): Promise<void> {
     if (!(await signedInUid())) {
       return;

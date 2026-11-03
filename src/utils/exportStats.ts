@@ -1,5 +1,10 @@
 export const JOIN_WINDOW_MINUTES = 30;
 export const TOP_COURTS = 5;
+const AUTO_TEST = "Auto check-in test";
+const AUTO_VARIANTS: Array<[string, string]> = [
+  ["auto_on", "Default on"],
+  ["auto_off", "Default off"],
+];
 export const BARRIER_ANSWERS: Array<[string, string]> = [
   ["forgot", "Forgot"],
   ["too_much_effort", "Too much effort"],
@@ -18,6 +23,12 @@ export interface Participant {
   id: string;
   signedUpAt: number | null;
   method: string;
+  /** A/B group from users/{uid}.checkinVariant ("auto_on" or "auto_off"). */
+  variant?: string | null;
+  /** users/{uid}.locationEnabled right now. */
+  locationEnabled?: boolean | null;
+  /** users/{uid}.autoCheckin right now. */
+  autoCheckin?: boolean | null;
 }
 
 export interface ParticipantRow {
@@ -30,6 +41,12 @@ export interface ParticipantRow {
   trustRatings: number;
   gamesPosted: number;
   gamesJoined: number;
+  variant: string | null;
+  locationOn: boolean | null;
+  autoCheckinNow: boolean | null;
+  autoOnToOff: number;
+  autoOffToOn: number;
+  autoOffByLocation: number;
 }
 
 export interface StatRow {
@@ -81,6 +98,21 @@ function named(events: ExportEvent[], eventName: string): ExportEvent[] {
   return events.filter((event) => event.eventName === eventName);
 }
 
+/** Changes of the automatic check-in setting (SAC-50). "user" changes are
+ *  the player flipping the toggle; "location_off" changes happen because the
+ *  player turned location off, which switches auto check-in off too. */
+function autoChanges(
+  events: ExportEvent[],
+  cause: "user" | "location_off",
+  from: boolean,
+  to: boolean,
+): ExportEvent[] {
+  return named(events, "auto_checkin_changed").filter(
+    (event) =>
+      event.cause === cause && event.wasOn === from && event.isOn === to,
+  );
+}
+
 function participantsWith(events: ExportEvent[], eventName: string) {
   return new Set(named(events, eventName).map((event) => event.participant));
 }
@@ -104,7 +136,31 @@ export function participantRows(
     trustRatings: count(participant.id, "trust_rating"),
     gamesPosted: count(participant.id, "match_posted"),
     gamesJoined: count(participant.id, "match_joined"),
+    variant: participant.variant ?? null,
+    locationOn: participant.locationEnabled ?? null,
+    autoCheckinNow: participant.autoCheckin ?? null,
+    autoOnToOff: ownEvents(participant.id, events, "user", true, false),
+    autoOffToOn: ownEvents(participant.id, events, "user", false, true),
+    autoOffByLocation: ownEvents(
+      participant.id,
+      events,
+      "location_off",
+      true,
+      false,
+    ),
   }));
+}
+
+function ownEvents(
+  id: string,
+  events: ExportEvent[],
+  cause: "user" | "location_off",
+  from: boolean,
+  to: boolean,
+): number {
+  return autoChanges(events, cause, from, to).filter(
+    (event) => event.participant === id,
+  ).length;
 }
 
 export function summarize(
@@ -283,6 +339,76 @@ export function summarize(
       `${label} (%)`,
       percent(total, answers.length),
       answers.length,
+    );
+  });
+
+  const inTest = participants.filter(
+    (participant) =>
+      participant.variant === "auto_on" || participant.variant === "auto_off",
+  );
+  const compared = inTest.filter(
+    (participant) => participant.locationEnabled === true,
+  );
+  add(AUTO_TEST, "Testers in the test", inTest.length, testers);
+  add(
+    AUTO_TEST,
+    "Testers in the test who allowed location (compared)",
+    compared.length,
+    inTest.length,
+  );
+  AUTO_VARIANTS.forEach(([variant, label]) => {
+    const inVariant = inTest.filter((p) => p.variant === variant);
+    const group = compared.filter((p) => p.variant === variant);
+    const ids = new Set(group.map((p) => p.id));
+    const mine = (list: ExportEvent[]) =>
+      list.filter((event) => ids.has(event.participant));
+    const changers = new Set(
+      mine(named(events, "auto_checkin_changed"))
+        .filter((event) => event.cause === "user")
+        .map((event) => event.participant),
+    );
+
+    add(
+      AUTO_TEST,
+      `${label}: testers who allowed location`,
+      group.length,
+      inVariant.length,
+    );
+    add(
+      AUTO_TEST,
+      `${label}: auto check-in on now (%)`,
+      percent(group.filter((p) => p.autoCheckin === true).length, group.length),
+      group.length,
+    );
+    add(
+      AUTO_TEST,
+      `${label}: turned on to off (times)`,
+      mine(autoChanges(events, "user", true, false)).length,
+      group.length,
+    );
+    add(
+      AUTO_TEST,
+      `${label}: turned off to on (times)`,
+      mine(autoChanges(events, "user", false, true)).length,
+      group.length,
+    );
+    add(
+      AUTO_TEST,
+      `${label}: turned off by switching location off (times)`,
+      mine(autoChanges(events, "location_off", true, false)).length,
+      group.length,
+    );
+    add(
+      AUTO_TEST,
+      `${label}: testers who changed the setting (%)`,
+      percent(changers.size, group.length),
+      group.length,
+    );
+    add(
+      AUTO_TEST,
+      `${label}: testers who checked in (%)`,
+      percent(group.filter((p) => checkers.has(p.id)).length, group.length),
+      group.length,
     );
   });
 

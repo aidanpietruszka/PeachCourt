@@ -245,6 +245,12 @@ describe("summarize", () => {
         trustRatings: 0,
         gamesPosted: 0,
         gamesJoined: 1,
+        variant: null,
+        locationOn: null,
+        autoCheckinNow: null,
+        autoOnToOff: 0,
+        autoOffToOn: 0,
+        autoOffByLocation: 0,
       },
       {
         participant: "P02",
@@ -256,7 +262,114 @@ describe("summarize", () => {
         trustRatings: 1,
         gamesPosted: 1,
         gamesJoined: 0,
+        variant: null,
+        locationOn: null,
+        autoCheckinNow: null,
+        autoOnToOff: 0,
+        autoOffToOn: 0,
+        autoOffByLocation: 0,
       },
     ]);
+  });
+});
+
+describe("auto check-in test (SAC-50)", () => {
+  const change = (
+    participant: string,
+    from: boolean,
+    to: boolean,
+    cause: "user" | "location_off" = "user",
+  ) =>
+    event(participant, "auto_checkin_changed", {
+      wasOn: from,
+      isOn: to,
+      cause,
+      source: "settings",
+    });
+
+  const group: Participant[] = [
+    { id: "P01", signedUpAt: start, method: "email", variant: "auto_on", locationEnabled: true, autoCheckin: false },
+    { id: "P02", signedUpAt: start, method: "email", variant: "auto_on", locationEnabled: true, autoCheckin: true },
+    { id: "P03", signedUpAt: start, method: "email", variant: "auto_off", locationEnabled: true, autoCheckin: true },
+    { id: "P04", signedUpAt: start, method: "email", variant: "auto_off", locationEnabled: false, autoCheckin: false },
+    { id: "P05", signedUpAt: start, method: "email", variant: null, locationEnabled: true, autoCheckin: true },
+  ];
+
+  const events = [
+    change("P01", true, false),
+    change("P01", false, true),
+    change("P01", true, false),
+    change("P02", true, false, "location_off"),
+    change("P03", false, true),
+    change("P04", false, true),
+    change("P05", true, false),
+    event("P01", "check_in", { courtId: "a" }),
+    event("P03", "check_in", { courtId: "a" }),
+  ];
+
+  it("U-205 counts on-to-off and off-to-on changes per group", () => {
+    const rows = summarize(group, events, {});
+    expect(stat(rows, "Default on: turned on to off (times)").value).toBe(2);
+    expect(stat(rows, "Default on: turned off to on (times)").value).toBe(1);
+    expect(stat(rows, "Default off: turned on to off (times)").value).toBe(0);
+    expect(stat(rows, "Default off: turned off to on (times)").value).toBe(1);
+  });
+
+  it("U-206 only players who allowed location are compared", () => {
+    const rows = summarize(group, events, {});
+    expect(stat(rows, "Testers in the test")).toEqual({ value: 4, n: 5 });
+    expect(
+      stat(rows, "Testers in the test who allowed location (compared)"),
+    ).toEqual({ value: 3, n: 4 });
+    // P04 (location off) and P05 (no variant) never count toward any group.
+    expect(stat(rows, "Default off: testers who allowed location").value).toBe(1);
+    expect(stat(rows, "Default off: turned off to on (times)").value).toBe(1);
+  });
+
+  it("U-207 changes caused by turning location off are counted separately", () => {
+    const rows = summarize(group, events, {});
+    expect(
+      stat(rows, "Default on: turned off by switching location off (times)")
+        .value,
+    ).toBe(1);
+    expect(stat(rows, "Default on: turned on to off (times)").value).toBe(2);
+  });
+
+  it("U-208 reports how many compared players are on now and who changed it", () => {
+    const rows = summarize(group, events, {});
+    expect(stat(rows, "Default on: auto check-in on now (%)")).toEqual({
+      value: 50,
+      n: 2,
+    });
+    expect(stat(rows, "Default on: testers who changed the setting (%)")).toEqual({
+      value: 50,
+      n: 2,
+    });
+    expect(stat(rows, "Default on: testers who checked in (%)").value).toBe(50);
+    expect(stat(rows, "Default off: testers who checked in (%)").value).toBe(100);
+  });
+
+  it("U-209 participant rows carry the variant and each tester's change counts", () => {
+    const rows = participantRows(group, events);
+    const p01 = rows.find((row) => row.participant === "P01");
+    expect(p01).toMatchObject({
+      variant: "auto_on",
+      locationOn: true,
+      autoCheckinNow: false,
+      autoOnToOff: 2,
+      autoOffToOn: 1,
+      autoOffByLocation: 0,
+    });
+    expect(rows.find((row) => row.participant === "P02")).toMatchObject({
+      autoOnToOff: 0,
+      autoOffByLocation: 1,
+    });
+  });
+
+  it("U-210 no test data gives zero counts and empty percentages", () => {
+    const rows = summarize(testers(2), [], {});
+    expect(stat(rows, "Testers in the test").value).toBe(0);
+    expect(stat(rows, "Default on: auto check-in on now (%)").value).toBeNull();
+    expect(stat(rows, "Default off: turned on to off (times)").value).toBe(0);
   });
 });

@@ -16,13 +16,32 @@ service cloud.firestore {
         || (sport == 'pickleball' && skill in [2, 2.5, 3, 3.5, 4, 4.5, 5]);
     }
 
+    function isCheckinVariant(value) {
+      return value in ['auto_on', 'auto_off'];
+    }
+
     match /courts/{courtId} {
       allow read: if true;
       allow write: if false;
     }
 
     match /users/{uid} {
-      allow read, write: if signedInAs(uid);
+      allow read: if signedInAs(uid);
+      allow create: if signedInAs(uid)
+        && (
+          !('checkinVariant' in request.resource.data)
+          || isCheckinVariant(request.resource.data.checkinVariant)
+        );
+      allow update: if signedInAs(uid)
+        && (
+          request.resource.data.get('checkinVariant', null)
+            == resource.data.get('checkinVariant', null)
+          || (
+            resource.data.get('checkinVariant', null) == null
+            && isCheckinVariant(request.resource.data.get('checkinVariant', null))
+          )
+        );
+      allow delete: if false;
     }
 
     match /checkins/{checkinId} {
@@ -223,6 +242,18 @@ service cloud.firestore {
           || (
             request.resource.data.eventName == 'still_here_skipped'
             && request.resource.data.courtId is string
+          )
+          || (
+            request.resource.data.eventName == 'auto_checkin_changed'
+            && request.resource.data.wasOn is bool
+            && request.resource.data.isOn is bool
+            && request.resource.data.wasOn != request.resource.data.isOn
+            && request.resource.data.source in ['onboarding', 'settings']
+            && request.resource.data.cause in ['user', 'location_off']
+            && (
+              request.resource.data.variant == null
+              || isCheckinVariant(request.resource.data.variant)
+            )
           )
         );
       allow read, update, delete: if false;
