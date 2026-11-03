@@ -180,6 +180,7 @@ export const MatchService = {
       spotsTotal,
       playerUids: [],
       playerNames: [],
+      removedUids: [],
       status: "open",
       createdAt: now,
     });
@@ -219,6 +220,9 @@ export const MatchService = {
       }
       if (match.playerUids.includes(uid)) {
         throw new Error("You've already joined this game.");
+      }
+      if ((match.removedUids ?? []).includes(uid)) {
+        throw new Error("You were removed from this game.");
       }
       if (match.playerUids.length >= match.spotsTotal) {
         throw new Error("This game is full.");
@@ -278,6 +282,91 @@ export const MatchService = {
         ),
         status: "open",
       });
+    });
+  },
+
+  async hostLeaveGame(matchId: string): Promise<void> {
+    const uid = await currentUid();
+    const matchRef = doc(db, "matches", matchId);
+
+    await runTransaction(db, async (transaction) => {
+      const snapshot = await transaction.get(matchRef);
+      if (!snapshot.exists()) {
+        throw new Error("This game no longer exists.");
+      }
+
+      const match = snapshot.data() as Omit<Match, "id">;
+      if (match.hostUid !== uid) {
+        throw new Error("You are not the host.");
+      }
+      if (match.startAt.toMillis() <= Date.now()) {
+        throw new Error("This game has already started.");
+      }
+
+      if (match.playerUids.length === 0) {
+        transaction.delete(matchRef);
+      } else {
+        const [newHostUid, ...restPlayerUids] = match.playerUids;
+        const [newHostName, ...restPlayerNames] = match.playerNames;
+        transaction.update(matchRef, {
+          hostUid: newHostUid,
+          hostName: newHostName,
+          playerUids: restPlayerUids,
+          playerNames: restPlayerNames,
+          status: "open",
+        });
+      }
+    });
+  },
+
+  async removePlayer(matchId: string, targetUid: string): Promise<void> {
+    const uid = await currentUid();
+    const matchRef = doc(db, "matches", matchId);
+
+    await runTransaction(db, async (transaction) => {
+      const snapshot = await transaction.get(matchRef);
+      if (!snapshot.exists()) {
+        throw new Error("This game no longer exists.");
+      }
+
+      const match = snapshot.data() as Omit<Match, "id">;
+      if (match.hostUid !== uid) {
+        throw new Error("Only the host can remove players.");
+      }
+      if (match.startAt.toMillis() <= Date.now()) {
+        throw new Error("This game has already started.");
+      }
+
+      const index = match.playerUids.indexOf(targetUid);
+      if (index === -1) {
+        throw new Error("This player is not in the game.");
+      }
+
+      transaction.update(matchRef, {
+        playerUids: match.playerUids.filter((_, i) => i !== index),
+        playerNames: match.playerNames.filter((_, i) => i !== index),
+        removedUids: [...(match.removedUids ?? []), targetUid],
+        status: "open",
+      });
+    });
+  },
+
+  async deleteGame(matchId: string): Promise<void> {
+    const uid = await currentUid();
+    const matchRef = doc(db, "matches", matchId);
+
+    await runTransaction(db, async (transaction) => {
+      const snapshot = await transaction.get(matchRef);
+      if (!snapshot.exists()) {
+        throw new Error("This game no longer exists.");
+      }
+
+      const match = snapshot.data() as Omit<Match, "id">;
+      if (match.hostUid !== uid) {
+        throw new Error("Only the host can delete this game.");
+      }
+
+      transaction.delete(matchRef);
     });
   },
 };

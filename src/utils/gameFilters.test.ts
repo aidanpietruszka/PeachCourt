@@ -22,6 +22,7 @@ function makeMatch(overrides: Partial<Match> = {}): Match {
     spotsTotal: 3,
     playerUids: [],
     playerNames: [],
+    removedUids: [],
     status: "open",
     createdAt: Timestamp.now(),
     ...overrides,

@@ -6,6 +6,7 @@ import {
   shouldCutoff,
 } from "./index";
 import { handleDeleteAccount } from "./deleteAccount";
+import { handleMatchUpdated, handleMatchDeleted } from "./matchNotifications";
 
 function mockResponse() {
   const response = {
@@ -343,5 +344,116 @@ describe("health", () => {
   it("F-03 is deployed to us-east1 and is public", () => {
     expect(health.__endpoint.region).toEqual(["us-east1"]);
     expect(health.__endpoint.httpsTrigger?.invoker).toEqual(["public"]);
+  });
+});
+
+function makeAlertDb() {
+  const addedAlerts: Record<string, unknown>[] = [];
+  return {
+    collection: (name: string) => ({
+      add: (data: Record<string, unknown>) => {
+        if (name === "alerts") addedAlerts.push(data);
+        return Promise.resolve({ id: "alert-1" });
+      },
+    }),
+    addedAlerts,
+  };
+}
+
+const baseMatch: Record<string, unknown> = {
+  hostUid: "alice",
+  hostName: "Alice",
+  playerUids: ["bob"],
+  playerNames: ["Bob"],
+  removedUids: [],
+  sport: "tennis",
+  format: "doubles",
+  startAt: { seconds: 9999999 },
+  courtName: "City Park",
+};
+
+describe("handleMatchUpdated", () => {
+  it("F-17 sends player_left alert to host when non-host player leaves", async () => {
+    const db = makeAlertDb();
+    const after = { ...baseMatch, playerUids: [], playerNames: [] };
+    await handleMatchUpdated("m1", baseMatch, after, db);
+    expect(db.addedAlerts).toHaveLength(1);
+    expect(db.addedAlerts[0]).toMatchObject({
+      recipientUid: "alice",
+      type: "player_left",
+      actorName: "Bob",
+      gameId: "m1",
+    });
+  });
+
+  it("F-18 sends host_transferred alert to new host when host hands off", async () => {
+    const db = makeAlertDb();
+    const before = { ...baseMatch, playerUids: ["bob"], playerNames: ["Bob"] };
+    const after = {
+      ...baseMatch,
+      hostUid: "bob",
+      hostName: "Bob",
+      playerUids: [],
+      playerNames: [],
+    };
+    await handleMatchUpdated("m1", before, after, db);
+    expect(db.addedAlerts).toHaveLength(1);
+    expect(db.addedAlerts[0]).toMatchObject({
+      recipientUid: "bob",
+      type: "host_transferred",
+      actorName: "Alice",
+      gameId: "m1",
+    });
+  });
+
+  it("F-19 sends player_removed alert to removed player when removedUids grows", async () => {
+    const db = makeAlertDb();
+    const after = {
+      ...baseMatch,
+      playerUids: [],
+      playerNames: [],
+      removedUids: ["bob"],
+    };
+    await handleMatchUpdated("m1", baseMatch, after, db);
+    expect(db.addedAlerts).toHaveLength(1);
+    expect(db.addedAlerts[0]).toMatchObject({
+      recipientUid: "bob",
+      type: "player_removed",
+      actorName: "Alice",
+      gameId: "m1",
+    });
+  });
+
+  it("F-20 sends no alert when no meaningful change occurs", async () => {
+    const db = makeAlertDb();
+    const after = { ...baseMatch, status: "full" };
+    await handleMatchUpdated("m1", baseMatch, after, db);
+    expect(db.addedAlerts).toHaveLength(0);
+  });
+});
+
+describe("handleMatchDeleted", () => {
+  it("F-21 sends game_deleted alert to each player when game is deleted", async () => {
+    const db = makeAlertDb();
+    const data = { ...baseMatch, playerUids: ["bob", "cara"], playerNames: ["Bob", "Cara"] };
+    await handleMatchDeleted("m1", data, db);
+    expect(db.addedAlerts).toHaveLength(2);
+    expect(db.addedAlerts[0]).toMatchObject({
+      recipientUid: "bob",
+      type: "game_deleted",
+      actorName: "Alice",
+      gameId: "m1",
+    });
+    expect(db.addedAlerts[1]).toMatchObject({
+      recipientUid: "cara",
+      type: "game_deleted",
+    });
+  });
+
+  it("F-22 sends no alerts when deleted game has no players", async () => {
+    const db = makeAlertDb();
+    const data = { ...baseMatch, playerUids: [], playerNames: [] };
+    await handleMatchDeleted("m1", data, db);
+    expect(db.addedAlerts).toHaveLength(0);
   });
 });

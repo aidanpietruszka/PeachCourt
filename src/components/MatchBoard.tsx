@@ -17,6 +17,7 @@ import {
   IonToast,
   IonToolbar,
 } from "@ionic/react";
+import GameDetailModal from "./GameDetailModal";
 import { useAuth } from "../hooks/useAuth";
 import { useMyGames } from "../hooks/useMyGames";
 import { MatchService, SPOTS_BY_FORMAT } from "../services/MatchService";
@@ -117,6 +118,7 @@ const MatchBoard: React.FC<MatchBoardProps> = ({
   const [sport, setSport] = useState<Sport>(sports[0] ?? "tennis");
   const [skillLevel, setSkillLevel] = useState<SkillLevel>("any");
   const [joinSheetMatch, setJoinSheetMatch] = useState<Match | null>(null);
+  const [detailMatch, setDetailMatch] = useState<Match | null>(null);
   const [isBusy, setIsBusy] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [filters, setFilters] = useState<GameFilters>(DEFAULT_FILTERS);
@@ -258,21 +260,6 @@ const MatchBoard: React.FC<MatchBoardProps> = ({
     }
   };
 
-  const handleLeave = async (match: Match) => {
-    setIsBusy(true);
-    try {
-      await MatchService.leaveMatch(match.id);
-      setToastMessage(`You left ${match.hostName}'s game.`);
-    } catch (error) {
-      console.error("Unable to leave the game", error);
-      setToastMessage(
-        `Leaving failed: ${error instanceof Error ? error.message : "Please try again."}`,
-      );
-    } finally {
-      setIsBusy(false);
-    }
-  };
-
   const removeFilter = (key: keyof GameFilters) => {
     setFilters((prev) => ({
       ...prev,
@@ -311,6 +298,17 @@ const MatchBoard: React.FC<MatchBoardProps> = ({
     joinSheetMatch && uid
       ? findConflict(joinSheetMatch.startAt.toMillis(), myGames, now, joinSheetMatch.id)
       : null;
+
+  const detailMatchLive = detailMatch
+    ? (matches.find((m) => m.id === detailMatch.id) ?? null)
+    : null;
+
+  useEffect(() => {
+    if (detailMatch && !detailMatchLive) {
+      setDetailMatch(null);
+      setToastMessage("This game has been cancelled.");
+    }
+  }, [detailMatch, detailMatchLive]);
 
   const filterSportForNear = filters.sport !== "both" ? (filters.sport as Sport) : undefined;
   const nearUserLevel = filterSportForNear ? userLevelForSport(filterSportForNear) : undefined;
@@ -392,7 +390,10 @@ const MatchBoard: React.FC<MatchBoardProps> = ({
         return (
           <article
             key={match.id}
-            className={`match-card${isFull && !hasJoined && !isHost ? " match-card--full" : ""}${hasJoined ? " match-card--joined" : ""}`}
+            className={`match-card${isFull && !hasJoined && !isHost ? " match-card--full" : ""}${hasJoined ? " match-card--joined" : ""}${isHost || hasJoined ? " match-card--tappable" : ""}`}
+            onClick={() => {
+              if (isHost || hasJoined) setDetailMatch(match);
+            }}
           >
             <div className="match-card__header">
               <span className="match-card__title">
@@ -409,7 +410,10 @@ const MatchBoard: React.FC<MatchBoardProps> = ({
                   size="small"
                   shape="round"
                   disabled={isBusy || !uid || joinConflict !== null}
-                  onClick={() => setJoinSheetMatch(match)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setJoinSheetMatch(match);
+                  }}
                 >
                   Join
                 </IonButton>
@@ -471,21 +475,6 @@ const MatchBoard: React.FC<MatchBoardProps> = ({
               </p>
             )}
 
-            {(isHost || hasJoined) && (
-              <div className="match-card__footer">
-                {hasJoined && (
-                  <IonButton
-                    size="small"
-                    shape="round"
-                    fill="outline"
-                    disabled={isBusy}
-                    onClick={() => void handleLeave(match)}
-                  >
-                    Leave
-                  </IonButton>
-                )}
-              </div>
-            )}
           </article>
         );
       })}
@@ -894,6 +883,12 @@ const MatchBoard: React.FC<MatchBoardProps> = ({
           </div>
         </IonContent>
       </IonModal>
+
+      <GameDetailModal
+        match={detailMatchLive}
+        courtName={court.name}
+        onClose={() => setDetailMatch(null)}
+      />
 
       <IonToast
         isOpen={toastMessage.length > 0}

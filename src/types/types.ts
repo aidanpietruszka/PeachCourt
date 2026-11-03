@@ -60,6 +60,7 @@ export interface Match {
   spotsTotal: number;
   playerUids: string[];
   playerNames: string[];
+  removedUids: string[];
   status: "open" | "full";
   createdAt: Timestamp;
 }

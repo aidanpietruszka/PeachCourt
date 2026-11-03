@@ -107,7 +107,7 @@ service cloud.firestore {
       allow create: if signedIn()
         && request.resource.data.keys().hasOnly([
           'courtId', 'courtName', 'sport', 'hostUid', 'hostName', 'format', 'startAt', 'skillLevel',
-          'spotsTotal', 'playerUids', 'playerNames', 'status', 'createdAt'
+          'spotsTotal', 'playerUids', 'playerNames', 'removedUids', 'status', 'createdAt'
         ])
         && request.resource.data.hostUid == request.auth.uid
         && request.resource.data.courtId is string
@@ -125,38 +125,74 @@ service cloud.firestore {
         && request.resource.data.startAt > request.time
         && request.resource.data.playerUids.size() == 0
         && request.resource.data.playerNames.size() == 0
+        && (
+          !('removedUids' in request.resource.data)
+          || request.resource.data.removedUids.size() == 0
+        )
         && request.resource.data.status == 'open'
         && request.resource.data.createdAt is timestamp;
 
       allow update: if signedIn()
         && resource.data.startAt > request.time
-        && request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['playerUids', 'playerNames', 'status'])
-        && request.resource.data.playerNames.size() == request.resource.data.playerUids.size()
         && (
           (
-            resource.data.hostUid != request.auth.uid
-            && !(request.auth.uid in resource.data.playerUids)
-            && resource.data.playerUids.size() < resource.data.spotsTotal
-            && request.resource.data.playerUids == resource.data.playerUids.concat([request.auth.uid])
-            && request.resource.data.playerNames[request.resource.data.playerNames.size() - 1] is string
-            && request.resource.data.playerNames[request.resource.data.playerNames.size() - 1].size() > 0
-            && request.resource.data.playerNames[request.resource.data.playerNames.size() - 1].size() <= 40
+            request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['playerUids', 'playerNames', 'status'])
+            && request.resource.data.playerNames.size() == request.resource.data.playerUids.size()
             && (
-              (request.resource.data.playerUids.size() == resource.data.spotsTotal
-                && request.resource.data.status == 'full')
-              || (request.resource.data.playerUids.size() < resource.data.spotsTotal
-                && request.resource.data.status == 'open')
+              (
+                resource.data.hostUid != request.auth.uid
+                && !(request.auth.uid in resource.data.playerUids)
+                && !(request.auth.uid in resource.data.get('removedUids', []))
+                && resource.data.playerUids.size() < resource.data.spotsTotal
+                && request.resource.data.playerUids == resource.data.playerUids.concat([request.auth.uid])
+                && request.resource.data.playerNames[request.resource.data.playerNames.size() - 1] is string
+                && request.resource.data.playerNames[request.resource.data.playerNames.size() - 1].size() > 0
+                && request.resource.data.playerNames[request.resource.data.playerNames.size() - 1].size() <= 40
+                && (
+                  (request.resource.data.playerUids.size() == resource.data.spotsTotal
+                    && request.resource.data.status == 'full')
+                  || (request.resource.data.playerUids.size() < resource.data.spotsTotal
+                    && request.resource.data.status == 'open')
+                )
+              )
+              || (
+                request.auth.uid in resource.data.playerUids
+                && request.resource.data.playerUids == resource.data.playerUids.removeAll([request.auth.uid])
+                && request.resource.data.status == 'open'
+              )
             )
           )
           || (
-            request.auth.uid in resource.data.playerUids
-            && request.resource.data.playerUids == resource.data.playerUids.removeAll([request.auth.uid])
+            resource.data.hostUid == request.auth.uid
+            && resource.data.playerUids.size() > 0
+            && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['hostUid', 'hostName', 'playerUids', 'playerNames', 'status'])
+            && request.resource.data.hostUid == resource.data.playerUids[0]
+            && request.resource.data.hostName == resource.data.playerNames[0]
+            && request.resource.data.playerUids.size() == resource.data.playerUids.size() - 1
+            && request.resource.data.playerNames.size() == resource.data.playerNames.size() - 1
+            && request.resource.data.status == 'open'
+          )
+          || (
+            resource.data.hostUid == request.auth.uid
+            && resource.data.playerUids.size() > 0
+            && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['playerUids', 'playerNames', 'removedUids', 'status'])
+            && request.resource.data.playerUids.size() == resource.data.playerUids.size() - 1
+            && request.resource.data.playerNames.size() == resource.data.playerNames.size() - 1
+            && request.resource.data.removedUids.size() == resource.data.get('removedUids', []).size() + 1
             && request.resource.data.status == 'open'
           )
         );
 
-      allow delete: if false;
+      allow delete: if signedIn()
+        && resource.data.hostUid == request.auth.uid;
+    }
+
+    match /alerts/{alertId} {
+      allow read: if signedIn() && resource.data.recipientUid == request.auth.uid;
+      allow write: if false;
     }
 
     match /events/{eventId} {
