@@ -1,12 +1,14 @@
 import { getApps, initializeApp } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { setGlobalOptions } from "firebase-functions/v2";
 import {
+  onDocumentCreated,
   onDocumentDeleted,
   onDocumentUpdated,
 } from "firebase-functions/v2/firestore";
 import { onRequest } from "firebase-functions/v2/https";
 import { onMessagePublished } from "firebase-functions/v2/pubsub";
+import { onSchedule } from "firebase-functions/v2/scheduler";
 
 if (!getApps().length) {
   initializeApp();
@@ -14,7 +16,11 @@ if (!getApps().length) {
 
 export { deleteAccount } from "./deleteAccount";
 export { handleMatchUpdated, handleMatchDeleted } from "./matchNotifications";
+export { handleGameCreated } from "./gameAlerts";
+export { sendGameReminders } from "./gameReminders";
 import { handleMatchUpdated, handleMatchDeleted } from "./matchNotifications";
+import { handleGameCreated } from "./gameAlerts";
+import { sendGameReminders } from "./gameReminders";
 import type { CloudEvent } from "firebase-functions/v2";
 import type { MessagePublishedData } from "firebase-functions/v2/pubsub";
 
@@ -86,6 +92,20 @@ export const billingCutoff = onMessagePublished(
   handleBudgetAlert,
 );
 
+export const onMatchCreated = onDocumentCreated(
+  "matches/{matchId}",
+  async (event) => {
+    const data = event.data?.data() as Record<string, unknown> | undefined;
+    if (!data) return;
+    const db = getFirestore();
+    const listUsers = async () => {
+      const snap = await db.collection("users").get();
+      return snap.docs.map((d) => ({ id: d.id, data: d.data() as Record<string, unknown> }));
+    };
+    await handleGameCreated(event.params.matchId, data, listUsers, db);
+  },
+);
+
 export const onMatchUpdated = onDocumentUpdated(
   "matches/{matchId}",
   async (event) => {
@@ -104,3 +124,24 @@ export const onMatchDeleted = onDocumentDeleted(
     await handleMatchDeleted(event.params.matchId, data, getFirestore());
   },
 );
+
+export const gameRemindersCron = onSchedule("every 15 minutes", async () => {
+  const db = getFirestore();
+  const now = Date.now();
+  const from = Timestamp.fromMillis(now + 55 * 60_000);
+  const to = Timestamp.fromMillis(now + 65 * 60_000);
+  const snap = await db
+    .collection("matches")
+    .where("startAt", ">=", from)
+    .where("startAt", "<=", to)
+    .get();
+  const games = snap.docs.map((d) => ({
+    id: d.id,
+    data: d.data() as Record<string, unknown>,
+  }));
+  const getUser = async (uid: string) => {
+    const userSnap = await db.collection("users").doc(uid).get();
+    return userSnap.exists ? (userSnap.data() as Record<string, unknown>) : null;
+  };
+  await sendGameReminders(games, getUser, db);
+});

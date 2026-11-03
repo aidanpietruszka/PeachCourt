@@ -12,6 +12,8 @@ import {
   useIonViewWillEnter,
   IonToast,
 } from "@ionic/react";
+import { useAlerts } from "../hooks/useAlerts";
+import NotificationBell from "../components/NotificationBell";
 import { Geolocation } from "@capacitor/geolocation";
 import CourtMap, { CourtMapItem } from "../components/CourtMap";
 import { useAuth } from "../hooks/useAuth";
@@ -51,6 +53,7 @@ const CourtsPage: React.FC = () => {
   const ionRouter = useIonRouter();
   const { user } = useAuth();
   const uid = user?.uid ?? null;
+  const { unreadCount } = useAlerts(uid);
   const [sport, setSport] = useState<Sport>("tennis");
   const [courts, setCourts] = useState<Court[]>([]);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(
@@ -316,13 +319,19 @@ const CourtsPage: React.FC = () => {
           <div className="pc-screen courts-page__header">
             <div className="courts-page__title-row">
               <h1 className="pc-title">Courts near you</h1>
-              <IonButton
-                fill="clear"
-                size="small"
-                onClick={() => void handleLogout()}
-              >
-                Log out
-              </IonButton>
+              <div className="courts-page__header-actions">
+                <NotificationBell
+                  unreadCount={unreadCount}
+                  onClick={() => ionRouter.push("/notifications", "forward")}
+                />
+                <IonButton
+                  fill="clear"
+                  size="small"
+                  onClick={() => void handleLogout()}
+                >
+                  Log out
+                </IonButton>
+              </div>
             </div>
 
             <div className="courts-page__search-row">

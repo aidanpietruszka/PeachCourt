@@ -60,6 +60,12 @@
   gap: 8px;
 }
 
+.courts-page__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .courts-page__checked-in {
   display: flex;
   align-items: center;

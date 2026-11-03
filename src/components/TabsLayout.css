@@ -1,0 +1,73 @@
+.alert-banner {
+  position: fixed;
+  top: 12px;
+  left: 11px;
+  right: 11px;
+  z-index: 9999;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  animation: banner-slide-in 0.25s ease;
+}
+
+@keyframes banner-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.alert-banner__dot {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--pc-green, #0d9677);
+  flex-shrink: 0;
+}
+
+.alert-banner__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.alert-banner__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--pc-text, #111);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.alert-banner__sub {
+  font-size: 13px;
+  color: var(--pc-text-muted, #8a8a8e);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.alert-banner__view {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--pc-green, #0d9677);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+}

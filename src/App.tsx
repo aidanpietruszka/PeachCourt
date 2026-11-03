@@ -5,6 +5,7 @@ import WelcomePage from "./pages/WelcomePage";
 import LoginPage from "./pages/LoginPage";
 import SignUpPage from "./pages/SignUpPage";
 import CourtDetailPage from "./pages/CourtDetailPage";
+import NotificationInboxPage from "./pages/NotificationInboxPage";
 import OnboardingPage from "./pages/OnboardingPage";
 import EditProfilePage from "./pages/EditProfilePage";
 import SettingsPage from "./pages/SettingsPage";
@@ -66,6 +67,14 @@ const App: React.FC = () => (
             element={
               <ProtectedRoute>
                 <CourtDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/notifications"
+            element={
+              <ProtectedRoute>
+                <NotificationInboxPage />
               </ProtectedRoute>
             }
           />
