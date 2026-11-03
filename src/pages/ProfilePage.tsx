@@ -13,6 +13,8 @@ import { useAuth } from "../hooks/useAuth";
 import { logout } from "../services/auth";
 import { UserService } from "../services/UserService";
 import type { UserProfile } from "../types/types";
+import { useAlerts } from "../hooks/useAlerts";
+import NotificationBell from "../components/NotificationBell";
 import "./ProfilePage.css";
 
 const SKILL_LABELS: Record<string, string> = {
@@ -30,6 +32,7 @@ const ProfilePage: React.FC = () => {
   const { user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const { unreadCount } = useAlerts(user?.uid ?? null);
 
   useEffect(() => {
     if (!user) {
@@ -66,6 +69,13 @@ const ProfilePage: React.FC = () => {
     <IonPage>
       <IonContent>
         <div className="pc-screen profile-page">
+          <div className="profile-page__header-row">
+            <NotificationBell
+              unreadCount={unreadCount}
+              onClick={() => ionRouter.push("/notifications", "forward")}
+            />
+          </div>
+
           {loading && <IonSpinner name="dots" />}
 
           {!loading && profile && (

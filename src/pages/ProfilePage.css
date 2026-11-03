@@ -5,6 +5,12 @@
   gap: 20px;
 }
 
+.profile-page__header-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: -8px;
+}
+
 .profile-page__name {
   font-size: 28px;
   font-weight: 700;

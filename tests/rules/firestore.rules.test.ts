@@ -756,6 +756,39 @@ describe("matches: joining and leaving", () => {
   });
 });
 
+describe("alerts", () => {
+  async function seedAlert(id: string, recipientUid: string, read = false) {
+    await seed(`alerts/${id}`, {
+      recipientUid,
+      type: "new_game",
+      gameId: "m1",
+      read,
+      createdAt: Timestamp.now(),
+    });
+  }
+
+  it("R-69 recipient can mark their own alert as read", async () => {
+    await seedAlert("a1", "alice");
+    await assertSucceeds(
+      updateDoc(doc(asUser("alice"), "alerts/a1"), { read: true }),
+    );
+  });
+
+  it("R-70 non-recipient cannot update an alert", async () => {
+    await seedAlert("a1", "alice");
+    await assertFails(
+      updateDoc(doc(asUser("bob"), "alerts/a1"), { read: true }),
+    );
+  });
+
+  it("R-71 recipient cannot change fields other than read", async () => {
+    await seedAlert("a1", "alice");
+    await assertFails(
+      updateDoc(doc(asUser("alice"), "alerts/a1"), { read: true, type: "game_reminder" }),
+    );
+  });
+});
+
 describe("events", () => {
   const valid: Array<[string, Record<string, unknown>]> = [
     [

@@ -504,6 +504,46 @@ export function gameCard(page: Page, hostName: string) {
     .first();
 }
 
+export async function seedAlert(
+  uid: string,
+  overrides: Record<string, unknown> = {},
+) {
+  const fields = Object.fromEntries(
+    Object.entries({
+      recipientUid: uid,
+      type: "new_game",
+      gameId: "m1",
+      gameCourtId: COURTS.alpha.id,
+      gameCourtName: COURTS.alpha.name,
+      gameSport: "tennis",
+      gameFormat: "doubles",
+      spotsOpen: 2,
+      read: false,
+      createdAt: { timestampValue: new Date().toISOString() },
+      ...overrides,
+    }).map(([key, value]) => {
+      if (
+        key === "createdAt" &&
+        typeof value === "object" &&
+        value !== null &&
+        "timestampValue" in value
+      ) {
+        return [key, value];
+      }
+      return [key, toValue(value)];
+    }),
+  );
+  const response = await fetch(
+    `${FIRESTORE}/v1/projects/${PROJECT_ID}/databases/(default)/documents/alerts`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer owner" },
+      body: JSON.stringify({ fields }),
+    },
+  );
+  expect(response.ok).toBe(true);
+}
+
 export async function joinGame(page: Page, card: Locator) {
   await ionButton(card, "Join").click();
   const sheet = page.locator("ion-modal").filter({ visible: true }).last();

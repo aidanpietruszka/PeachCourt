@@ -7,6 +7,8 @@ import {
 } from "./index";
 import { handleDeleteAccount } from "./deleteAccount";
 import { handleMatchUpdated, handleMatchDeleted } from "./matchNotifications";
+import { handleGameCreated } from "./gameAlerts";
+import { sendGameReminders } from "./gameReminders";
 
 function mockResponse() {
   const response = {
@@ -455,5 +457,158 @@ describe("handleMatchDeleted", () => {
     const data = { ...baseMatch, playerUids: [], playerNames: [] };
     await handleMatchDeleted("m1", data, db);
     expect(db.addedAlerts).toHaveLength(0);
+  });
+});
+
+describe("handleMatchUpdated player_joined", () => {
+  it("F-30 sends player_joined alert to host when a player joins", async () => {
+    const db = makeAlertDb();
+    const before = { ...baseMatch, playerUids: [], playerNames: [] };
+    const after = { ...baseMatch, playerUids: ["bob"], playerNames: ["Bob"] };
+    await handleMatchUpdated("m1", before, after, db);
+    expect(db.addedAlerts).toHaveLength(1);
+    expect(db.addedAlerts[0]).toMatchObject({
+      recipientUid: "alice",
+      type: "player_joined",
+      actorName: "Bob",
+      gameId: "m1",
+    });
+  });
+
+  it("F-31 player_joined alert includes createdAt", async () => {
+    const db = makeAlertDb();
+    const before = { ...baseMatch, playerUids: [], playerNames: [] };
+    const after = { ...baseMatch, playerUids: ["bob"], playerNames: ["Bob"] };
+    await handleMatchUpdated("m1", before, after, db);
+    expect(db.addedAlerts[0].createdAt).toBeInstanceOf(Date);
+  });
+});
+
+const baseNewGame: Record<string, unknown> = {
+  hostUid: "alice",
+  hostName: "Alice",
+  courtId: "court-1",
+  courtName: "City Park",
+  sport: "tennis",
+  format: "doubles",
+  skillLevel: 3.5,
+  spotsTotal: 3,
+  playerUids: [],
+  playerNames: [],
+  startAt: { seconds: 9999999 },
+};
+
+function makeUsers(users: Record<string, Record<string, unknown>>) {
+  return async () =>
+    Object.entries(users).map(([id, data]) => ({ id, data }));
+}
+
+describe("handleGameCreated", () => {
+  const twoEligible = {
+    bob: { sports: ["tennis"], skillLevels: { tennis: 3.5 }, newGamesAlert: true },
+    cara: { sports: ["tennis"], skillLevels: { tennis: 3.5 }, newGamesAlert: true },
+  };
+
+  it("F-23 sends new_game alerts to eligible players", async () => {
+    const db = makeAlertDb();
+    await handleGameCreated("m1", baseNewGame, makeUsers(twoEligible), db);
+    expect(db.addedAlerts).toHaveLength(2);
+    expect(db.addedAlerts[0]).toMatchObject({
+      type: "new_game",
+      gameId: "m1",
+      gameSport: "tennis",
+      gameCourtName: "City Park",
+    });
+  });
+
+  it("F-24 never sends an alert to the host", async () => {
+    const db = makeAlertDb();
+    await handleGameCreated(
+      "m1",
+      baseNewGame,
+      makeUsers({ alice: { sports: ["tennis"], skillLevels: { tennis: 3.5 }, newGamesAlert: true } }),
+      db,
+    );
+    const recipients = db.addedAlerts.map((a) => a.recipientUid);
+    expect(recipients).not.toContain("alice");
+    expect(db.addedAlerts).toHaveLength(0);
+  });
+
+  it("F-25 skips users with newGamesAlert off", async () => {
+    const db = makeAlertDb();
+    await handleGameCreated(
+      "m1",
+      baseNewGame,
+      makeUsers({ bob: { sports: ["tennis"], skillLevels: { tennis: 3.5 }, newGamesAlert: false } }),
+      db,
+    );
+    expect(db.addedAlerts).toHaveLength(0);
+  });
+
+  it("F-26 skips users who don't play the sport", async () => {
+    const db = makeAlertDb();
+    await handleGameCreated(
+      "m1",
+      baseNewGame,
+      makeUsers({ bob: { sports: ["pickleball"], skillLevels: { pickleball: 3.5 }, newGamesAlert: true } }),
+      db,
+    );
+    expect(db.addedAlerts).toHaveLength(0);
+  });
+
+  it("F-27 skips users outside the skill range", async () => {
+    const db = makeAlertDb();
+    await handleGameCreated(
+      "m1",
+      baseNewGame,
+      makeUsers({ bob: { sports: ["tennis"], skillLevels: { tennis: 2.0 }, newGamesAlert: true } }),
+      db,
+    );
+    expect(db.addedAlerts).toHaveLength(0);
+  });
+
+  it("F-28 alerts all players who opted in when game is any level", async () => {
+    const db = makeAlertDb();
+    const anyGame = { ...baseNewGame, skillLevel: "any" };
+    await handleGameCreated(
+      "m1",
+      anyGame,
+      makeUsers({ bob: { sports: ["tennis"], skillLevels: {}, newGamesAlert: true } }),
+      db,
+    );
+    expect(db.addedAlerts).toHaveLength(1);
+    expect(db.addedAlerts[0].recipientUid).toBe("bob");
+  });
+});
+
+describe("sendGameReminders", () => {
+  const reminderGame: Record<string, unknown> = {
+    hostUid: "alice",
+    hostName: "Alice",
+    playerUids: ["bob"],
+    playerNames: ["Bob"],
+    courtId: "court-1",
+    courtName: "City Park",
+    sport: "tennis",
+    format: "doubles",
+    startAt: { seconds: 9999999 },
+  };
+
+  it("F-29 sends game_reminder to each player with gameRemindersAlert on", async () => {
+    const db = makeAlertDb();
+    const getUser = async (uid: string) =>
+      ({ alice: { gameRemindersAlert: true }, bob: { gameRemindersAlert: true } }[uid] ?? null);
+    await sendGameReminders([{ id: "m1", data: reminderGame }], getUser, db);
+    expect(db.addedAlerts).toHaveLength(2);
+    expect(db.addedAlerts[0]).toMatchObject({ type: "game_reminder", gameId: "m1" });
+  });
+
+  it("F-32 skips players with gameRemindersAlert off", async () => {
+    const db = makeAlertDb();
+    const getUser = async (uid: string) =>
+      ({ alice: { gameRemindersAlert: true }, bob: { gameRemindersAlert: false } }[uid] ?? null);
+    await sendGameReminders([{ id: "m1", data: reminderGame }], getUser, db);
+    expect(db.addedAlerts).toHaveLength(1);
+    expect(db.addedAlerts[0].recipientUid).toBe("alice");
   });
 });

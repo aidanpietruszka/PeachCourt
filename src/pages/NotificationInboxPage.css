@@ -1,0 +1,156 @@
+.inbox {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.inbox__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 32px;
+}
+
+.inbox__back {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--pc-green, #0d9677);
+  font-size: 17px;
+  cursor: pointer;
+}
+
+.inbox__mark-all {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--pc-green, #0d9677);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.inbox__title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--ion-color-dark);
+  margin: 0;
+}
+
+.inbox__empty {
+  color: var(--ion-color-medium);
+  font-size: 15px;
+  margin: 32px 0 0;
+  text-align: center;
+}
+
+.inbox__section-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ion-color-medium);
+  margin: 4px 0 6px;
+}
+
+.inbox__group {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.inbox__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  width: 100%;
+  text-align: left;
+  border: none;
+  cursor: pointer;
+}
+
+.inbox__row--unread {
+  background: #fff;
+  border: 1px solid #e5e5ea;
+}
+
+.inbox__row--read {
+  background: #f2f2f7;
+}
+
+.inbox__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 17px;
+  flex-shrink: 0;
+  font-size: 14px;
+}
+
+.inbox__row-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.inbox__row-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ion-color-dark);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.inbox__row-title--unread {
+  font-weight: 600;
+}
+
+.inbox__row-sub {
+  font-size: 12px;
+  color: var(--ion-color-medium);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.inbox__row-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.inbox__row-time {
+  font-size: 12px;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.inbox__row-time--unread {
+  color: var(--pc-green, #0d9677);
+}
+
+.inbox__row-time--read {
+  color: var(--ion-color-medium);
+}
+
+.inbox__dot {
+  display: block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--pc-green, #0d9677);
+}
