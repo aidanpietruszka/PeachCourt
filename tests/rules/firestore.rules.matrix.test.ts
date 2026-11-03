@@ -881,10 +881,14 @@ describe("matrix: matches read, update, delete", () => {
     );
   });
 
-  it("M-65 nobody can delete a game", async () => {
-    await seed("matches/m1", matchData("alice"));
-    await assertFails(deleteDoc(doc(asUser("alice"), "matches/m1")));
+  it("M-65 host can delete their own game; non-host and guest cannot", async () => {
+    await seed(
+      "matches/m1",
+      matchData("alice", { playerUids: ["bob"], playerNames: ["Bob"] }),
+    );
+    await assertFails(deleteDoc(doc(asUser("bob"), "matches/m1")));
     await assertFails(deleteDoc(doc(asGuest(), "matches/m1")));
+    await assertSucceeds(deleteDoc(doc(asUser("alice"), "matches/m1")));
   });
 });
 

@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import {
+  alertButton,
   backToCourts,
   COURTS,
   gameCard,
@@ -36,7 +37,12 @@ test("E2E-17 post, join and leave a game", async ({ browser }) => {
   await expect(hostCard).toContainText("2 of 4 · Host Ana");
   await expect(hostCard).toContainText("Joined: Ben");
 
-  await ionButton(guestCard, "Leave").click();
+  await guestCard.click();
+  const detailModal = b.page.locator('ion-modal[aria-label="Game detail"]');
+  await expect(detailModal).toBeVisible();
+  await ionButton(detailModal, "Leave game").click();
+  await alertButton(b.page, "Leave game").click();
+  await expect(detailModal).not.toBeVisible();
   await expect(visibleText(b.page, "You left Ana's game.")).toBeVisible();
   await expect(hostCard).toContainText("1 of 4 · Host Ana");
   await expect(hostCard).not.toContainText("Joined:");

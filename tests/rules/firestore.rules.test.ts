@@ -636,9 +636,123 @@ describe("matches: joining and leaving", () => {
     );
   });
 
-  it("R-44 no one can delete a game", async () => {
+  it("R-44 host can delete their own game", async () => {
     await seed("matches/m1", matchData("alice"));
-    await assertFails(deleteDoc(doc(asUser("alice"), "matches/m1")));
+    await assertSucceeds(deleteDoc(doc(asUser("alice"), "matches/m1")));
+  });
+
+  it("R-60 non-host player cannot delete a game", async () => {
+    await seed(
+      "matches/m1",
+      matchData("alice", { playerUids: ["bob"], playerNames: ["Bob"] }),
+    );
+    await assertFails(deleteDoc(doc(asUser("bob"), "matches/m1")));
+  });
+
+  it("R-61 unauthenticated user cannot delete a game", async () => {
+    await seed("matches/m1", matchData("alice"));
+    await assertFails(deleteDoc(doc(asGuest(), "matches/m1")));
+  });
+
+  it("R-62 removed player cannot join", async () => {
+    await seed(
+      "matches/m1",
+      matchData("alice", { removedUids: ["bob"] }),
+    );
+    await assertFails(
+      updateDoc(doc(asUser("bob"), "matches/m1"), {
+        playerUids: ["bob"],
+        playerNames: ["Bob"],
+        status: "open",
+      }),
+    );
+  });
+
+  it("R-63 host can hand off to the first player", async () => {
+    await seed(
+      "matches/m1",
+      matchData("alice", { playerUids: ["bob", "cara"], playerNames: ["Bob", "Cara"] }),
+    );
+    await assertSucceeds(
+      updateDoc(doc(asUser("alice"), "matches/m1"), {
+        hostUid: "bob",
+        hostName: "Bob",
+        playerUids: ["cara"],
+        playerNames: ["Cara"],
+        status: "open",
+      }),
+    );
+  });
+
+  it("R-64 non-host cannot hand off", async () => {
+    await seed(
+      "matches/m1",
+      matchData("alice", { playerUids: ["bob", "cara"], playerNames: ["Bob", "Cara"] }),
+    );
+    await assertFails(
+      updateDoc(doc(asUser("bob"), "matches/m1"), {
+        hostUid: "bob",
+        hostName: "Bob",
+        playerUids: ["cara"],
+        playerNames: ["Cara"],
+        status: "open",
+      }),
+    );
+  });
+
+  it("R-65 host handoff must target the first player", async () => {
+    await seed(
+      "matches/m1",
+      matchData("alice", { playerUids: ["bob", "cara"], playerNames: ["Bob", "Cara"] }),
+    );
+    await assertFails(
+      updateDoc(doc(asUser("alice"), "matches/m1"), {
+        hostUid: "cara",
+        hostName: "Cara",
+        playerUids: ["bob"],
+        playerNames: ["Bob"],
+        status: "open",
+      }),
+    );
+  });
+
+  it("R-66 host can remove a player (adds to removedUids)", async () => {
+    await seed(
+      "matches/m1",
+      matchData("alice", { playerUids: ["bob"], playerNames: ["Bob"], removedUids: [] }),
+    );
+    await assertSucceeds(
+      updateDoc(doc(asUser("alice"), "matches/m1"), {
+        playerUids: [],
+        playerNames: [],
+        removedUids: ["bob"],
+        status: "open",
+      }),
+    );
+  });
+
+  it("R-67 non-host cannot remove a player via removedUids", async () => {
+    await seed(
+      "matches/m1",
+      matchData("alice", { playerUids: ["bob", "cara"], playerNames: ["Bob", "Cara"], removedUids: [] }),
+    );
+    await assertFails(
+      updateDoc(doc(asUser("bob"), "matches/m1"), {
+        playerUids: ["bob"],
+        playerNames: ["Bob"],
+        removedUids: ["cara"],
+        status: "open",
+      }),
+    );
+  });
+
+  it("R-68 match can be created with empty removedUids field", async () => {
+    await assertSucceeds(
+      setDoc(
+        doc(asUser("alice"), "matches/m1"),
+        matchData("alice", { removedUids: [] }),
+      ),
+    );
   });
 });
 

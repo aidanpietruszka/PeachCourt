@@ -1,5 +1,10 @@
 import { getApps, initializeApp } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
 import { setGlobalOptions } from "firebase-functions/v2";
+import {
+  onDocumentDeleted,
+  onDocumentUpdated,
+} from "firebase-functions/v2/firestore";
 import { onRequest } from "firebase-functions/v2/https";
 import { onMessagePublished } from "firebase-functions/v2/pubsub";
 
@@ -8,6 +13,8 @@ if (!getApps().length) {
 }
 
 export { deleteAccount } from "./deleteAccount";
+export { handleMatchUpdated, handleMatchDeleted } from "./matchNotifications";
+import { handleMatchUpdated, handleMatchDeleted } from "./matchNotifications";
 import type { CloudEvent } from "firebase-functions/v2";
 import type { MessagePublishedData } from "firebase-functions/v2/pubsub";
 
@@ -77,4 +84,23 @@ export async function handleBudgetAlert(
 export const billingCutoff = onMessagePublished(
   { topic: "billing-alerts" },
   handleBudgetAlert,
+);
+
+export const onMatchUpdated = onDocumentUpdated(
+  "matches/{matchId}",
+  async (event) => {
+    const before = event.data?.before.data() as Record<string, unknown> | undefined;
+    const after = event.data?.after.data() as Record<string, unknown> | undefined;
+    if (!before || !after) return;
+    await handleMatchUpdated(event.params.matchId, before, after, getFirestore());
+  },
+);
+
+export const onMatchDeleted = onDocumentDeleted(
+  "matches/{matchId}",
+  async (event) => {
+    const data = event.data?.data() as Record<string, unknown> | undefined;
+    if (!data) return;
+    await handleMatchDeleted(event.params.matchId, data, getFirestore());
+  },
 );

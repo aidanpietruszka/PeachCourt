@@ -1,0 +1,115 @@
+.game-detail {
+  padding: 16px;
+}
+
+.game-detail__title {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0 0 4px;
+}
+
+.game-detail__subtitle {
+  color: #6b7280;
+  font-size: 14px;
+  margin: 0 0 14px;
+}
+
+.game-detail__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+.game-detail__tag {
+  background: #ecfdf5;
+  color: #065f46;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.game-detail__tag--neutral {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.game-detail__tag--hosting {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.game-detail__section-heading {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 8px;
+}
+
+.game-detail__roster {
+  margin-bottom: 16px;
+}
+
+.game-detail__roster-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+}
+
+.game-detail__player-name {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.game-detail__host-label {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.game-detail__remove-btn {
+  background: none;
+  border: none;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #ef4444;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.game-detail__remove-btn:active {
+  background: #fee2e2;
+}
+
+.game-detail__open-spot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px dashed #d1d5db;
+  border-radius: 8px;
+  padding: 6px 12px;
+  margin-bottom: 4px;
+}
+
+.game-detail__open-label {
+  font-size: 14px;
+  color: #0d9677;
+}
+
+.game-detail__actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.game-detail__footer {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid #f3f4f6;
+}

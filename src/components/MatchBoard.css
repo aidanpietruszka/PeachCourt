@@ -88,6 +88,14 @@
   opacity: 0.75;
 }
 
+.match-card--tappable {
+  cursor: pointer;
+}
+
+.match-card--tappable:active {
+  opacity: 0.85;
+}
+
 .match-card__header {
   display: flex;
   align-items: center;
