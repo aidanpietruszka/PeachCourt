@@ -22,6 +22,7 @@ import { useParams } from "react-router-dom";
 import MatchBoard from "../components/MatchBoard";
 import RealCountSheet from "../components/RealCountSheet";
 import { useAuth } from "../hooks/useAuth";
+import { useFlags } from "../hooks/useFlags";
 import { useIsTeamMember } from "../hooks/useIsTeamMember";
 import { EMPTY_ACTIVITY, useLiveCourtData } from "../hooks/useLiveCourtData";
 import { CheckinService, type ActiveCheckIn } from "../services/CheckinService";
@@ -96,6 +97,7 @@ const CourtDetailPage: React.FC = () => {
   const { user } = useAuth();
   const uid = user?.uid ?? null;
   const isTeamMember = useIsTeamMember(uid);
+  const flags = useFlags();
   const activity = useLiveCourtData();
   const [court, setCourt] = useState<Court | null | undefined>(undefined);
   const [activeCheckIn, setActiveCheckIn] = useState<ActiveCheckIn | null>(
@@ -212,7 +214,7 @@ const CourtDetailPage: React.FC = () => {
   }, [courtLoaded, hasReport]);
 
   useEffect(() => {
-    if (!checkedInHere || reportedAtMs === null) return;
+    if (!flags.stillHere || !checkedInHere || reportedAtMs === null) return;
     if (now - reportedAtMs < STILL_HERE_DELAY_MS) return;
     let lastPromptMs = 0;
     try {
@@ -227,7 +229,7 @@ const CourtDetailPage: React.FC = () => {
       /* ignore */
     }
     setIsStillHereOpen(true);
-  }, [checkedInHere, reportedAtMs, now]);
+  }, [flags.stillHere, checkedInHere, reportedAtMs, now]);
 
   const toggleDetails = () => {
     const next = !isDetailsExpanded;
@@ -482,7 +484,7 @@ const CourtDetailPage: React.FC = () => {
                 )}
               </section>
 
-              {isTeamMember && (
+              {isTeamMember && flags.teamTools && (
                 <button
                   type="button"
                   className="team-tools-card"

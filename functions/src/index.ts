@@ -115,6 +115,12 @@ function chatDocFromMatch(matchId: string, data: Record<string, unknown>): Recor
   };
 }
 
+async function getFlag(db: ReturnType<typeof getFirestore>, key: string): Promise<boolean> {
+  const snap = await db.collection("config").doc("flags").get();
+  const val = snap.exists ? snap.data()?.[key] : undefined;
+  return val !== false;
+}
+
 export const onMatchCreated = onDocumentCreated(
   "matches/{matchId}",
   async (event) => {
@@ -125,8 +131,9 @@ export const onMatchCreated = onDocumentCreated(
       const snap = await db.collection("users").get();
       return snap.docs.map((d) => ({ id: d.id, data: d.data() as Record<string, unknown> }));
     };
+    const pushAlertsEnabled = await getFlag(db, "pushAlerts");
     await Promise.all([
-      handleGameCreated(event.params.matchId, data, listUsers, db),
+      handleGameCreated(event.params.matchId, data, listUsers, db, pushAlertsEnabled),
       db.collection("chats").doc(event.params.matchId).set(chatDocFromMatch(event.params.matchId, data)),
     ]);
   },
@@ -221,5 +228,6 @@ export const gameRemindersCron = onSchedule("every 15 minutes", async () => {
     const userSnap = await db.collection("users").doc(uid).get();
     return userSnap.exists ? (userSnap.data() as Record<string, unknown>) : null;
   };
-  await sendGameReminders(games, getUser, db);
+  const gameRemindersEnabled = await getFlag(db, "gameReminders");
+  await sendGameReminders(games, getUser, db, gameRemindersEnabled);
 });
