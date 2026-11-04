@@ -3,9 +3,12 @@ import {
   collection,
   doc,
   onSnapshot,
+  orderBy,
+  query,
   runTransaction,
   serverTimestamp,
   Timestamp,
+  where,
   writeBatch,
   type Unsubscribe,
 } from "firebase/firestore";
@@ -13,6 +16,16 @@ import { auth, db } from "./firebase";
 import { CROWD_RANGE_MINS } from "../utils/crowdRange";
 
 const ALLOWED_DURATIONS_MINUTES = [30, 60] as const;
+
+export interface PastCheckin {
+  id: string;
+  courtId: string;
+  playerCount: number;
+  checkedInAt: Timestamp;
+  expiresAt: Timestamp;
+  checkedOutAt: Timestamp | null;
+  method: string | null;
+}
 
 export interface ActiveCheckIn {
   checkinId: string;
@@ -108,6 +121,7 @@ export const CheckinService = {
         courtId,
         uid,
         playerCount,
+        method: "manual",
         checkedInAt,
         scheduledArrivalAt,
         durationMinutes,
@@ -121,6 +135,7 @@ export const CheckinService = {
         uid,
         courtId,
         playerCount,
+        method: "manual",
         checkedInAt,
         scheduledArrivalAt,
         durationMinutes,
@@ -264,6 +279,43 @@ export const CheckinService = {
       courtId,
       timestamp: Timestamp.now(),
     });
+  },
+
+  subscribeToMyCheckins(
+    uid: string,
+    onChange: (checkins: PastCheckin[]) => void,
+    onError: (error: Error) => void,
+  ): Unsubscribe {
+    const q = query(
+      collection(db, "checkins"),
+      where("uid", "==", uid),
+      orderBy("checkedInAt", "desc"),
+    );
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        onChange(
+          snapshot.docs
+            .filter((d) => !d.data().active)
+            .map((d) => ({
+              id: d.id,
+              courtId: d.data().courtId as string,
+              playerCount: d.data().playerCount as number,
+              checkedInAt: d.data().checkedInAt as Timestamp,
+              expiresAt: d.data().expiresAt as Timestamp,
+              checkedOutAt:
+                d.data().checkedOutAt instanceof Timestamp
+                  ? (d.data().checkedOutAt as Timestamp)
+                  : null,
+              method:
+                typeof d.data().method === "string"
+                  ? (d.data().method as string)
+                  : null,
+            })),
+        );
+      },
+      onError,
+    );
   },
 
   async autoCheckIn(courtId: string, distance: number | null): Promise<void> {

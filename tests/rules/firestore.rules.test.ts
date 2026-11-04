@@ -174,11 +174,17 @@ describe("checkins", () => {
     }
   });
 
-  it("R-06b method: auto is accepted as an extra field on checkins and activeCheckins", async () => {
+  it("R-06b method auto and manual are accepted as extra fields on checkins and activeCheckins", async () => {
     await assertSucceeds(
       addDoc(
         collection(asUser("alice"), "checkins"),
         checkinData("alice", { method: "auto" }),
+      ),
+    );
+    await assertSucceeds(
+      addDoc(
+        collection(asUser("alice"), "checkins"),
+        checkinData("alice", { method: "manual" }),
       ),
     );
     await seed("activeCheckins/alice", activeCheckinData("alice"));
@@ -186,6 +192,12 @@ describe("checkins", () => {
       setDoc(doc(asUser("alice"), "activeCheckins/alice"), {
         ...activeCheckinData("alice"),
         method: "auto",
+      }),
+    );
+    await assertSucceeds(
+      setDoc(doc(asUser("alice"), "activeCheckins/alice"), {
+        ...activeCheckinData("alice"),
+        method: "manual",
       }),
     );
   });
