@@ -702,3 +702,38 @@ describe("deleteExpiredChatsImpl", () => {
     expect(deletedPaths).toHaveLength(0);
   });
 });
+
+describe("feature flags in Cloud Functions", () => {
+  const twoEligible = {
+    bob: { sports: ["tennis"], skillLevels: { tennis: 3.5 }, newGamesAlert: true },
+  };
+
+  it("F-38 handleGameCreated sends no alerts when pushAlertsEnabled is false", async () => {
+    const db = makeAlertDb();
+    await handleGameCreated("m1", baseNewGame, makeUsers(twoEligible), db, false);
+    expect(db.addedAlerts).toHaveLength(0);
+  });
+
+  it("F-39 handleGameCreated sends alerts when pushAlertsEnabled is true", async () => {
+    const db = makeAlertDb();
+    await handleGameCreated("m1", baseNewGame, makeUsers(twoEligible), db, true);
+    expect(db.addedAlerts).toHaveLength(1);
+  });
+
+  it("F-40 sendGameReminders sends no reminders when gameRemindersEnabled is false", async () => {
+    const db = makeAlertDb();
+    const getUser = async () => ({ gameRemindersAlert: true });
+    const game = { id: "m1", data: { hostUid: "alice", playerUids: [], courtId: "c1", sport: "tennis", format: "singles", startAt: { seconds: 9999999 }, courtName: "City Park" } };
+    await sendGameReminders([game], getUser, db, false);
+    expect(db.addedAlerts).toHaveLength(0);
+  });
+
+  it("F-41 sendGameReminders sends reminders when gameRemindersEnabled is true", async () => {
+    const db = makeAlertDb();
+    const getUser = async (uid: string) =>
+      uid === "alice" ? { gameRemindersAlert: true } : null;
+    const game = { id: "m1", data: { hostUid: "alice", playerUids: [], courtId: "c1", sport: "tennis", format: "singles", startAt: { seconds: 9999999 }, courtName: "City Park" } };
+    await sendGameReminders([game], getUser, db, true);
+    expect(db.addedAlerts).toHaveLength(1);
+  });
+});

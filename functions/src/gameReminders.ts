@@ -6,7 +6,9 @@ export async function sendGameReminders(
   games: GameRecord[],
   getUser: (uid: string) => Promise<Record<string, unknown> | null>,
   alertDb: AlertDb,
+  gameRemindersEnabled = true,
 ): Promise<void> {
+  if (!gameRemindersEnabled) return;
   for (const { id: matchId, data } of games) {
     const playerUids = (data.playerUids as string[]) ?? [];
     const hostUid = data.hostUid as string;

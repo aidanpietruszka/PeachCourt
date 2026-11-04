@@ -1491,3 +1491,19 @@ describe("in_person_count event", () => {
     );
   });
 });
+
+describe("config/flags", () => {
+  it("R-99 authenticated user can read flags", async () => {
+    await seed("config/flags", { autoCheckin: true, gameChat: false });
+    await assertSucceeds(getDoc(doc(asUser("alice"), "config/flags")));
+  });
+
+  it("R-100 unauthenticated user cannot read flags", async () => {
+    await seed("config/flags", { autoCheckin: true });
+    await assertFails(getDoc(doc(asGuest(), "config/flags")));
+  });
+
+  it("R-101 no one can write flags via client", async () => {
+    await assertFails(setDoc(doc(asUser("alice"), "config/flags"), { autoCheckin: false }));
+  });
+});

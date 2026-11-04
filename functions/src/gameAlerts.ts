@@ -7,7 +7,10 @@ export async function handleGameCreated(
   data: Record<string, unknown>,
   listUsers: () => Promise<UserRecord[]>,
   alertDb: AlertDb,
+  pushAlertsEnabled = true,
 ): Promise<void> {
+  if (!pushAlertsEnabled) return;
+
   const sport = data.sport as string;
   const skillLevel = data.skillLevel as number | "any";
   const hostUid = data.hostUid as string;

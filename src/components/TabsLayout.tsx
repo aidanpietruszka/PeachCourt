@@ -17,6 +17,7 @@ import ChatsPage from "../pages/ChatsPage";
 import MyActivityPage from "../pages/MyActivityPage";
 import ProtectedRoute from "./ProtectedRoute";
 import { useAuth } from "../hooks/useAuth";
+import { useFlags } from "../hooks/useFlags";
 import { UserService } from "../services/UserService";
 import { useAlerts } from "../hooks/useAlerts";
 import { useChatList } from "../hooks/useChatList";
@@ -66,6 +67,7 @@ function alertBannerBody(a: Alert): string {
 const TabsLayout: React.FC = () => {
   const ionRouter = useIonRouter();
   const { user } = useAuth();
+  const flags = useFlags();
   const { alerts } = useAlerts(user?.uid ?? null);
   const { unreadChatCount } = useChatList(user?.uid ?? null);
   const [bannerAlert, setBannerAlert] = useState<Alert | null>(null);
@@ -189,15 +191,17 @@ const TabsLayout: React.FC = () => {
             <IonIcon icon={timeOutline} />
             <IonLabel>My Activity</IonLabel>
           </IonTabButton>
-          <IonTabButton tab="chats" href="/chats">
-            <IonIcon icon={chatbubblesOutline} />
-            <IonLabel>Chats</IonLabel>
-            {unreadChatCount > 0 && (
-              <span className="tab-badge" aria-label={`${unreadChatCount} unread`}>
-                {unreadChatCount}
-              </span>
-            )}
-          </IonTabButton>
+          {flags.gameChat && (
+            <IonTabButton tab="chats" href="/chats">
+              <IonIcon icon={chatbubblesOutline} />
+              <IonLabel>Chats</IonLabel>
+              {unreadChatCount > 0 && (
+                <span className="tab-badge" aria-label={`${unreadChatCount} unread`}>
+                  {unreadChatCount}
+                </span>
+              )}
+            </IonTabButton>
+          )}
         </IonTabBar>
       </IonTabs>
     </>

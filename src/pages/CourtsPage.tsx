@@ -37,6 +37,7 @@ import { formatDistance } from "../utils/geo";
 import { CROWD_RANGES, displayRange } from "../utils/crowdRange";
 import { distanceBetweenMeters } from "../utils/geo";
 import { EventService } from "../services/EventService";
+import { useFlags } from "../hooks/useFlags";
 import "./CourtsPage.css";
 
 const AUTO_RADIUS_M = 100;
@@ -55,6 +56,7 @@ const CourtsPage: React.FC = () => {
   const { user } = useAuth();
   const uid = user?.uid ?? null;
   const { unreadCount } = useAlerts(uid);
+  const flags = useFlags();
   const [sport, setSport] = useState<Sport>("tennis");
   const [courts, setCourts] = useState<Court[]>([]);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(
@@ -163,7 +165,7 @@ const CourtsPage: React.FC = () => {
     };
   }, []);
 
-  const autoEnabled = !!(profile?.autoCheckin && profile?.locationEnabled);
+  const autoEnabled = !!(flags.autoCheckin && profile?.autoCheckin && profile?.locationEnabled);
 
   useEffect(() => {
     if (!autoEnabled || !userLocation) {
