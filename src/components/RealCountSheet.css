@@ -1,0 +1,76 @@
+.real-count-sheet {
+  padding: 20px 16px 34px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.real-count-sheet__heading {
+  font-size: 20px;
+  font-weight: 700;
+  color: #111;
+  margin: 0;
+}
+
+.real-count-sheet__sub {
+  font-size: 14px;
+  color: #8a8a8e;
+  margin: 0;
+}
+
+.real-count-sheet__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.real-count-sheet__row {
+  display: flex;
+  align-items: center;
+  background: #f2f2f7;
+  border-radius: 12px;
+  padding: 13px 16px;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+}
+
+.real-count-sheet__row--selected {
+  background: #0d9677;
+  color: #fff;
+}
+
+.real-count-sheet__row--selected .real-count-sheet__label,
+.real-count-sheet__row--selected .real-count-sheet__count {
+  color: #fff;
+}
+
+.real-count-sheet__label {
+  flex: 1;
+  font-size: 16px;
+  font-weight: 600;
+  color: #111;
+}
+
+.real-count-sheet__count {
+  font-size: 15px;
+  font-weight: 500;
+  color: #8a8a8e;
+}
+
+.real-count-sheet__save {
+  width: 100%;
+  height: 50px;
+  background: #0d9677;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+}
+
+.real-count-sheet__save:disabled {
+  opacity: 0.5;
+}

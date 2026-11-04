@@ -1309,3 +1309,97 @@ describe("anonymous users are blocked", () => {
     await assertFails(setDoc(doc(asAnonymous(), "users/anon-uid"), profile));
   });
 });
+
+describe("config/teamAccounts", () => {
+  it("R-83 authenticated user can read teamAccounts", async () => {
+    await seed("config/teamAccounts", { uids: ["alice"] });
+    await assertSucceeds(getDoc(doc(asUser("alice"), "config/teamAccounts")));
+  });
+
+  it("R-84 unauthenticated user cannot read teamAccounts", async () => {
+    await seed("config/teamAccounts", { uids: ["alice"] });
+    await assertFails(getDoc(doc(asGuest(), "config/teamAccounts")));
+  });
+
+  it("R-85 no one can write teamAccounts", async () => {
+    await assertFails(setDoc(doc(asUser("alice"), "config/teamAccounts"), { uids: ["alice"] }));
+  });
+});
+
+describe("inPersonCounts", () => {
+  beforeEach(async () => {
+    await seed("config/teamAccounts", { uids: ["alice"] });
+  });
+
+  it("R-86 team member can create a valid real count", async () => {
+    await assertSucceeds(
+      addDoc(collection(asUser("alice"), "inPersonCounts"), {
+        courtId: "court-1",
+        uid: "alice",
+        playerCount: 5,
+        recordedAt: minutesFromNow(0),
+      }),
+    );
+  });
+
+  it("R-87 team member can read inPersonCounts", async () => {
+    await seed("inPersonCounts/count-1", { courtId: "court-1", uid: "alice", playerCount: 5, recordedAt: minutesFromNow(0) });
+    await assertSucceeds(getDoc(doc(asUser("alice"), "inPersonCounts/count-1")));
+  });
+
+  it("R-88 non-team member cannot create a real count", async () => {
+    await assertFails(
+      addDoc(collection(asUser("bob"), "inPersonCounts"), {
+        courtId: "court-1",
+        uid: "bob",
+        playerCount: 5,
+        recordedAt: minutesFromNow(0),
+      }),
+    );
+  });
+
+  it("R-89 non-team member cannot read inPersonCounts", async () => {
+    await seed("inPersonCounts/count-1", { courtId: "court-1", uid: "alice", playerCount: 5, recordedAt: minutesFromNow(0) });
+    await assertFails(getDoc(doc(asUser("bob"), "inPersonCounts/count-1")));
+  });
+
+  it("R-90 team member cannot spoof uid", async () => {
+    await assertFails(
+      addDoc(collection(asUser("alice"), "inPersonCounts"), {
+        courtId: "court-1",
+        uid: "bob",
+        playerCount: 5,
+        recordedAt: minutesFromNow(0),
+      }),
+    );
+  });
+
+  it("R-91 playerCount must be a valid range min", async () => {
+    await assertFails(
+      addDoc(collection(asUser("alice"), "inPersonCounts"), {
+        courtId: "court-1",
+        uid: "alice",
+        playerCount: 3,
+        recordedAt: minutesFromNow(0),
+      }),
+    );
+  });
+
+  it("R-92 extra fields are rejected", async () => {
+    await assertFails(
+      addDoc(collection(asUser("alice"), "inPersonCounts"), {
+        courtId: "court-1",
+        uid: "alice",
+        playerCount: 5,
+        recordedAt: minutesFromNow(0),
+        extra: "bad",
+      }),
+    );
+  });
+
+  it("R-93 no one can update or delete a real count", async () => {
+    await seed("inPersonCounts/count-1", { courtId: "court-1", uid: "alice", playerCount: 5, recordedAt: minutesFromNow(0) });
+    await assertFails(updateDoc(doc(asUser("alice"), "inPersonCounts/count-1"), { playerCount: 2 }));
+    await assertFails(deleteDoc(doc(asUser("alice"), "inPersonCounts/count-1")));
+  });
+});
