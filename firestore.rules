@@ -346,6 +346,52 @@ service cloud.firestore {
               || isCheckinVariant(request.resource.data.variant)
             )
           )
+          || (
+            request.resource.data.eventName == 'confirm_yes'
+            && request.resource.data.courtId is string
+          )
+          || (
+            request.resource.data.eventName == 'confirm_no'
+            && request.resource.data.courtId is string
+          )
+          || (
+            request.resource.data.eventName == 'permission_location'
+            && request.resource.data.granted is bool
+          )
+          || (
+            request.resource.data.eventName == 'permission_notifications'
+            && request.resource.data.granted is bool
+          )
+          || (
+            request.resource.data.eventName == 'game_left'
+            && request.resource.data.matchId is string
+            && request.resource.data.courtId is string
+          )
+          || (
+            request.resource.data.eventName == 'game_deleted'
+            && request.resource.data.matchId is string
+            && request.resource.data.courtId is string
+          )
+          || (
+            request.resource.data.eventName == 'host_changed'
+            && request.resource.data.matchId is string
+            && request.resource.data.courtId is string
+          )
+          || (
+            request.resource.data.eventName == 'player_removed'
+            && request.resource.data.matchId is string
+            && request.resource.data.courtId is string
+          )
+          || (
+            isTeamMember()
+            && request.resource.data.eventName == 'in_person_count'
+            && request.resource.data.courtId is string
+            && request.resource.data.playerCount is int
+            && (
+              request.resource.data.appPlayerCount is int
+              || request.resource.data.appPlayerCount == null
+            )
+          )
         );
       allow read, update, delete: if false;
     }

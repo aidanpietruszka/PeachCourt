@@ -1,9 +1,9 @@
 import {
-  addDoc,
   collection,
   doc,
   onSnapshot,
   Timestamp,
+  writeBatch,
   type Unsubscribe,
 } from "firebase/firestore";
 import { auth, db } from "./firebase";
@@ -30,13 +30,28 @@ export const TeamService = {
     );
   },
 
-  async recordRealCount(courtId: string, playerCount: number): Promise<void> {
+  async recordRealCount(
+    courtId: string,
+    playerCount: number,
+    appPlayerCount: number | null,
+  ): Promise<void> {
     const uid = await getUid();
-    await addDoc(collection(db, "inPersonCounts"), {
+    const now = Timestamp.now();
+    const batch = writeBatch(db);
+    batch.set(doc(collection(db, "inPersonCounts")), {
       courtId,
       uid,
       playerCount,
-      recordedAt: Timestamp.now(),
+      recordedAt: now,
     });
+    batch.set(doc(collection(db, "events")), {
+      eventName: "in_person_count",
+      uid,
+      courtId,
+      playerCount,
+      appPlayerCount: appPlayerCount ?? null,
+      timestamp: now,
+    });
+    await batch.commit();
   },
 };

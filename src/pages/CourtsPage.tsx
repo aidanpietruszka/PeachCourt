@@ -36,6 +36,7 @@ import { courtSummary } from "../utils/courts";
 import { formatDistance } from "../utils/geo";
 import { CROWD_RANGES, displayRange } from "../utils/crowdRange";
 import { distanceBetweenMeters } from "../utils/geo";
+import { EventService } from "../services/EventService";
 import "./CourtsPage.css";
 
 const AUTO_RADIUS_M = 100;
@@ -253,16 +254,19 @@ const CourtsPage: React.FC = () => {
       void CheckinService.updateCount(cid, playerCount).catch((error: unknown) => {
         console.error("Unable to update count from banner", error);
       });
+      void EventService.recordConfirmYes(cid).catch(() => null);
     },
     [autoBannerCourtId, dismissAutoBanner],
   );
 
   const handleWrongCourt = useCallback(() => {
+    const cid = autoBannerCourtId;
     dismissAutoBanner();
     void CheckinService.checkOut().catch((error: unknown) => {
       console.error("Wrong court check-out failed", error);
     });
-  }, [dismissAutoBanner]);
+    if (cid) void EventService.recordConfirmNo(cid).catch(() => null);
+  }, [autoBannerCourtId, dismissAutoBanner]);
 
   const hasLocation = userLocation !== null;
   const isSearching = searchText.length > 0;

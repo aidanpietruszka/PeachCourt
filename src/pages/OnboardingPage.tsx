@@ -201,9 +201,11 @@ const OnboardingPage: React.FC<Props> = ({ onComplete }) => {
         setLocationEnabled(true);
         setLocationBlocked(false);
         applyDefault();
+        void EventService.recordPermission("location", true).catch(() => null);
       } else {
         setLocationEnabled(false);
         setLocationBlocked(true);
+        void EventService.recordPermission("location", false).catch(() => null);
       }
     } catch {
       try {
@@ -212,13 +214,16 @@ const OnboardingPage: React.FC<Props> = ({ onComplete }) => {
           setLocationEnabled(true);
           setLocationBlocked(false);
           applyDefault();
+          void EventService.recordPermission("location", true).catch(() => null);
         } else {
           setLocationEnabled(false);
           setLocationBlocked(true);
+          void EventService.recordPermission("location", false).catch(() => null);
         }
       } catch {
         setLocationEnabled(false);
         setLocationBlocked(true);
+        void EventService.recordPermission("location", false).catch(() => null);
       }
     }
   };
@@ -261,6 +266,7 @@ const OnboardingPage: React.FC<Props> = ({ onComplete }) => {
     }
     const result = await Notification.requestPermission();
     setNotificationsEnabled(result === "granted");
+    void EventService.recordPermission("notifications", result === "granted").catch(() => null);
   };
 
   const handleFinish = async (notifEnabled: boolean, prompted: boolean) => {

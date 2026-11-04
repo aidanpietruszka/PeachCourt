@@ -85,4 +85,21 @@ export const EventService = {
   async recordFeedbackSkipped(): Promise<void> {
     await logEvent("feedback_skipped");
   },
+
+  async recordConfirmYes(courtId: string): Promise<void> {
+    await logEvent("confirm_yes", { courtId });
+  },
+
+  async recordConfirmNo(courtId: string): Promise<void> {
+    await logEvent("confirm_no", { courtId });
+  },
+
+  async recordPermission(
+    type: "location" | "notifications",
+    granted: boolean,
+  ): Promise<void> {
+    await logEvent(type === "location" ? "permission_location" : "permission_notifications", {
+      granted,
+    });
+  },
 };

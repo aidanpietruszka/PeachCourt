@@ -1,5 +1,8 @@
+import { rangeFromCount } from "./crowdRange";
+
 export const JOIN_WINDOW_MINUTES = 30;
 export const TOP_COURTS = 5;
+export const NOTIFICATION_SOURCES = ["push", "banner", "inbox"] as const;
 const AUTO_TEST = "Auto check-in test";
 const AUTO_VARIANTS: Array<[string, string]> = [
   ["auto_on", "Default on"],
@@ -161,6 +164,19 @@ function ownEvents(
   return autoChanges(events, cause, from, to).filter(
     (event) => event.participant === id,
   ).length;
+}
+
+export function rangesMatch(
+  appPlayerCount: unknown,
+  realPlayerCount: unknown,
+): boolean {
+  if (typeof appPlayerCount !== "number" || !Number.isFinite(appPlayerCount)) {
+    return false;
+  }
+  if (typeof realPlayerCount !== "number" || !Number.isFinite(realPlayerCount)) {
+    return false;
+  }
+  return rangeFromCount(appPlayerCount) === rangeFromCount(realPlayerCount);
 }
 
 export function summarize(
@@ -425,6 +441,44 @@ export function summarize(
     "Courts viewed at least once",
     viewedCourts.size,
     views.length,
+  );
+
+  const inPersonCounts = named(events, "in_person_count").filter(
+    (event) => typeof event.appPlayerCount === "number",
+  );
+  const rangesMatchedCount = inPersonCounts.filter((event) =>
+    rangesMatch(event.appPlayerCount, event.playerCount),
+  ).length;
+  add(
+    "Real count accuracy (Q2)",
+    "In-person counts recorded",
+    inPersonCounts.length,
+    inPersonCounts.length,
+  );
+  add(
+    "Real count accuracy (Q2)",
+    "App range matches real range (%)",
+    percent(rangesMatchedCount, inPersonCounts.length),
+    inPersonCounts.length,
+  );
+
+  const allJoins = named(events, "match_joined");
+  const notifJoins = allJoins.filter(
+    (event) =>
+      typeof event.joinSource === "string" &&
+      (NOTIFICATION_SOURCES as readonly string[]).includes(event.joinSource),
+  ).length;
+  add(
+    "Notification-driven joins (Q4)",
+    "Games joined",
+    allJoins.length,
+    allJoins.length,
+  );
+  add(
+    "Notification-driven joins (Q4)",
+    "Joined via notification (%)",
+    percent(notifJoins, allJoins.length),
+    allJoins.length,
   );
 
   return rows;
