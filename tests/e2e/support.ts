@@ -183,6 +183,42 @@ export async function seedUserProfile(
   expect(response.ok).toBe(true);
 }
 
+export async function seedTeamAccounts(uids: string[]) {
+  const response = await fetch(
+    `${FIRESTORE}/v1/projects/${PROJECT_ID}/databases/(default)/documents/config?documentId=teamAccounts`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer owner",
+      },
+      body: JSON.stringify({
+        fields: {
+          uids: toValue(uids),
+        },
+      }),
+    },
+  );
+  if (!response.ok) {
+    const patch = await fetch(
+      `${FIRESTORE}/v1/projects/${PROJECT_ID}/databases/(default)/documents/config/teamAccounts?updateMask.fieldPaths=uids`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer owner",
+        },
+        body: JSON.stringify({
+          fields: {
+            uids: toValue(uids),
+          },
+        }),
+      },
+    );
+    expect(patch.ok).toBe(true);
+  }
+}
+
 export async function seedReport(courtId: string, playerCount: number) {
   const response = await fetch(
     `${FIRESTORE}/v1/projects/${PROJECT_ID}/databases/(default)/documents/courtStatus?documentId=${courtId}`,

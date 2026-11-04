@@ -20,7 +20,9 @@ import {
 import { Geolocation } from "@capacitor/geolocation";
 import { useParams } from "react-router-dom";
 import MatchBoard from "../components/MatchBoard";
+import RealCountSheet from "../components/RealCountSheet";
 import { useAuth } from "../hooks/useAuth";
+import { useIsTeamMember } from "../hooks/useIsTeamMember";
 import { EMPTY_ACTIVITY, useLiveCourtData } from "../hooks/useLiveCourtData";
 import { CheckinService, type ActiveCheckIn } from "../services/CheckinService";
 import { CourtService } from "../services/CourtService";
@@ -93,6 +95,7 @@ const CourtDetailPage: React.FC = () => {
   const { courtId } = useParams<{ courtId: string }>();
   const { user } = useAuth();
   const uid = user?.uid ?? null;
+  const isTeamMember = useIsTeamMember(uid);
   const activity = useLiveCourtData();
   const [court, setCourt] = useState<Court | null | undefined>(undefined);
   const [activeCheckIn, setActiveCheckIn] = useState<ActiveCheckIn | null>(
@@ -121,6 +124,7 @@ const CourtDetailPage: React.FC = () => {
   const [isDetailsExpanded, setIsDetailsExpanded] = useState(
     loadDetailsExpanded,
   );
+  const [isRealCountOpen, setIsRealCountOpen] = useState(false);
 
   const courtActivity = (courtId && activity[courtId]) || EMPTY_ACTIVITY;
   const validActiveCheckIn =
@@ -478,6 +482,21 @@ const CourtDetailPage: React.FC = () => {
                 )}
               </section>
 
+              {isTeamMember && (
+                <button
+                  type="button"
+                  className="team-tools-card"
+                  onClick={() => setIsRealCountOpen(true)}
+                >
+                  <span className="team-tools-card__title">
+                    Team tools (testers only)
+                  </span>
+                  <span className="team-tools-card__sub">
+                    Record how many players are actually here.
+                  </span>
+                </button>
+              )}
+
               <div className="court-details">
                 <button
                   type="button"
@@ -811,6 +830,15 @@ const CourtDetailPage: React.FC = () => {
         duration={3500}
         onDidDismiss={() => setToastMessage("")}
       />
+
+      {courtId && (
+        <RealCountSheet
+          isOpen={isRealCountOpen}
+          onClose={() => setIsRealCountOpen(false)}
+          courtId={courtId}
+          currentPlayerCount={courtActivity.reported}
+        />
+      )}
     </IonPage>
   );
 };

@@ -20,6 +20,12 @@ service cloud.firestore {
       return value in ['auto_on', 'auto_off'];
     }
 
+    function isTeamMember() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/config/teamAccounts)
+        && request.auth.uid in get(/databases/$(database)/documents/config/teamAccounts).data.uids;
+    }
+
     match /courts/{courtId} {
       allow read: if true;
       allow write: if false;
@@ -225,6 +231,23 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
         && request.resource.data.read == true;
       allow create, delete: if false;
+    }
+
+    match /config/teamAccounts {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    match /inPersonCounts/{countId} {
+      allow read: if isTeamMember();
+      allow create: if isTeamMember()
+        && request.resource.data.keys().hasOnly(['courtId', 'uid', 'playerCount', 'recordedAt'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.courtId is string
+        && request.resource.data.playerCount is int
+        && request.resource.data.playerCount in [1, 2, 5, 9, 16]
+        && request.resource.data.recordedAt is timestamp;
+      allow update, delete: if false;
     }
 
     match /events/{eventId} {
