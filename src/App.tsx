@@ -5,6 +5,7 @@ import WelcomePage from "./pages/WelcomePage";
 import LoginPage from "./pages/LoginPage";
 import SignUpPage from "./pages/SignUpPage";
 import CourtDetailPage from "./pages/CourtDetailPage";
+import GameChatPage from "./pages/GameChatPage";
 import NotificationInboxPage from "./pages/NotificationInboxPage";
 import OnboardingPage from "./pages/OnboardingPage";
 import EditProfilePage from "./pages/EditProfilePage";
@@ -78,8 +79,17 @@ const App: React.FC = () => (
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/chats/:matchId"
+            element={
+              <ProtectedRoute>
+                <GameChatPage />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/courts" element={<TabsLayout />} />
           <Route path="/profile" element={<TabsLayout />} />
+          <Route path="/chats" element={<TabsLayout />} />
         </IonRouterOutlet>
       </IonReactRouter>
     </AuthProvider>

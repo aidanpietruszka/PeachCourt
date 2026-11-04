@@ -1,0 +1,143 @@
+.game-chat {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 100vh;
+}
+
+.game-chat__back-row {
+  padding: 12px 16px 0;
+}
+
+.game-chat__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 16px;
+  color: #0d9677;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.game-chat__header {
+  padding: 10px 16px 12px;
+  border-bottom: 1px solid #e5e5ea;
+}
+
+.game-chat__title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #111;
+  margin: 0 0 2px;
+}
+
+.game-chat__subtitle {
+  font-size: 13px;
+  color: #8a8a8e;
+  margin: 0;
+}
+
+.game-chat__details-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 13px;
+  color: #0d9677;
+  cursor: pointer;
+}
+
+.game-chat__messages {
+  flex: 1;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+}
+
+.game-chat__system {
+  text-align: center;
+  font-size: 12px;
+  color: #8a8a8e;
+  margin: 8px 0 4px;
+}
+
+.game-chat__msg-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 75%;
+}
+
+.game-chat__msg-group--self {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+.game-chat__sender {
+  font-size: 11px;
+  color: #8a8a8e;
+  margin: 0 0 3px 6px;
+}
+
+.game-chat__bubble {
+  background: #f0f0f4;
+  color: #111;
+  border-radius: 18px 18px 18px 4px;
+  padding: 10px 14px;
+  font-size: 15px;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.game-chat__bubble--self {
+  background: #0d9677;
+  color: #fff;
+  border-radius: 18px 18px 4px 18px;
+}
+
+.game-chat__send-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px 24px;
+  border-top: 1px solid #e5e5ea;
+  background: #fff;
+}
+
+.game-chat__input {
+  flex: 1;
+  height: 40px;
+  border: 1.5px solid #e5e5ea;
+  border-radius: 20px;
+  padding: 0 14px;
+  font-size: 15px;
+  color: #111;
+  background: #f9f9f9;
+  outline: none;
+}
+
+.game-chat__input:focus {
+  border-color: #0d9677;
+  background: #fff;
+}
+
+.game-chat__send-btn {
+  height: 40px;
+  padding: 0 18px;
+  background: #0d9677;
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.game-chat__send-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}

@@ -28,6 +28,8 @@ function alertTitle(a: Alert): string {
       return `New ${a.gameFormat ?? "game"} at ${a.gameCourtName ?? "a court"}`;
     case "game_reminder":
       return "Starts in 1 hour";
+    case "new_message":
+      return `${a.actorName ?? "Someone"} sent a message`;
     case "player_joined":
       return `${a.actorName ?? "Someone"} joined your game`;
     case "player_left":
@@ -56,6 +58,8 @@ function alertBody(a: Alert): string {
     }
     case "game_reminder":
       return `${fmt} at ${venue}`;
+    case "new_message":
+      return `${fmt} at ${venue}`;
     case "player_joined":
       return `${fmt} at ${venue}`;
     case "player_left":
@@ -77,6 +81,8 @@ function alertIcon(type: AlertType): IconConfig {
       return { bg: "#e3f5ef", color: "#0d9677", symbol: "+" };
     case "game_reminder":
       return { bg: "#fdf3e1", color: "#c07c10", symbol: "⏰" };
+    case "new_message":
+      return { bg: "#e3f5ef", color: "#0d9677", symbol: "💬" };
     case "player_joined":
       return { bg: "#e8f0fe", color: "#1a73e8", symbol: "→" };
     case "player_left":
@@ -122,7 +128,9 @@ const NotificationInboxPage: React.FC = () => {
     void AlertService.markRead(a.id).catch((err: unknown) => {
       console.error("Unable to mark alert read", err);
     });
-    if (a.gameCourtId) {
+    if (a.type === "new_message" && a.gameId) {
+      ionRouter.push(`/chats/${a.gameId}`, "forward");
+    } else if (a.gameCourtId) {
       ionRouter.push(`/courts/${a.gameCourtId}`, "forward");
     }
   };

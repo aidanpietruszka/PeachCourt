@@ -9,6 +9,7 @@ import { handleDeleteAccount } from "./deleteAccount";
 import { handleMatchUpdated, handleMatchDeleted } from "./matchNotifications";
 import { handleGameCreated } from "./gameAlerts";
 import { sendGameReminders } from "./gameReminders";
+import { handleMessageCreated, deleteExpiredChatsImpl } from "./chatNotifications";
 
 function mockResponse() {
   const response = {
@@ -610,5 +611,94 @@ describe("sendGameReminders", () => {
     await sendGameReminders([{ id: "m1", data: reminderGame }], getUser, db);
     expect(db.addedAlerts).toHaveLength(1);
     expect(db.addedAlerts[0].recipientUid).toBe("alice");
+  });
+});
+
+describe("handleMessageCreated", () => {
+  const chatData: Record<string, unknown> = {
+    courtId: "court-1",
+    courtName: "City Park",
+    sport: "tennis",
+    format: "doubles",
+    startAt: { seconds: 9999999 },
+    playerUids: ["alice", "bob", "carol"],
+  };
+
+  it("F-33 sends new_message alert to all players except the sender", async () => {
+    const db = makeAlertDb();
+    const msgData: Record<string, unknown> = {
+      senderUid: "alice",
+      senderName: "Alice",
+      text: "Hello",
+    };
+    await handleMessageCreated("m1", msgData, chatData, db);
+    expect(db.addedAlerts).toHaveLength(2);
+    const recipients = db.addedAlerts.map((a) => a.recipientUid);
+    expect(recipients).toContain("bob");
+    expect(recipients).toContain("carol");
+    expect(recipients).not.toContain("alice");
+  });
+
+  it("F-34 alert has correct type and gameId", async () => {
+    const db = makeAlertDb();
+    await handleMessageCreated(
+      "m1",
+      { senderUid: "alice", senderName: "Alice", text: "Hi" },
+      chatData,
+      db,
+    );
+    expect(db.addedAlerts[0]).toMatchObject({
+      type: "new_message",
+      gameId: "m1",
+      actorName: "Alice",
+    });
+  });
+
+  it("F-35 no alerts when sender is the only player", async () => {
+    const db = makeAlertDb();
+    await handleMessageCreated(
+      "m1",
+      { senderUid: "alice", senderName: "Alice", text: "Hi" },
+      { ...chatData, playerUids: ["alice"] },
+      db,
+    );
+    expect(db.addedAlerts).toHaveLength(0);
+  });
+});
+
+describe("deleteExpiredChatsImpl", () => {
+  function makeChatDb(docs: Array<{ id: string }>) {
+    const deletedPaths: string[] = [];
+    const db = {
+      collection: (name: string) => ({
+        where: () => ({
+          get: () =>
+            Promise.resolve({
+              docs: docs.map((d) => ({
+                id: d.id,
+                ref: { path: `${name}/${d.id}` },
+              })),
+            }),
+        }),
+      }),
+      recursiveDelete: (ref: { path: string }) => {
+        deletedPaths.push(ref.path);
+        return Promise.resolve();
+      },
+      doc: (path: string) => ({ path }),
+    };
+    return { db, deletedPaths };
+  }
+
+  it("F-36 deletes each expired chat with recursiveDelete", async () => {
+    const { db, deletedPaths } = makeChatDb([{ id: "m1" }, { id: "m2" }]);
+    await deleteExpiredChatsImpl(Date.now(), db as never);
+    expect(deletedPaths).toEqual(["chats/m1", "chats/m2"]);
+  });
+
+  it("F-37 does nothing when no expired chats exist", async () => {
+    const { db, deletedPaths } = makeChatDb([]);
+    await deleteExpiredChatsImpl(Date.now(), db as never);
+    expect(deletedPaths).toHaveLength(0);
   });
 });

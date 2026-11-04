@@ -549,3 +549,80 @@ export async function joinGame(page: Page, card: Locator) {
   const sheet = page.locator("ion-modal").filter({ visible: true }).last();
   await ionButton(sheet, "Join game").click();
 }
+
+export async function seedChat(
+  matchId: string,
+  overrides: Record<string, unknown> = {},
+) {
+  const fields = Object.fromEntries(
+    Object.entries({
+      matchId,
+      courtId: COURTS.alpha.id,
+      courtName: COURTS.alpha.name,
+      format: "doubles",
+      sport: "tennis",
+      startAt: { timestampValue: new Date(Date.now() + 90 * 60_000).toISOString() },
+      hostUid: "alice",
+      hostName: "Alice",
+      playerUids: ["alice", "bob"],
+      playerNames: ["Alice", "Bob"],
+      lastMessage: null,
+      lastSenderName: null,
+      lastSenderUid: null,
+      lastMessageAt: null,
+      readAt: {},
+      createdAt: { timestampValue: new Date().toISOString() },
+      ...overrides,
+    }).map(([key, value]) => {
+      if (
+        typeof value === "object" &&
+        value !== null &&
+        ("timestampValue" in value || "nullValue" in value)
+      ) {
+        if ("nullValue" in value) return [key, { nullValue: null }];
+        return [key, value];
+      }
+      return [key, toValue(value)];
+    }),
+  );
+  const response = await fetch(
+    `${FIRESTORE}/v1/projects/${PROJECT_ID}/databases/(default)/documents/chats?documentId=${matchId}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer owner" },
+      body: JSON.stringify({ fields }),
+    },
+  );
+  expect(response.ok).toBe(true);
+}
+
+export async function seedMessage(
+  matchId: string,
+  msgId: string,
+  senderUid: string,
+  senderName: string,
+  text: string,
+) {
+  const fields = Object.fromEntries(
+    Object.entries({
+      text,
+      senderUid,
+      senderName,
+      createdAt: { timestampValue: new Date().toISOString() },
+    }).map(([key, value]) => {
+      if (typeof value === "object" && value !== null && "timestampValue" in value) {
+        return [key, value];
+      }
+      return [key, toValue(value)];
+    }),
+  );
+  const response = await fetch(
+    `${FIRESTORE}/v1/projects/${PROJECT_ID}/databases/(default)/documents/chats/${matchId}/messages?documentId=${msgId}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer owner" },
+      body: JSON.stringify({ fields }),
+    },
+  );
+  expect(response.ok).toBe(true);
+}

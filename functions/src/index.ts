@@ -18,9 +18,11 @@ export { deleteAccount } from "./deleteAccount";
 export { handleMatchUpdated, handleMatchDeleted } from "./matchNotifications";
 export { handleGameCreated } from "./gameAlerts";
 export { sendGameReminders } from "./gameReminders";
+export { handleMessageCreated, deleteExpiredChatsImpl } from "./chatNotifications";
 import { handleMatchUpdated, handleMatchDeleted } from "./matchNotifications";
 import { handleGameCreated } from "./gameAlerts";
 import { sendGameReminders } from "./gameReminders";
+import { handleMessageCreated, deleteExpiredChatsImpl } from "./chatNotifications";
 import type { CloudEvent } from "firebase-functions/v2";
 import type { MessagePublishedData } from "firebase-functions/v2/pubsub";
 
@@ -92,6 +94,27 @@ export const billingCutoff = onMessagePublished(
   handleBudgetAlert,
 );
 
+function chatDocFromMatch(matchId: string, data: Record<string, unknown>): Record<string, unknown> {
+  return {
+    matchId,
+    courtId: data.courtId ?? "",
+    courtName: data.courtName ?? "",
+    format: data.format,
+    sport: data.sport,
+    startAt: data.startAt,
+    hostUid: data.hostUid,
+    hostName: data.hostName,
+    playerUids: data.playerUids ?? [],
+    playerNames: data.playerNames ?? [],
+    lastMessage: null,
+    lastSenderName: null,
+    lastSenderUid: null,
+    lastMessageAt: null,
+    readAt: {},
+    createdAt: new Date(),
+  };
+}
+
 export const onMatchCreated = onDocumentCreated(
   "matches/{matchId}",
   async (event) => {
@@ -102,7 +125,10 @@ export const onMatchCreated = onDocumentCreated(
       const snap = await db.collection("users").get();
       return snap.docs.map((d) => ({ id: d.id, data: d.data() as Record<string, unknown> }));
     };
-    await handleGameCreated(event.params.matchId, data, listUsers, db);
+    await Promise.all([
+      handleGameCreated(event.params.matchId, data, listUsers, db),
+      db.collection("chats").doc(event.params.matchId).set(chatDocFromMatch(event.params.matchId, data)),
+    ]);
   },
 );
 
@@ -112,7 +138,19 @@ export const onMatchUpdated = onDocumentUpdated(
     const before = event.data?.before.data() as Record<string, unknown> | undefined;
     const after = event.data?.after.data() as Record<string, unknown> | undefined;
     if (!before || !after) return;
-    await handleMatchUpdated(event.params.matchId, before, after, getFirestore());
+    const db = getFirestore();
+    await Promise.all([
+      handleMatchUpdated(event.params.matchId, before, after, db),
+      db.collection("chats").doc(event.params.matchId).set(
+        {
+          hostUid: after.hostUid,
+          hostName: after.hostName,
+          playerUids: after.playerUids ?? [],
+          playerNames: after.playerNames ?? [],
+        },
+        { merge: true },
+      ),
+    ]);
   },
 );
 
@@ -121,9 +159,43 @@ export const onMatchDeleted = onDocumentDeleted(
   async (event) => {
     const data = event.data?.data() as Record<string, unknown> | undefined;
     if (!data) return;
-    await handleMatchDeleted(event.params.matchId, data, getFirestore());
+    const db = getFirestore();
+    await Promise.all([
+      handleMatchDeleted(event.params.matchId, data, db),
+      db.recursiveDelete(db.collection("chats").doc(event.params.matchId)),
+    ]);
   },
 );
+
+export const onChatMessageCreated = onDocumentCreated(
+  "chats/{matchId}/messages/{msgId}",
+  async (event) => {
+    const msgData = event.data?.data() as Record<string, unknown> | undefined;
+    if (!msgData) return;
+    const { matchId } = event.params;
+    const db = getFirestore();
+    const chatSnap = await db.collection("chats").doc(matchId).get();
+    const chatData = chatSnap.data() as Record<string, unknown> | undefined;
+    if (!chatData) return;
+    await Promise.all([
+      db.collection("chats").doc(matchId).set(
+        {
+          lastMessage: msgData.text,
+          lastSenderName: msgData.senderName,
+          lastSenderUid: msgData.senderUid,
+          lastMessageAt: msgData.createdAt,
+        },
+        { merge: true },
+      ),
+      handleMessageCreated(matchId, msgData, chatData, db),
+    ]);
+  },
+);
+
+export const deleteExpiredChatsCron = onSchedule("every 15 minutes", async () => {
+  const db = getFirestore();
+  await deleteExpiredChatsImpl(Date.now(), db as unknown as Parameters<typeof deleteExpiredChatsImpl>[1]);
+});
 
 export const gameRemindersCron = onSchedule("every 15 minutes", async () => {
   const db = getFirestore();

@@ -16,6 +16,7 @@ import {
   IonTitle,
   IonToast,
   IonToolbar,
+  useIonRouter,
 } from "@ionic/react";
 import GameDetailModal from "./GameDetailModal";
 import { useAuth } from "../hooks/useAuth";
@@ -102,6 +103,7 @@ const MatchBoard: React.FC<MatchBoardProps> = ({
   isPostOpen,
   onClosePost,
 }) => {
+  const ionRouter = useIonRouter();
   const { user } = useAuth();
   const uid = user?.uid ?? null;
   const { tennisCourts, pickleballCourts, pickleballLines } = court;
@@ -888,6 +890,10 @@ const MatchBoard: React.FC<MatchBoardProps> = ({
         match={detailMatchLive}
         courtName={court.name}
         onClose={() => setDetailMatch(null)}
+        onOpenChat={(matchId) => {
+          setDetailMatch(null);
+          ionRouter.push(`/chats/${matchId}`, "forward");
+        }}
       />
 
       <IonToast
