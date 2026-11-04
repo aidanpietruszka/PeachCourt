@@ -47,12 +47,14 @@ interface GameDetailModalProps {
   match: Match | null;
   courtName: string;
   onClose: () => void;
+  onOpenChat?: (matchId: string) => void;
 }
 
 const GameDetailModal: React.FC<GameDetailModalProps> = ({
   match,
   courtName,
   onClose,
+  onOpenChat,
 }) => {
   const { user } = useAuth();
   const uid = user?.uid ?? null;
@@ -304,7 +306,12 @@ const GameDetailModal: React.FC<GameDetailModalProps> = ({
                 </div>
 
                 <div className="game-detail__actions">
-                  <IonButton fill="outline" size="small" disabled>
+                  <IonButton
+                    fill="outline"
+                    size="small"
+                    onClick={() => match && onOpenChat?.(match.id)}
+                    disabled={!onOpenChat}
+                  >
                     Open chat
                   </IonButton>
                   <IonButton fill="outline" size="small" disabled>

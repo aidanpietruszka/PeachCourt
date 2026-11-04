@@ -43,6 +43,34 @@ export interface UserProfile {
   chatMessagesAlert?: boolean;
 }
 
+export interface Chat {
+  id: string;
+  matchId: string;
+  courtId: string;
+  courtName: string;
+  format: MatchFormat;
+  sport: Sport;
+  startAt: Timestamp;
+  hostUid: string;
+  hostName: string;
+  playerUids: string[];
+  playerNames: string[];
+  lastMessage: string | null;
+  lastSenderName: string | null;
+  lastSenderUid: string | null;
+  lastMessageAt: Timestamp | null;
+  readAt: Record<string, Timestamp>;
+  createdAt: Timestamp;
+}
+
+export interface ChatMessage {
+  id: string;
+  text: string;
+  senderUid: string;
+  senderName: string;
+  createdAt: Timestamp;
+}
+
 export type MatchFormat = "singles" | "doubles";
 
 export type SkillLevel = number | "any";

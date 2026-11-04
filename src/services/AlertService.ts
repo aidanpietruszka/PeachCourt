@@ -16,6 +16,7 @@ import type { Sport, MatchFormat } from "../types/types";
 export type AlertType =
   | "new_game"
   | "game_reminder"
+  | "new_message"
   | "player_joined"
   | "player_left"
   | "player_removed"

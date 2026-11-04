@@ -10,13 +10,15 @@ import {
   useIonRouter,
 } from "@ionic/react";
 import { Route } from "react-router-dom";
-import { locationOutline, personOutline } from "ionicons/icons";
+import { chatbubblesOutline, locationOutline, personOutline } from "ionicons/icons";
 import CourtsPage from "../pages/CourtsPage";
 import ProfilePage from "../pages/ProfilePage";
+import ChatsPage from "../pages/ChatsPage";
 import ProtectedRoute from "./ProtectedRoute";
 import { useAuth } from "../hooks/useAuth";
 import { UserService } from "../services/UserService";
 import { useAlerts } from "../hooks/useAlerts";
+import { useChatList } from "../hooks/useChatList";
 import { AlertService, type Alert } from "../services/AlertService";
 import type { Timestamp } from "firebase/firestore";
 
@@ -26,6 +28,8 @@ function alertBannerTitle(a: Alert): string {
       return `New ${a.gameFormat ?? "game"} at ${a.gameCourtName ?? "a court"}`;
     case "game_reminder":
       return "Starts in 1 hour";
+    case "new_message":
+      return `${a.actorName ?? "Someone"} sent a message`;
     case "player_joined":
       return `${a.actorName ?? "Someone"} joined your game`;
     case "player_left":
@@ -51,6 +55,8 @@ function alertBannerBody(a: Alert): string {
       ].filter(Boolean);
       return parts.join(" · ");
     }
+    case "new_message":
+      return `${fmt.charAt(0).toUpperCase() + fmt.slice(1)} at ${venue}`.trim();
     default:
       return `${fmt.charAt(0).toUpperCase() + fmt.slice(1)} at ${venue}`.trim();
   }
@@ -60,6 +66,7 @@ const TabsLayout: React.FC = () => {
   const ionRouter = useIonRouter();
   const { user } = useAuth();
   const { alerts } = useAlerts(user?.uid ?? null);
+  const { unreadChatCount } = useChatList(user?.uid ?? null);
   const [bannerAlert, setBannerAlert] = useState<Alert | null>(null);
   const bannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bannerCutoffRef = useRef<number>(Date.now());
@@ -107,7 +114,9 @@ const TabsLayout: React.FC = () => {
     void AlertService.markRead(bannerAlert.id).catch((err: unknown) => {
       console.error("Unable to mark alert read", err);
     });
-    if (bannerAlert.gameCourtId) {
+    if (bannerAlert.type === "new_message" && bannerAlert.gameId) {
+      ionRouter.push(`/chats/${bannerAlert.gameId}`, "forward");
+    } else if (bannerAlert.gameCourtId) {
       ionRouter.push(`/courts/${bannerAlert.gameCourtId}`, "forward");
     }
     dismissBanner();
@@ -149,11 +158,28 @@ const TabsLayout: React.FC = () => {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/chats"
+            element={
+              <ProtectedRoute>
+                <ChatsPage />
+              </ProtectedRoute>
+            }
+          />
         </IonRouterOutlet>
         <IonTabBar slot="bottom">
           <IonTabButton tab="courts" href="/courts">
             <IonIcon icon={locationOutline} />
             <IonLabel>Courts</IonLabel>
+          </IonTabButton>
+          <IonTabButton tab="chats" href="/chats">
+            <IonIcon icon={chatbubblesOutline} />
+            <IonLabel>Chats</IonLabel>
+            {unreadChatCount > 0 && (
+              <span className="tab-badge" aria-label={`${unreadChatCount} unread`}>
+                {unreadChatCount}
+              </span>
+            )}
           </IonTabButton>
           <IonTabButton tab="profile" href="/profile">
             <IonIcon icon={personOutline} />

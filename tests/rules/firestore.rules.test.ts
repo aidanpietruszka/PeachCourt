@@ -1139,6 +1139,109 @@ describe("users: write-once check-in variant (SAC-50)", () => {
   });
 });
 
+function chatData(overrides: Record<string, unknown> = {}) {
+  return {
+    matchId: "m1",
+    courtId: "court-1",
+    courtName: "City Park",
+    format: "doubles",
+    sport: "tennis",
+    startAt: minutesFromNow(60),
+    hostUid: "alice",
+    hostName: "Alice",
+    playerUids: ["alice", "bob"],
+    playerNames: ["Alice", "Bob"],
+    lastMessage: null,
+    lastSenderName: null,
+    lastSenderUid: null,
+    lastMessageAt: null,
+    readAt: {},
+    createdAt: Timestamp.now(),
+    ...overrides,
+  };
+}
+
+function messageData(senderUid: string, overrides: Record<string, unknown> = {}) {
+  return {
+    text: "Hello",
+    senderUid,
+    senderName: "Alice",
+    createdAt: Timestamp.now(),
+    ...overrides,
+  };
+}
+
+describe("chats", () => {
+  it("R-72 a player can read their own chat", async () => {
+    await seed("chats/m1", chatData());
+    await assertSucceeds(getDoc(doc(asUser("alice"), "chats/m1")));
+    await assertSucceeds(getDoc(doc(asUser("bob"), "chats/m1")));
+  });
+
+  it("R-73 a non-player cannot read a chat", async () => {
+    await seed("chats/m1", chatData());
+    await assertFails(getDoc(doc(asUser("carol"), "chats/m1")));
+  });
+
+  it("R-74 no one can create a chat directly", async () => {
+    await assertFails(setDoc(doc(asUser("alice"), "chats/m1"), chatData()));
+  });
+
+  it("R-75 no one can delete a chat directly", async () => {
+    await seed("chats/m1", chatData());
+    await assertFails(deleteDoc(doc(asUser("alice"), "chats/m1")));
+  });
+
+  it("R-76 a player can mark their own readAt", async () => {
+    await seed("chats/m1", chatData());
+    await assertSucceeds(
+      updateDoc(doc(asUser("alice"), "chats/m1"), { "readAt.alice": Timestamp.now() }),
+    );
+  });
+
+  it("R-77 a player cannot update other chat fields", async () => {
+    await seed("chats/m1", chatData());
+    await assertFails(
+      updateDoc(doc(asUser("alice"), "chats/m1"), { lastMessage: "hi" }),
+    );
+  });
+
+  it("R-78 a player can read messages in their chat", async () => {
+    await seed("chats/m1", chatData());
+    await seed("chats/m1/messages/msg1", messageData("alice"));
+    await assertSucceeds(getDoc(doc(asUser("bob"), "chats/m1/messages/msg1")));
+  });
+
+  it("R-79 a non-player cannot read messages", async () => {
+    await seed("chats/m1", chatData());
+    await seed("chats/m1/messages/msg1", messageData("alice"));
+    await assertFails(getDoc(doc(asUser("carol"), "chats/m1/messages/msg1")));
+  });
+
+  it("R-80 a player can send a valid message", async () => {
+    await seed("chats/m1", chatData());
+    await assertSucceeds(
+      addDoc(collection(asUser("alice"), "chats/m1/messages"), messageData("alice")),
+    );
+  });
+
+  it("R-81 a player cannot send a message as someone else", async () => {
+    await seed("chats/m1", chatData());
+    await assertFails(
+      addDoc(collection(asUser("alice"), "chats/m1/messages"), messageData("carol")),
+    );
+  });
+
+  it("R-82 no one can update or delete a message", async () => {
+    await seed("chats/m1", chatData());
+    await seed("chats/m1/messages/msg1", messageData("alice"));
+    await assertFails(
+      updateDoc(doc(asUser("alice"), "chats/m1/messages/msg1"), { text: "edited" }),
+    );
+    await assertFails(deleteDoc(doc(asUser("alice"), "chats/m1/messages/msg1")));
+  });
+});
+
 describe("anonymous users are blocked", () => {
   it("R-anon-01 anonymous user cannot read checkins", async () => {
     await seed("checkins/c1", checkinData("alice"));

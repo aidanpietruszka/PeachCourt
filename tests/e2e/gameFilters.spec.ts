@@ -82,7 +82,7 @@ test("E2E-169 reset button clears all filters", async ({ browser }) => {
   await page.locator(".match-board__filter-btn").click();
   const sheet = page.locator("ion-modal").filter({ visible: true }).last();
   await sheet.locator(".filter-chip").filter({ hasText: "Today" }).click();
-  await sheet.locator(".filter-chip").filter({ hasText: "Singles" }).click();
+  await sheet.locator(".game-filter-sheet__seg-btn").filter({ hasText: "Singles" }).click();
   await sheet.locator(".game-filter-sheet__reset").click();
   await sheet.locator(".game-filter-sheet__show-btn").click();
   await expect(page.locator(".match-board__chip")).toHaveCount(0);
