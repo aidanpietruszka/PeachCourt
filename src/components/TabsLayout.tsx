@@ -10,10 +10,11 @@ import {
   useIonRouter,
 } from "@ionic/react";
 import { Route } from "react-router-dom";
-import { chatbubblesOutline, locationOutline, personOutline } from "ionicons/icons";
+import { chatbubblesOutline, locationOutline, personOutline, timeOutline } from "ionicons/icons";
 import CourtsPage from "../pages/CourtsPage";
 import ProfilePage from "../pages/ProfilePage";
 import ChatsPage from "../pages/ChatsPage";
+import MyActivityPage from "../pages/MyActivityPage";
 import ProtectedRoute from "./ProtectedRoute";
 import { useAuth } from "../hooks/useAuth";
 import { UserService } from "../services/UserService";
@@ -143,6 +144,14 @@ const TabsLayout: React.FC = () => {
       <IonTabs>
         <IonRouterOutlet>
           <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/courts"
             element={
               <ProtectedRoute>
@@ -151,10 +160,10 @@ const TabsLayout: React.FC = () => {
             }
           />
           <Route
-            path="/profile"
+            path="/activity"
             element={
               <ProtectedRoute>
-                <ProfilePage />
+                <MyActivityPage />
               </ProtectedRoute>
             }
           />
@@ -168,9 +177,17 @@ const TabsLayout: React.FC = () => {
           />
         </IonRouterOutlet>
         <IonTabBar slot="bottom">
+          <IonTabButton tab="profile" href="/profile">
+            <IonIcon icon={personOutline} />
+            <IonLabel>Profile</IonLabel>
+          </IonTabButton>
           <IonTabButton tab="courts" href="/courts">
             <IonIcon icon={locationOutline} />
             <IonLabel>Courts</IonLabel>
+          </IonTabButton>
+          <IonTabButton tab="activity" href="/activity">
+            <IonIcon icon={timeOutline} />
+            <IonLabel>My Activity</IonLabel>
           </IonTabButton>
           <IonTabButton tab="chats" href="/chats">
             <IonIcon icon={chatbubblesOutline} />
@@ -180,10 +197,6 @@ const TabsLayout: React.FC = () => {
                 {unreadChatCount}
               </span>
             )}
-          </IonTabButton>
-          <IonTabButton tab="profile" href="/profile">
-            <IonIcon icon={personOutline} />
-            <IonLabel>Profile</IonLabel>
           </IonTabButton>
         </IonTabBar>
       </IonTabs>

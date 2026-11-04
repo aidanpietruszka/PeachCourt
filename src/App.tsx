@@ -89,6 +89,7 @@ const App: React.FC = () => (
           />
           <Route path="/courts" element={<TabsLayout />} />
           <Route path="/profile" element={<TabsLayout />} />
+          <Route path="/activity" element={<TabsLayout />} />
           <Route path="/chats" element={<TabsLayout />} />
         </IonRouterOutlet>
       </IonReactRouter>

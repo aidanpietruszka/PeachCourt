@@ -20,6 +20,18 @@ export const SPOTS_BY_FORMAT: Record<MatchFormat, number> = {
   doubles: 3,
 };
 
+export interface MyActivityGame {
+  id: string;
+  sport: Sport;
+  format: MatchFormat;
+  startAt: number;
+  courtId: string;
+  courtName: string;
+  hostUid: string;
+  spotsTotal: number;
+  playerUids: string[];
+}
+
 async function currentUid(): Promise<string> {
   await auth.authStateReady();
   if (!auth.currentUser) {
@@ -35,6 +47,20 @@ function matchToPlayerGame(match: Match): PlayerGame {
     format: match.format,
     startAt: match.startAt.toMillis(),
     courtName: match.courtName ?? "",
+  };
+}
+
+function matchToMyActivityGame(match: Match): MyActivityGame {
+  return {
+    id: match.id,
+    sport: match.sport,
+    format: match.format,
+    startAt: match.startAt.toMillis(),
+    courtId: match.courtId,
+    courtName: match.courtName ?? "",
+    hostUid: match.hostUid,
+    spotsTotal: match.spotsTotal,
+    playerUids: match.playerUids,
   };
 }
 
@@ -63,6 +89,65 @@ export const MatchService = {
         if (!seen.has(match.id)) {
           seen.add(match.id);
           merged.push(matchToPlayerGame(match));
+        }
+      }
+      onChange(merged);
+    };
+
+    const unsubHosted = onSnapshot(
+      hostedQuery,
+      (snapshot) => {
+        hostedMatches.length = 0;
+        for (const d of snapshot.docs) {
+          hostedMatches.push({ ...(d.data() as Omit<Match, "id">), id: d.id });
+        }
+        emit();
+      },
+      onError,
+    );
+
+    const unsubJoined = onSnapshot(
+      joinedQuery,
+      (snapshot) => {
+        joinedMatches.length = 0;
+        for (const d of snapshot.docs) {
+          joinedMatches.push({ ...(d.data() as Omit<Match, "id">), id: d.id });
+        }
+        emit();
+      },
+      onError,
+    );
+
+    return () => {
+      unsubHosted();
+      unsubJoined();
+    };
+  },
+
+  subscribeToMyActivityGames(
+    uid: string,
+    onChange: (games: MyActivityGame[]) => void,
+    onError: (error: Error) => void,
+  ): Unsubscribe {
+    const hostedQuery = query(
+      collection(db, "matches"),
+      where("hostUid", "==", uid),
+    );
+    const joinedQuery = query(
+      collection(db, "matches"),
+      where("playerUids", "array-contains", uid),
+    );
+
+    const hostedMatches: Match[] = [];
+    const joinedMatches: Match[] = [];
+
+    const emit = () => {
+      const seen = new Set<string>();
+      const merged: MyActivityGame[] = [];
+      for (const match of [...hostedMatches, ...joinedMatches]) {
+        if (!seen.has(match.id)) {
+          seen.add(match.id);
+          merged.push(matchToMyActivityGame(match));
         }
       }
       onChange(merged);
