@@ -923,6 +923,14 @@ describe("matrix: events", () => {
     count_updated: { courtId: "c1", playerCount: 2 },
     still_here_yes: { courtId: "c1", playerCount: 2 },
     still_here_skipped: { courtId: "c1" },
+    confirm_yes: { courtId: "c1" },
+    confirm_no: { courtId: "c1" },
+    permission_location: { granted: true },
+    permission_notifications: { granted: false },
+    game_left: { courtId: "c1", matchId: "m1" },
+    game_deleted: { courtId: "c1", matchId: "m1" },
+    host_changed: { courtId: "c1", matchId: "m1" },
+    player_removed: { courtId: "c1", matchId: "m1" },
   };
 
   it.each(Object.keys(valid))("M-66 valid %s is accepted", async (name) => {
@@ -1210,6 +1218,47 @@ describe("matrix: events", () => {
       updateDoc(doc(asUser("alice"), `events/${ref.id}`), { uid: "x" }),
     );
     await assertFails(deleteDoc(doc(asUser("alice"), `events/${ref.id}`)));
+  });
+
+  it("M-83 permission events reject non-bool granted", async () => {
+    for (const name of ["permission_location", "permission_notifications"]) {
+      for (const bad of [1, "true", null]) {
+        await assertFails(
+          send(
+            asUser("alice"),
+            eventData("alice", name, { granted: bad }),
+          ),
+        );
+      }
+    }
+  });
+
+  it("M-84 team member can log in_person_count", async () => {
+    await seed("config/teamAccounts", { uids: ["alice"] });
+    await assertSucceeds(
+      send(
+        asUser("alice"),
+        eventData("alice", "in_person_count", {
+          courtId: "c1",
+          playerCount: 5,
+          appPlayerCount: null,
+        }),
+      ),
+    );
+  });
+
+  it("M-85 non-team-member cannot log in_person_count", async () => {
+    await seed("config/teamAccounts", { uids: [] });
+    await assertFails(
+      send(
+        asUser("alice"),
+        eventData("alice", "in_person_count", {
+          courtId: "c1",
+          playerCount: 5,
+          appPlayerCount: null,
+        }),
+      ),
+    );
   });
 });
 

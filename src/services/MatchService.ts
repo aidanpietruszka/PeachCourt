@@ -284,7 +284,11 @@ export const MatchService = {
     await batch.commit();
   },
 
-  async joinMatch(matchId: string, playerName: string): Promise<void> {
+  async joinMatch(
+    matchId: string,
+    playerName: string,
+    joinSource: string = "browsing",
+  ): Promise<void> {
     const uid = await currentUid();
     const myGames = await MatchService.listMyGames(uid);
     const matchRef = doc(db, "matches", matchId);
@@ -334,6 +338,7 @@ export const MatchService = {
           0,
           Math.round((now.toMillis() - match.createdAt.toMillis()) / 60_000),
         ),
+        joinSource,
         timestamp: now,
       });
     });
@@ -342,6 +347,7 @@ export const MatchService = {
   async leaveMatch(matchId: string): Promise<void> {
     const uid = await currentUid();
     const matchRef = doc(db, "matches", matchId);
+    const eventRef = doc(collection(db, "events"));
 
     await runTransaction(db, async (transaction) => {
       const snapshot = await transaction.get(matchRef);
@@ -358,6 +364,7 @@ export const MatchService = {
         throw new Error("This game has already started.");
       }
 
+      const now = Timestamp.now();
       transaction.update(matchRef, {
         playerUids: match.playerUids.filter(
           (_, position) => position !== index,
@@ -367,12 +374,20 @@ export const MatchService = {
         ),
         status: "open",
       });
+      transaction.set(eventRef, {
+        eventName: "game_left",
+        uid,
+        matchId,
+        courtId: match.courtId,
+        timestamp: now,
+      });
     });
   },
 
   async hostLeaveGame(matchId: string): Promise<void> {
     const uid = await currentUid();
     const matchRef = doc(db, "matches", matchId);
+    const eventRef = doc(collection(db, "events"));
 
     await runTransaction(db, async (transaction) => {
       const snapshot = await transaction.get(matchRef);
@@ -388,8 +403,16 @@ export const MatchService = {
         throw new Error("This game has already started.");
       }
 
+      const now = Timestamp.now();
       if (match.playerUids.length === 0) {
         transaction.delete(matchRef);
+        transaction.set(eventRef, {
+          eventName: "game_deleted",
+          uid,
+          matchId,
+          courtId: match.courtId,
+          timestamp: now,
+        });
       } else {
         const [newHostUid, ...restPlayerUids] = match.playerUids;
         const [newHostName, ...restPlayerNames] = match.playerNames;
@@ -400,6 +423,13 @@ export const MatchService = {
           playerNames: restPlayerNames,
           status: "open",
         });
+        transaction.set(eventRef, {
+          eventName: "host_changed",
+          uid,
+          matchId,
+          courtId: match.courtId,
+          timestamp: now,
+        });
       }
     });
   },
@@ -407,6 +437,7 @@ export const MatchService = {
   async removePlayer(matchId: string, targetUid: string): Promise<void> {
     const uid = await currentUid();
     const matchRef = doc(db, "matches", matchId);
+    const eventRef = doc(collection(db, "events"));
 
     await runTransaction(db, async (transaction) => {
       const snapshot = await transaction.get(matchRef);
@@ -427,11 +458,19 @@ export const MatchService = {
         throw new Error("This player is not in the game.");
       }
 
+      const now = Timestamp.now();
       transaction.update(matchRef, {
         playerUids: match.playerUids.filter((_, i) => i !== index),
         playerNames: match.playerNames.filter((_, i) => i !== index),
         removedUids: [...(match.removedUids ?? []), targetUid],
         status: "open",
+      });
+      transaction.set(eventRef, {
+        eventName: "player_removed",
+        uid,
+        matchId,
+        courtId: match.courtId,
+        timestamp: now,
       });
     });
   },
@@ -439,6 +478,7 @@ export const MatchService = {
   async deleteGame(matchId: string): Promise<void> {
     const uid = await currentUid();
     const matchRef = doc(db, "matches", matchId);
+    const eventRef = doc(collection(db, "events"));
 
     await runTransaction(db, async (transaction) => {
       const snapshot = await transaction.get(matchRef);
@@ -451,7 +491,15 @@ export const MatchService = {
         throw new Error("Only the host can delete this game.");
       }
 
+      const now = Timestamp.now();
       transaction.delete(matchRef);
+      transaction.set(eventRef, {
+        eventName: "game_deleted",
+        uid,
+        matchId,
+        courtId: match.courtId,
+        timestamp: now,
+      });
     });
   },
 };

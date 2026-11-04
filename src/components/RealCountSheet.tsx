@@ -30,7 +30,7 @@ const RealCountSheet: React.FC<RealCountSheetProps> = ({
     if (selected === null) return;
     setIsSaving(true);
     try {
-      await TeamService.recordRealCount(courtId, selected);
+      await TeamService.recordRealCount(courtId, selected, currentPlayerCount);
       handleClose();
     } finally {
       setIsSaving(false);

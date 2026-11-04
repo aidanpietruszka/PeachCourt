@@ -855,6 +855,14 @@ describe("events", () => {
         variant: null,
       },
     ],
+    ["confirm_yes", { courtId: "court-1" }],
+    ["confirm_no", { courtId: "court-1" }],
+    ["permission_location", { granted: true }],
+    ["permission_notifications", { granted: false }],
+    ["game_left", { courtId: "court-1", matchId: "m1" }],
+    ["game_deleted", { courtId: "court-1", matchId: "m1" }],
+    ["host_changed", { courtId: "court-1", matchId: "m1" }],
+    ["player_removed", { courtId: "court-1", matchId: "m1" }],
   ];
 
   for (const [name, fields] of valid) {
@@ -1401,5 +1409,85 @@ describe("inPersonCounts", () => {
     await seed("inPersonCounts/count-1", { courtId: "court-1", uid: "alice", playerCount: 5, recordedAt: minutesFromNow(0) });
     await assertFails(updateDoc(doc(asUser("alice"), "inPersonCounts/count-1"), { playerCount: 2 }));
     await assertFails(deleteDoc(doc(asUser("alice"), "inPersonCounts/count-1")));
+  });
+});
+
+describe("in_person_count event", () => {
+  beforeEach(async () => {
+    await seed("config/teamAccounts", { uids: ["alice"] });
+  });
+
+  it("R-94 team member can log in_person_count with int appPlayerCount", async () => {
+    await assertSucceeds(
+      addDoc(
+        collection(asUser("alice"), "events"),
+        eventData("alice", "in_person_count", {
+          courtId: "court-1",
+          playerCount: 5,
+          appPlayerCount: 3,
+        }),
+      ),
+    );
+  });
+
+  it("R-95 team member can log in_person_count with null appPlayerCount", async () => {
+    await assertSucceeds(
+      addDoc(
+        collection(asUser("alice"), "events"),
+        eventData("alice", "in_person_count", {
+          courtId: "court-1",
+          playerCount: 5,
+          appPlayerCount: null,
+        }),
+      ),
+    );
+  });
+
+  it("R-96 non-team-member cannot log in_person_count", async () => {
+    await assertFails(
+      addDoc(
+        collection(asUser("bob"), "events"),
+        eventData("bob", "in_person_count", {
+          courtId: "court-1",
+          playerCount: 5,
+          appPlayerCount: null,
+        }),
+      ),
+    );
+  });
+
+  it("R-97 in_person_count requires courtId string and playerCount int", async () => {
+    const db = asUser("alice");
+    await assertFails(
+      addDoc(
+        collection(db, "events"),
+        eventData("alice", "in_person_count", { playerCount: 5, appPlayerCount: null }),
+      ),
+    );
+    await assertFails(
+      addDoc(
+        collection(db, "events"),
+        eventData("alice", "in_person_count", { courtId: "court-1", appPlayerCount: null }),
+      ),
+    );
+    await assertFails(
+      addDoc(
+        collection(db, "events"),
+        eventData("alice", "in_person_count", { courtId: "court-1", playerCount: 3.5, appPlayerCount: null }),
+      ),
+    );
+  });
+
+  it("R-98 appPlayerCount must be int or null not a string", async () => {
+    await assertFails(
+      addDoc(
+        collection(asUser("alice"), "events"),
+        eventData("alice", "in_person_count", {
+          courtId: "court-1",
+          playerCount: 5,
+          appPlayerCount: "3",
+        }),
+      ),
+    );
   });
 });

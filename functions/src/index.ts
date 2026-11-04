@@ -188,6 +188,12 @@ export const onChatMessageCreated = onDocumentCreated(
         { merge: true },
       ),
       handleMessageCreated(matchId, msgData, chatData, db),
+      db.collection("events").add({
+        eventName: "chat_message_sent",
+        uid: msgData.senderUid ?? null,
+        matchId,
+        timestamp: new Date(),
+      }),
     ]);
   },
 );

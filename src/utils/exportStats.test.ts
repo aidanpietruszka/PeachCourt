@@ -4,6 +4,7 @@ import {
   median,
   participantRows,
   percent,
+  rangesMatch,
   summarize,
   type ExportEvent,
   type Participant,
@@ -371,5 +372,67 @@ describe("auto check-in test (SAC-50)", () => {
     expect(stat(rows, "Testers in the test").value).toBe(0);
     expect(stat(rows, "Default on: auto check-in on now (%)").value).toBeNull();
     expect(stat(rows, "Default off: turned on to off (times)").value).toBe(0);
+  });
+});
+
+describe("rangesMatch (Q2)", () => {
+  it("U-211 same range returns true", () => {
+    expect(rangesMatch(2, 3)).toBe(true);
+    expect(rangesMatch(1, 1)).toBe(true);
+    expect(rangesMatch(5, 7)).toBe(true);
+  });
+
+  it("U-212 different ranges return false", () => {
+    expect(rangesMatch(1, 2)).toBe(false);
+    expect(rangesMatch(5, 9)).toBe(false);
+  });
+
+  it("U-213 non-numeric values return false", () => {
+    expect(rangesMatch(null, 2)).toBe(false);
+    expect(rangesMatch(2, null)).toBe(false);
+    expect(rangesMatch("2", 2)).toBe(false);
+    expect(rangesMatch(NaN, 2)).toBe(false);
+  });
+});
+
+describe("Q2 real count accuracy", () => {
+  it("U-214 counts in_person_count events and % where app range matches", () => {
+    const events: ExportEvent[] = [
+      event("P01", "in_person_count", { courtId: "c1", playerCount: 3, appPlayerCount: 2 }),
+      event("P01", "in_person_count", { courtId: "c1", playerCount: 5, appPlayerCount: 1 }),
+      event("P02", "in_person_count", { courtId: "c1", playerCount: 7, appPlayerCount: 6 }),
+    ];
+    const rows = summarize(testers(2), events, {});
+    expect(stat(rows, "In-person counts recorded")).toEqual({ value: 3, n: 3 });
+    expect(stat(rows, "App range matches real range (%)")).toEqual({ value: 66.7, n: 3 });
+  });
+
+  it("U-215 events without appPlayerCount are excluded from Q2", () => {
+    const events: ExportEvent[] = [
+      event("P01", "in_person_count", { courtId: "c1", playerCount: 3, appPlayerCount: null }),
+      event("P01", "in_person_count", { courtId: "c1", playerCount: 3 }),
+    ];
+    const rows = summarize(testers(1), events, {});
+    expect(stat(rows, "In-person counts recorded")).toEqual({ value: 0, n: 0 });
+    expect(stat(rows, "App range matches real range (%)")).toEqual({ value: null, n: 0 });
+  });
+});
+
+describe("Q4 notification-driven joins", () => {
+  it("U-216 counts joins and % with notification joinSource", () => {
+    const events: ExportEvent[] = [
+      event("P01", "match_joined", { matchId: "m1", courtId: "c1", minutesToJoin: 5, joinSource: "push" }),
+      event("P01", "match_joined", { matchId: "m2", courtId: "c1", minutesToJoin: 10, joinSource: "browsing" }),
+      event("P02", "match_joined", { matchId: "m3", courtId: "c1", minutesToJoin: 2, joinSource: "banner" }),
+    ];
+    const rows = summarize(testers(2), events, {});
+    expect(stat(rows, "Games joined")).toEqual({ value: 3, n: 3 });
+    expect(stat(rows, "Joined via notification (%)")).toEqual({ value: 66.7, n: 3 });
+  });
+
+  it("U-217 no joins gives null percentage", () => {
+    const rows = summarize(testers(1), [], {});
+    expect(stat(rows, "Games joined")).toEqual({ value: 0, n: 0 });
+    expect(stat(rows, "Joined via notification (%)")).toEqual({ value: null, n: 0 });
   });
 });
