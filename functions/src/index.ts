@@ -17,11 +17,11 @@ if (!getApps().length) {
 export { deleteAccount } from "./deleteAccount";
 export { handleMatchUpdated, handleMatchDeleted } from "./matchNotifications";
 export { handleGameCreated } from "./gameAlerts";
-export { sendGameReminders } from "./gameReminders";
+export { sendGameReminders, reminderWindow } from "./gameReminders";
 export { handleMessageCreated, deleteExpiredChatsImpl } from "./chatNotifications";
 import { handleMatchUpdated, handleMatchDeleted } from "./matchNotifications";
 import { handleGameCreated } from "./gameAlerts";
-import { sendGameReminders } from "./gameReminders";
+import { sendGameReminders, reminderWindow } from "./gameReminders";
 import { handleMessageCreated, deleteExpiredChatsImpl } from "./chatNotifications";
 import type { CloudEvent } from "firebase-functions/v2";
 import type { MessagePublishedData } from "firebase-functions/v2/pubsub";
@@ -212,13 +212,11 @@ export const deleteExpiredChatsCron = onSchedule("every 15 minutes", async () =>
 
 export const gameRemindersCron = onSchedule("every 15 minutes", async () => {
   const db = getFirestore();
-  const now = Date.now();
-  const from = Timestamp.fromMillis(now + 55 * 60_000);
-  const to = Timestamp.fromMillis(now + 65 * 60_000);
+  const { fromMs, toMs } = reminderWindow(Date.now());
   const snap = await db
     .collection("matches")
-    .where("startAt", ">=", from)
-    .where("startAt", "<=", to)
+    .where("startAt", ">=", Timestamp.fromMillis(fromMs))
+    .where("startAt", "<=", Timestamp.fromMillis(toMs))
     .get();
   const games = snap.docs.map((d) => ({
     id: d.id,
@@ -229,5 +227,8 @@ export const gameRemindersCron = onSchedule("every 15 minutes", async () => {
     return userSnap.exists ? (userSnap.data() as Record<string, unknown>) : null;
   };
   const gameRemindersEnabled = await getFlag(db, "gameReminders");
-  await sendGameReminders(games, getUser, db, gameRemindersEnabled);
+  const markReminded = async (matchId: string) => {
+    await db.collection("matches").doc(matchId).update({ reminderSent: true });
+  };
+  await sendGameReminders(games, getUser, db, gameRemindersEnabled, markReminded);
 });

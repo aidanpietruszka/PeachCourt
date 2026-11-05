@@ -314,9 +314,6 @@ const GameDetailModal: React.FC<GameDetailModalProps> = ({
                   >
                     Open chat
                   </IonButton>
-                  <IonButton fill="outline" size="small" disabled>
-                    Directions
-                  </IonButton>
                 </div>
               </div>
             </IonContent>
