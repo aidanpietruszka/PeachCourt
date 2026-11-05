@@ -856,6 +856,14 @@ const MatchBoard: React.FC<MatchBoardProps> = ({
                 </span>
               </div>
             </div>
+            <div className="confirm-sheet__note">
+              <p className="confirm-sheet__note-title">
+                You can&apos;t edit a game after posting
+              </p>
+              <p className="confirm-sheet__note-body">
+                To change it later you&apos;d have to delete it and post again.
+              </p>
+            </div>
             {postConflict && (
               <div className="confirm-sheet__conflict">
                 <p className="confirm-sheet__conflict-title">

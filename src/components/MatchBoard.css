@@ -517,6 +517,25 @@
   text-align: right;
 }
 
+.confirm-sheet__note {
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #fdf3e1;
+}
+
+.confirm-sheet__note-title {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #b7791f;
+}
+
+.confirm-sheet__note-body {
+  margin: 0;
+  font-size: 13px;
+  color: var(--pc-text);
+}
+
 .confirm-sheet__conflict {
   padding: 10px 14px;
   border-radius: 12px;

@@ -437,7 +437,7 @@ const OnboardingPage: React.FC<Props> = ({ onComplete }) => {
                   <p className="onboarding__toggle-title">Automatic check-in</p>
                   <p className="onboarding__toggle-subtitle">
                     {locationEnabled
-                      ? "Checks you in when you arrive at a court"
+                      ? "Checks you in when you arrive at a court and check out when you leave"
                       : "Turn on location first"}
                   </p>
                 </div>

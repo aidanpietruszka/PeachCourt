@@ -1,5 +1,4 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
-import { FieldValue } from "firebase-admin/firestore";
 
 type DocRef = {
   delete: () => Promise<unknown>;
@@ -33,10 +32,13 @@ export async function handleDeleteAccount(
 
   for (const d of hostedSnap.docs) {
     const playerUids: string[] = (d.data().playerUids as string[]) ?? [];
+    const playerNames: string[] = (d.data().playerNames as string[]) ?? [];
     if (playerUids.length > 0) {
       await d.ref.update({
         hostUid: playerUids[0],
-        playerUids: FieldValue.arrayRemove(playerUids[0]),
+        hostName: playerNames[0] ?? "",
+        playerUids: playerUids.slice(1),
+        playerNames: playerNames.slice(1),
       });
     } else {
       await d.ref.delete();
@@ -49,7 +51,16 @@ export async function handleDeleteAccount(
     .get();
 
   for (const d of joinedSnap.docs) {
-    await d.ref.update({ playerUids: FieldValue.arrayRemove(uid) });
+    const playerUids: string[] = (d.data().playerUids as string[]) ?? [];
+    const playerNames: string[] = (d.data().playerNames as string[]) ?? [];
+    const index = playerUids.indexOf(uid);
+    if (index === -1) {
+      continue;
+    }
+    await d.ref.update({
+      playerUids: playerUids.filter((_, i) => i !== index),
+      playerNames: playerNames.filter((_, i) => i !== index),
+    });
   }
 
   const checkinsSnap = await db

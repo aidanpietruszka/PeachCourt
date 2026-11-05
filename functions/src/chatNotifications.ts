@@ -49,12 +49,19 @@ export async function handleMessageCreated(
   }
 }
 
+export const GAME_DURATION_MINUTES = 60;
+export const CHAT_DELETION_DELAY_MINUTES = 60;
+
+export function chatDeletionCutoffMillis(nowMs: number): number {
+  return nowMs - (GAME_DURATION_MINUTES + CHAT_DELETION_DELAY_MINUTES) * 60_000;
+}
+
 export async function deleteExpiredChatsImpl(
   now: number,
   db: ChatDb,
 ): Promise<void> {
   const { Timestamp } = await import("firebase-admin/firestore");
-  const cutoff = Timestamp.fromMillis(now - 60 * 60_000);
+  const cutoff = Timestamp.fromMillis(chatDeletionCutoffMillis(now));
   const snap = await db
     .collection("chats")
     .where("startAt", "<=", cutoff)

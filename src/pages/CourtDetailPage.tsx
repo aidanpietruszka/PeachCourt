@@ -60,6 +60,10 @@ function isSkip(role: string | undefined): boolean {
   return role === "cancel" || role === "backdrop";
 }
 
+function reportedCountText(count: number): string {
+  return CROWD_RANGES.find((r) => r.min === count)?.countText ?? displayRange(count);
+}
+
 function sessionFlag(key: string): boolean {
   try {
     return sessionStorage.getItem(key) === "true";
@@ -348,16 +352,28 @@ const CourtDetailPage: React.FC = () => {
     }
   };
 
-  const handleStillHereNo = async () => {
+  const handleStillHereYes = async () => {
     setIsStillHereOpen(false);
-    if (court) {
-      try {
-        await CheckinService.stillHereSkipped(court.id);
-      } catch (error) {
-        console.error("Unable to log still here skipped", error);
-      }
+    if (!court || courtActivity.reported === null) {
+      return;
     }
-    void handleCheckOut();
+    try {
+      await CheckinService.confirmStillHere(court.id, courtActivity.reported);
+      setToastMessage("Count confirmed.");
+    } catch (error) {
+      console.error("Unable to confirm still here", error);
+    }
+  };
+
+  const handleStillHereSkipped = async () => {
+    if (!court) {
+      return;
+    }
+    try {
+      await CheckinService.stillHereSkipped(court.id);
+    } catch (error) {
+      console.error("Unable to log still here skipped", error);
+    }
   };
 
   const closeConfirmation = () => {
@@ -698,12 +714,15 @@ const CourtDetailPage: React.FC = () => {
         <IonContent>
           <div className="range-picker">
             <h2 className="range-picker__title">
-              {rangePickerMode === "update" ? "Update count" : "Check in at"}{" "}
-              {court?.name}
+              {rangePickerMode === "checkin"
+                ? `Check in at ${court?.name ?? ""}`
+                : "How many players now?"}
             </h2>
-            <p className="range-picker__subtitle">
-              How many people are here right now, including you?
-            </p>
+            {rangePickerMode === "checkin" && (
+              <p className="range-picker__subtitle">
+                How many players are here, including you?
+              </p>
+            )}
             {CROWD_RANGES.map(({ min, label, countText }) => (
               <button
                 key={min}
@@ -720,7 +739,7 @@ const CourtDetailPage: React.FC = () => {
               disabled={selectedRange === null || isBusy}
               onClick={handleRangePickerConfirm}
             >
-              {rangePickerMode === "update" ? "Update" : "Check in"}
+              {rangePickerMode === "checkin" ? "Check in" : "Update"}
             </IonButton>
           </div>
         </IonContent>
@@ -759,26 +778,39 @@ const CourtDetailPage: React.FC = () => {
       {court && (
         <IonAlert
           isOpen={isStillHereOpen}
-          header="Still here?"
-          message={`Are you still at ${court.name}?`}
+          header={
+            courtActivity.reported !== null
+              ? `Still ${displayRange(courtActivity.reported)} here?`
+              : "Still here?"
+          }
+          message="Your answer keeps the count accurate for everyone."
           buttons={[
             {
-              text: "No, I left",
-              role: "cancel",
-              handler: () => void handleStillHereNo(),
+              text:
+                courtActivity.reported !== null
+                  ? `Yes, still ${reportedCountText(courtActivity.reported)}`
+                  : "Yes, still here",
+              handler: () => void handleStillHereYes(),
             },
             {
-              text: "Yes, update count",
+              text: "No, it changed",
               handler: () => {
                 setIsStillHereOpen(false);
                 openRangePicker(
                   "stillhere",
-                  validActiveCheckIn?.playerCount ?? undefined,
+                  courtActivity.reported ??
+                    validActiveCheckIn?.playerCount ??
+                    undefined,
                 );
               },
             },
           ]}
-          onDidDismiss={() => setIsStillHereOpen(false)}
+          onDidDismiss={(event) => {
+            setIsStillHereOpen(false);
+            if (isSkip(event.detail.role)) {
+              void handleStillHereSkipped();
+            }
+          }}
         />
       )}
 

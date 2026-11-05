@@ -227,7 +227,7 @@ export const CheckinService = {
           durationMinutes:
             typeof data.durationMinutes === "number"
               ? data.durationMinutes
-              : 90,
+              : 60,
           method: typeof data.method === "string" ? data.method : undefined,
         });
       },

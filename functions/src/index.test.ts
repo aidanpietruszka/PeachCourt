@@ -8,8 +8,19 @@ import {
 import { handleDeleteAccount } from "./deleteAccount";
 import { handleMatchUpdated, handleMatchDeleted } from "./matchNotifications";
 import { handleGameCreated } from "./gameAlerts";
-import { sendGameReminders } from "./gameReminders";
-import { handleMessageCreated, deleteExpiredChatsImpl } from "./chatNotifications";
+import {
+  sendGameReminders,
+  reminderWindow,
+  REMINDER_WINDOW_FROM_MINUTES,
+  REMINDER_WINDOW_TO_MINUTES,
+} from "./gameReminders";
+import {
+  handleMessageCreated,
+  deleteExpiredChatsImpl,
+  chatDeletionCutoffMillis,
+  GAME_DURATION_MINUTES,
+  CHAT_DELETION_DELAY_MINUTES,
+} from "./chatNotifications";
 
 function mockResponse() {
   const response = {
@@ -231,7 +242,10 @@ describe("handleDeleteAccount", () => {
 
   it("F-11 hosted game with one other player passes host and removes that player from array", async () => {
     const gameRef = makeRef();
-    const gameSnap = makeSnap({ hostUid: "uid1", playerUids: ["uid2"] }, gameRef);
+    const gameSnap = makeSnap(
+      { hostUid: "uid1", hostName: "Me", playerUids: ["uid2"], playerNames: ["Bob"] },
+      gameRef,
+    );
     const db = makeDb({
       matches: { whereDocs: [gameSnap] },
       checkins: { whereDocs: [] },
@@ -242,12 +256,23 @@ describe("handleDeleteAccount", () => {
     expect(gameRef.update).toHaveBeenCalledOnce();
     const updateArg = gameRef.update.mock.calls[0][0] as Record<string, unknown>;
     expect(updateArg.hostUid).toBe("uid2");
+    expect(updateArg.hostName).toBe("Bob");
+    expect(updateArg.playerUids).toEqual([]);
+    expect(updateArg.playerNames).toEqual([]);
     expect(gameRef.delete).not.toHaveBeenCalled();
   });
 
   it("F-12 hosted game with multiple players picks first player as new host", async () => {
     const gameRef = makeRef();
-    const gameSnap = makeSnap({ hostUid: "uid1", playerUids: ["uid2", "uid3"] }, gameRef);
+    const gameSnap = makeSnap(
+      {
+        hostUid: "uid1",
+        hostName: "Me",
+        playerUids: ["uid2", "uid3"],
+        playerNames: ["Bob", "Cara"],
+      },
+      gameRef,
+    );
     const db = makeDb({
       matches: { whereDocs: [gameSnap] },
       checkins: { whereDocs: [] },
@@ -257,11 +282,22 @@ describe("handleDeleteAccount", () => {
     await handleDeleteAccount("uid1", db, makeAuth());
     const updateArg = gameRef.update.mock.calls[0][0] as Record<string, unknown>;
     expect(updateArg.hostUid).toBe("uid2");
+    expect(updateArg.hostName).toBe("Bob");
+    expect(updateArg.playerUids).toEqual(["uid3"]);
+    expect(updateArg.playerNames).toEqual(["Cara"]);
   });
 
-  it("F-13 joined game has uid removed from playerUids", async () => {
+  it("F-13 joined game has uid removed from playerUids and playerNames stay aligned", async () => {
     const joinedRef = makeRef();
-    const joinedSnap = makeSnap({ hostUid: "uid2", playerUids: ["uid1"] }, joinedRef);
+    const joinedSnap = makeSnap(
+      {
+        hostUid: "uid2",
+        hostName: "Host",
+        playerUids: ["uid3", "uid1"],
+        playerNames: ["Cara", "Me"],
+      },
+      joinedRef,
+    );
     let matchesCallCount = 0;
     const db = {
       collection: (name: string) => {
@@ -280,7 +316,8 @@ describe("handleDeleteAccount", () => {
     await handleDeleteAccount("uid1", db, makeAuth());
     expect(joinedRef.update).toHaveBeenCalledOnce();
     const updateArg = joinedRef.update.mock.calls[0][0] as Record<string, unknown>;
-    expect(updateArg.playerUids).toBeDefined();
+    expect(updateArg.playerUids).toEqual(["uid3"]);
+    expect(updateArg.playerNames).toEqual(["Cara"]);
   });
 
   it("F-14 all checkin documents are deleted", async () => {
@@ -612,6 +649,46 @@ describe("sendGameReminders", () => {
     expect(db.addedAlerts).toHaveLength(1);
     expect(db.addedAlerts[0].recipientUid).toBe("alice");
   });
+
+  it("F-32a reminder window is at least as wide as the 15-minute cron so no start time is skipped", () => {
+    const now = 1_000_000_000_000;
+    const { fromMs, toMs } = reminderWindow(now);
+    expect(fromMs).toBe(now + REMINDER_WINDOW_FROM_MINUTES * 60_000);
+    expect(toMs).toBe(now + REMINDER_WINDOW_TO_MINUTES * 60_000);
+    expect(toMs - fromMs).toBeGreaterThanOrEqual(15 * 60_000);
+  });
+
+  it("F-32b marks each reminded game and never reminds a game twice", async () => {
+    const db = makeAlertDb();
+    const getUser = async () => ({ gameRemindersAlert: true });
+    const marked: string[] = [];
+    const markReminded = async (id: string) => {
+      marked.push(id);
+    };
+    await sendGameReminders(
+      [{ id: "m1", data: reminderGame }],
+      getUser,
+      db,
+      true,
+      markReminded,
+    );
+    expect(marked).toEqual(["m1"]);
+
+    const alreadyReminded = { ...reminderGame, reminderSent: true };
+    const db2 = makeAlertDb();
+    const marked2: string[] = [];
+    await sendGameReminders(
+      [{ id: "m1", data: alreadyReminded }],
+      getUser,
+      db2,
+      true,
+      async (id) => {
+        marked2.push(id);
+      },
+    );
+    expect(db2.addedAlerts).toHaveLength(0);
+    expect(marked2).toEqual([]);
+  });
 });
 
 describe("handleMessageCreated", () => {
@@ -700,6 +777,18 @@ describe("deleteExpiredChatsImpl", () => {
     const { db, deletedPaths } = makeChatDb([]);
     await deleteExpiredChatsImpl(Date.now(), db as never);
     expect(deletedPaths).toHaveLength(0);
+  });
+
+  it("F-37a cutoff keeps a chat until one hour after the game ends", () => {
+    const now = 1_000_000_000_000;
+    const cutoff = chatDeletionCutoffMillis(now);
+    expect(cutoff).toBe(
+      now - (GAME_DURATION_MINUTES + CHAT_DELETION_DELAY_MINUTES) * 60_000,
+    );
+    const startedNinetyMinutesAgo = now - 90 * 60_000;
+    const startedTwoHoursAgo = now - 130 * 60_000;
+    expect(startedNinetyMinutesAgo > cutoff).toBe(true);
+    expect(startedTwoHoursAgo <= cutoff).toBe(true);
   });
 });
 
