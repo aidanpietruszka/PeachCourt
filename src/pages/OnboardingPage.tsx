@@ -11,6 +11,7 @@ import {
 import { Geolocation } from "@capacitor/geolocation";
 import { useAuth } from "../hooks/useAuth";
 import { EventService } from "../services/EventService";
+import { MessagingService } from "../services/messaging";
 import {
   UserService,
   TENNIS_SKILL_LEVELS,
@@ -258,6 +259,7 @@ const OnboardingPage: React.FC<Props> = ({ onComplete }) => {
   const handleNotificationsToggle = async (checked: boolean) => {
     if (!checked) {
       setNotificationsEnabled(false);
+      if (user) void MessagingService.disable(user.uid).catch(() => null);
       return;
     }
     if (!("Notification" in window)) {
@@ -265,8 +267,10 @@ const OnboardingPage: React.FC<Props> = ({ onComplete }) => {
       return;
     }
     const result = await Notification.requestPermission();
-    setNotificationsEnabled(result === "granted");
-    void EventService.recordPermission("notifications", result === "granted").catch(() => null);
+    const granted = result === "granted";
+    setNotificationsEnabled(granted);
+    void EventService.recordPermission("notifications", granted).catch(() => null);
+    if (granted && user) void MessagingService.enable(user.uid).catch(() => null);
   };
 
   const handleFinish = async (notifEnabled: boolean, prompted: boolean) => {

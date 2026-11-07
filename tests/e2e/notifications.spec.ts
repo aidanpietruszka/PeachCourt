@@ -1,7 +1,10 @@
 import { expect, test } from "@playwright/test";
 import {
   COURTS,
+  gameCard,
   getUidByEmail,
+  joinGame,
+  loggedEvents,
   newUser,
   openCourt,
   postGame,
@@ -9,6 +12,24 @@ import {
   seedAlert,
   visibleText,
 } from "./support";
+
+async function joinWithSource(
+  browser: Parameters<typeof newUser>[0],
+  src: string,
+) {
+  const a = await newUser(browser, "Ana");
+  const b = await newUser(browser, "Ben");
+  await openCourt(a.page, COURTS.alpha.name);
+  await postGame(a.page, { skill: "Any level" });
+  const path = `/courts/${COURTS.alpha.id}${src ? `?src=${src}` : ""}`;
+  await b.page.goto(path);
+  const card = gameCard(b.page, "Ana");
+  await expect(card).toBeVisible();
+  await joinGame(b.page, card);
+  await expect(visibleText(b.page, /You joined Doubles at/)).toBeVisible();
+  const joins = await loggedEvents("match_joined");
+  return { a, b, joins };
+}
 
 test.beforeEach(async () => {
   await resetData();
@@ -65,4 +86,39 @@ test("E2E-192 in-app banner appears when new alert is seeded", async ({ browser 
   await seedAlert(uid, { gameFormat: "singles", gameSport: "tennis", spotsOpen: 1 });
   await expect(page.locator(".alert-banner")).toBeVisible({ timeout: 8_000 });
   await context.close();
+});
+
+test("E2E-193 a join from the inbox is logged with joinSource inbox", async ({ browser }) => {
+  const { a, b, joins } = await joinWithSource(browser, "inbox");
+  expect(joins).toHaveLength(1);
+  expect(joins[0].joinSource).toBe("inbox");
+  await a.context.close();
+  await b.context.close();
+});
+
+test("E2E-194 a join from the banner is logged with joinSource banner", async ({ browser }) => {
+  const { a, b, joins } = await joinWithSource(browser, "banner");
+  expect(joins).toHaveLength(1);
+  expect(joins[0].joinSource).toBe("banner");
+  await a.context.close();
+  await b.context.close();
+});
+
+test("E2E-195 a push open logs notification_opened and the join carries joinSource push", async ({ browser }) => {
+  const { a, b, joins } = await joinWithSource(browser, "push");
+  expect(joins).toHaveLength(1);
+  expect(joins[0].joinSource).toBe("push");
+  const opens = await loggedEvents("notification_opened");
+  expect(opens.length).toBeGreaterThanOrEqual(1);
+  expect(opens[0].courtId).toBe(COURTS.alpha.id);
+  await a.context.close();
+  await b.context.close();
+});
+
+test("E2E-196 a plain browse join is logged with joinSource browsing", async ({ browser }) => {
+  const { a, b, joins } = await joinWithSource(browser, "");
+  expect(joins).toHaveLength(1);
+  expect(joins[0].joinSource).toBe("browsing");
+  await a.context.close();
+  await b.context.close();
 });

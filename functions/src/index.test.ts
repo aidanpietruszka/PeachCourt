@@ -21,6 +21,14 @@ import {
   GAME_DURATION_MINUTES,
   CHAT_DELETION_DELAY_MINUTES,
 } from "./chatNotifications";
+import {
+  sendAlertPush,
+  alertTypeEnabled,
+  buildPushMessage,
+  type AlertDoc,
+  type PushMessage,
+  type SendResult,
+} from "./alertPush";
 
 function mockResponse() {
   const response = {
@@ -824,5 +832,185 @@ describe("feature flags in Cloud Functions", () => {
     const game = { id: "m1", data: { hostUid: "alice", playerUids: [], courtId: "c1", sport: "tennis", format: "singles", startAt: { seconds: 9999999 }, courtName: "City Park" } };
     await sendGameReminders([game], getUser, db, true);
     expect(db.addedAlerts).toHaveLength(1);
+  });
+});
+
+describe("alertTypeEnabled", () => {
+  it("F-42 maps each alert type to its setting with the right default", () => {
+    expect(alertTypeEnabled("new_game", {})).toBe(true);
+    expect(alertTypeEnabled("game_reminder", {})).toBe(true);
+    expect(alertTypeEnabled("player_joined", {})).toBe(true);
+    expect(alertTypeEnabled("game_deleted", {})).toBe(true);
+    expect(alertTypeEnabled("new_message", {})).toBe(false);
+  });
+
+  it("F-43 respects an explicit setting override", () => {
+    expect(alertTypeEnabled("new_game", { newGamesAlert: false })).toBe(false);
+    expect(alertTypeEnabled("new_message", { chatMessagesAlert: true })).toBe(
+      true,
+    );
+    expect(
+      alertTypeEnabled("player_left", { changesGamesAlert: false }),
+    ).toBe(false);
+  });
+
+  it("F-44 rejects an unknown alert type", () => {
+    expect(alertTypeEnabled("mystery", {})).toBe(false);
+  });
+});
+
+describe("buildPushMessage", () => {
+  it("F-45 builds a new_game push mirroring the in-app copy", () => {
+    const message = buildPushMessage({
+      recipientUid: "bob",
+      type: "new_game",
+      gameId: "m1",
+      gameCourtId: "c1",
+      gameCourtName: "Bitsy Grant",
+      gameSport: "pickleball",
+      gameFormat: "doubles",
+      spotsOpen: 2,
+    });
+    expect(message.title).toBe("New doubles at Bitsy Grant");
+    expect(message.body).toBe("Pickleball · 2 spots open");
+    expect(message.data).toEqual({
+      type: "new_game",
+      gameId: "m1",
+      gameCourtId: "c1",
+    });
+  });
+
+  it("F-46 builds a reminder and a removal push", () => {
+    expect(
+      buildPushMessage({
+        recipientUid: "bob",
+        type: "game_reminder",
+        gameFormat: "doubles",
+        gameCourtName: "Bitsy Grant",
+      }).title,
+    ).toBe("Starts in 1 hour");
+    expect(
+      buildPushMessage({
+        recipientUid: "bob",
+        type: "player_removed",
+        actorName: "Alex",
+        gameFormat: "Doubles",
+        gameCourtName: "Bitsy Grant",
+      }).body,
+    ).toBe("Alex's doubles at Bitsy Grant");
+  });
+});
+
+function makePushDeps(
+  overrides: {
+    user?: Record<string, unknown> | null;
+    tokens?: string[];
+    send?: (tokens: string[], message: PushMessage) => Promise<SendResult>;
+  } = {},
+) {
+  const events: Record<string, unknown>[] = [];
+  const deleted: Array<{ uid: string; token: string }> = [];
+  const sent: Array<{ tokens: string[]; message: PushMessage }> = [];
+  const deps = {
+    getUser: async () =>
+      overrides.user === undefined
+        ? { notificationsEnabled: true }
+        : overrides.user,
+    getTokens: async () => overrides.tokens ?? ["tok-1"],
+    sendPush: async (tokens: string[], message: PushMessage) => {
+      sent.push({ tokens, message });
+      return overrides.send
+        ? overrides.send(tokens, message)
+        : { results: tokens.map(() => ({ success: true })) };
+    },
+    logEvent: async (data: Record<string, unknown>) => {
+      events.push(data);
+    },
+    deleteToken: async (uid: string, token: string) => {
+      deleted.push({ uid, token });
+    },
+  };
+  return { deps, events, deleted, sent };
+}
+
+const baseAlert: AlertDoc = {
+  recipientUid: "bob",
+  type: "new_game",
+  gameId: "m1",
+  gameCourtId: "c1",
+  gameCourtName: "City Park",
+  gameSport: "tennis",
+  gameFormat: "doubles",
+  spotsOpen: 2,
+};
+
+describe("sendAlertPush", () => {
+  it("F-47 sends to every token and logs notification_sent", async () => {
+    const { deps, events, sent } = makePushDeps({ tokens: ["tok-1", "tok-2"] });
+    await sendAlertPush(baseAlert, deps);
+    expect(sent).toHaveLength(1);
+    expect(sent[0].tokens).toEqual(["tok-1", "tok-2"]);
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      eventName: "notification_sent",
+      uid: "bob",
+      matchId: "m1",
+      alertType: "new_game",
+    });
+  });
+
+  it("F-48 sends nothing when the recipient has no profile", async () => {
+    const { deps, events, sent } = makePushDeps({ user: null });
+    await sendAlertPush(baseAlert, deps);
+    expect(sent).toHaveLength(0);
+    expect(events).toHaveLength(0);
+  });
+
+  it("F-49 skips when the master notifications toggle is off", async () => {
+    const { deps, sent } = makePushDeps({
+      user: { notificationsEnabled: false, newGamesAlert: true },
+    });
+    await sendAlertPush(baseAlert, deps);
+    expect(sent).toHaveLength(0);
+  });
+
+  it("F-50 skips when the alert type is turned off", async () => {
+    const { deps, sent } = makePushDeps({
+      user: { notificationsEnabled: true, newGamesAlert: false },
+    });
+    await sendAlertPush(baseAlert, deps);
+    expect(sent).toHaveLength(0);
+  });
+
+  it("F-51 does not send a chat push unless chatMessagesAlert is on", async () => {
+    const chatAlert: AlertDoc = { ...baseAlert, type: "new_message" };
+    const off = makePushDeps({ user: { notificationsEnabled: true } });
+    await sendAlertPush(chatAlert, off.deps);
+    expect(off.sent).toHaveLength(0);
+
+    const on = makePushDeps({
+      user: { notificationsEnabled: true, chatMessagesAlert: true },
+    });
+    await sendAlertPush(chatAlert, on.deps);
+    expect(on.sent).toHaveLength(1);
+  });
+
+  it("F-52 sends nothing and logs nothing when there are no tokens", async () => {
+    const { deps, events, sent } = makePushDeps({ tokens: [] });
+    await sendAlertPush(baseAlert, deps);
+    expect(sent).toHaveLength(0);
+    expect(events).toHaveLength(0);
+  });
+
+  it("F-53 prunes tokens the push rejected as invalid", async () => {
+    const { deps, deleted, events } = makePushDeps({
+      tokens: ["good", "dead"],
+      send: async () => ({
+        results: [{ success: true }, { success: false, invalidToken: true }],
+      }),
+    });
+    await sendAlertPush(baseAlert, deps);
+    expect(deleted).toEqual([{ uid: "bob", token: "dead" }]);
+    expect(events).toHaveLength(1);
   });
 });

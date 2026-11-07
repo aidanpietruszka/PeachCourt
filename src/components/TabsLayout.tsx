@@ -19,6 +19,7 @@ import ProtectedRoute from "./ProtectedRoute";
 import { useAuth } from "../hooks/useAuth";
 import { useFlags } from "../hooks/useFlags";
 import { UserService } from "../services/UserService";
+import { MessagingService } from "../services/messaging";
 import { useAlerts } from "../hooks/useAlerts";
 import { useChatList } from "../hooks/useChatList";
 import { AlertService, type Alert } from "../services/AlertService";
@@ -85,10 +86,12 @@ const TabsLayout: React.FC = () => {
     void UserService.getProfile(user.uid).then((profile) => {
       if (!profile?.onboardingDone || profile.notificationsPrompted) return;
       void Notification.requestPermission().then((result) => {
+        const granted = result === "granted";
         void UserService.saveOnboardingPrefs(user.uid, {
-          notificationsEnabled: result === "granted",
+          notificationsEnabled: granted,
           notificationsPrompted: true,
         });
+        if (granted) void MessagingService.enable(user.uid).catch(() => undefined);
       });
     });
   }, [user?.uid]);
@@ -120,7 +123,7 @@ const TabsLayout: React.FC = () => {
     if (bannerAlert.type === "new_message" && bannerAlert.gameId) {
       ionRouter.push(`/chats/${bannerAlert.gameId}`, "forward");
     } else if (bannerAlert.gameCourtId) {
-      ionRouter.push(`/courts/${bannerAlert.gameCourtId}`, "forward");
+      ionRouter.push(`/courts/${bannerAlert.gameCourtId}?src=banner`, "forward");
     }
     dismissBanner();
   };

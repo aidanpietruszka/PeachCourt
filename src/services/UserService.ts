@@ -1,8 +1,10 @@
 import {
+  deleteDoc,
   doc,
   getDoc,
   onSnapshot,
   runTransaction,
+  serverTimestamp,
   setDoc,
 } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
@@ -79,6 +81,17 @@ export const UserService = {
       gameRemindersAlert: data.gameRemindersAlert,
       chatMessagesAlert: data.chatMessagesAlert,
     };
+  },
+
+  async saveFcmToken(uid: string, token: string): Promise<void> {
+    await setDoc(doc(db, "users", uid, "fcmTokens", token), {
+      token,
+      createdAt: serverTimestamp(),
+    });
+  },
+
+  async removeFcmToken(uid: string, token: string): Promise<void> {
+    await deleteDoc(doc(db, "users", uid, "fcmTokens", token));
   },
 
   async deleteAccount(): Promise<void> {

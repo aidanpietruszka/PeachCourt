@@ -131,7 +131,7 @@ const NotificationInboxPage: React.FC = () => {
     if (a.type === "new_message" && a.gameId) {
       ionRouter.push(`/chats/${a.gameId}`, "forward");
     } else if (a.gameCourtId) {
-      ionRouter.push(`/courts/${a.gameCourtId}`, "forward");
+      ionRouter.push(`/courts/${a.gameCourtId}?src=inbox`, "forward");
     }
   };
 

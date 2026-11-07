@@ -48,6 +48,16 @@ service cloud.firestore {
           )
         );
       allow delete: if false;
+
+      match /fcmTokens/{token} {
+        allow read, delete: if signedInAs(uid);
+        allow create: if signedInAs(uid)
+          && request.resource.data.keys().hasOnly(['token', 'createdAt'])
+          && request.resource.data.token is string
+          && request.resource.data.token.size() > 0
+          && request.resource.data.createdAt is timestamp;
+        allow update: if false;
+      }
     }
 
     match /checkins/{checkinId} {
@@ -304,6 +314,13 @@ service cloud.firestore {
             && request.resource.data.courtId is string
             && request.resource.data.matchId is string
             && request.resource.data.minutesToJoin is int
+            && request.resource.data.joinSource is string
+            && request.resource.data.homeScreen is bool
+          )
+          || (
+            request.resource.data.eventName == 'notification_opened'
+            && request.resource.data.source == 'push'
+            && request.resource.data.courtId is string
           )
           || (
             request.resource.data.eventName == 'trust_rating'

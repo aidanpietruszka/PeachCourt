@@ -18,6 +18,7 @@ import { Geolocation } from "@capacitor/geolocation";
 import { useAuth } from "../hooks/useAuth";
 import { logout } from "../services/auth";
 import { UserService } from "../services/UserService";
+import { MessagingService } from "../services/messaging";
 import { EventService } from "../services/EventService";
 import type { UserProfile } from "../types/types";
 import "./SettingsPage.css";
@@ -194,17 +195,20 @@ const SettingsPage: React.FC = () => {
   };
 
   const handleNotifToggle = async (checked: boolean) => {
+    if (!user) return;
     if (!checked) {
       save({ notificationsEnabled: false });
+      void MessagingService.disable(user.uid).catch(() => undefined);
       return;
     }
     if (!("Notification" in window)) return;
-    if (Notification.permission === "granted") {
-      save({ notificationsEnabled: true });
-      return;
+    const granted =
+      Notification.permission === "granted" ||
+      (await Notification.requestPermission()) === "granted";
+    save({ notificationsEnabled: granted });
+    if (granted) {
+      void MessagingService.enable(user.uid).catch(() => undefined);
     }
-    const result = await Notification.requestPermission();
-    save({ notificationsEnabled: result === "granted" });
   };
 
   const handleDeleteConfirm = async () => {
