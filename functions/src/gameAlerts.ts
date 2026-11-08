@@ -29,28 +29,19 @@ export async function handleGameCreated(
       if (userSkill === undefined) continue;
       if (Math.abs(userSkill - (skillLevel as number)) > 0.5) continue;
     }
-    await Promise.all([
-      alertDb.collection("alerts").add({
-        recipientUid: uid,
-        type: "new_game",
-        gameId: matchId,
-        gameCourtId: data.courtId ?? "",
-        gameSport: sport,
-        gameFormat: data.format,
-        gameStartAt: data.startAt,
-        gameCourtName: data.courtName ?? "",
-        hostName: data.hostName,
-        spotsOpen,
-        read: false,
-        createdAt: new Date(),
-      }),
-      alertDb.collection("events").add({
-        eventName: "notification_sent",
-        uid,
-        matchId,
-        alertType: "new_game",
-        timestamp: new Date(),
-      }),
-    ]);
+    await alertDb.collection("alerts").add({
+      recipientUid: uid,
+      type: "new_game",
+      gameId: matchId,
+      gameCourtId: data.courtId ?? "",
+      gameSport: sport,
+      gameFormat: data.format,
+      gameStartAt: data.startAt,
+      gameCourtName: data.courtName ?? "",
+      hostName: data.hostName,
+      spotsOpen,
+      read: false,
+      createdAt: new Date(),
+    });
   }
 }

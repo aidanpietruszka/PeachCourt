@@ -96,12 +96,14 @@ interface MatchBoardProps {
   court: Court;
   isPostOpen: boolean;
   onClosePost: () => void;
+  joinSource?: string;
 }
 
 const MatchBoard: React.FC<MatchBoardProps> = ({
   court,
   isPostOpen,
   onClosePost,
+  joinSource = "browsing",
 }) => {
   const ionRouter = useIonRouter();
   const { user } = useAuth();
@@ -245,7 +247,7 @@ const MatchBoard: React.FC<MatchBoardProps> = ({
 
     setIsBusy(true);
     try {
-      await MatchService.joinMatch(match.id, joinName);
+      await MatchService.joinMatch(match.id, joinName, joinSource);
       saveName(joinName);
       setJoinSheetMatch(null);
       const time = match.startAt

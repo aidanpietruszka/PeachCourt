@@ -1,5 +1,6 @@
 import { getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
+import { getMessaging } from "firebase-admin/messaging";
 import { setGlobalOptions } from "firebase-functions/v2";
 import {
   onDocumentCreated,
@@ -19,10 +20,12 @@ export { handleMatchUpdated, handleMatchDeleted } from "./matchNotifications";
 export { handleGameCreated } from "./gameAlerts";
 export { sendGameReminders, reminderWindow } from "./gameReminders";
 export { handleMessageCreated, deleteExpiredChatsImpl } from "./chatNotifications";
+export { sendAlertPush } from "./alertPush";
 import { handleMatchUpdated, handleMatchDeleted } from "./matchNotifications";
 import { handleGameCreated } from "./gameAlerts";
 import { sendGameReminders, reminderWindow } from "./gameReminders";
 import { handleMessageCreated, deleteExpiredChatsImpl } from "./chatNotifications";
+import { sendAlertPush, type AlertDoc, type PushMessage } from "./alertPush";
 import type { CloudEvent } from "firebase-functions/v2";
 import type { MessagePublishedData } from "firebase-functions/v2/pubsub";
 
@@ -136,6 +139,59 @@ export const onMatchCreated = onDocumentCreated(
       handleGameCreated(event.params.matchId, data, listUsers, db, pushAlertsEnabled),
       db.collection("chats").doc(event.params.matchId).set(chatDocFromMatch(event.params.matchId, data)),
     ]);
+  },
+);
+
+export const onAlertCreated = onDocumentCreated(
+  "alerts/{alertId}",
+  async (event) => {
+    const data = event.data?.data() as Record<string, unknown> | undefined;
+    if (!data) return;
+    const db = getFirestore();
+    const messaging = getMessaging();
+    await sendAlertPush(data as AlertDoc, {
+      getUser: async (uid) => {
+        const snap = await db.collection("users").doc(uid).get();
+        return snap.exists ? (snap.data() as Record<string, unknown>) : null;
+      },
+      getTokens: async (uid) => {
+        const snap = await db
+          .collection("users")
+          .doc(uid)
+          .collection("fcmTokens")
+          .get();
+        return snap.docs.map((d) => d.id);
+      },
+      sendPush: async (tokens, message: PushMessage) => {
+        const response = await messaging.sendEachForMulticast({
+          tokens,
+          notification: { title: message.title, body: message.body },
+          data: message.data,
+        });
+        return {
+          results: response.responses.map((r) => ({
+            success: r.success,
+            invalidToken:
+              !r.success &&
+              (r.error?.code ===
+                "messaging/registration-token-not-registered" ||
+                r.error?.code === "messaging/invalid-registration-token" ||
+                r.error?.code === "messaging/invalid-argument"),
+          })),
+        };
+      },
+      logEvent: async (payload) => {
+        await db.collection("events").add(payload);
+      },
+      deleteToken: async (uid, token) => {
+        await db
+          .collection("users")
+          .doc(uid)
+          .collection("fcmTokens")
+          .doc(token)
+          .delete();
+      },
+    });
   },
 );
 

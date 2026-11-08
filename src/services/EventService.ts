@@ -94,6 +94,13 @@ export const EventService = {
     await logEvent("confirm_no", { courtId });
   },
 
+  async recordNotificationOpened(courtId: string): Promise<void> {
+    if (!(await signedInUid())) {
+      return;
+    }
+    await logEvent("notification_opened", { source: "push", courtId });
+  },
+
   async recordPermission(
     type: "location" | "notifications",
     granted: boolean,

@@ -827,7 +827,17 @@ describe("events", () => {
         spotsTotal: 3,
       },
     ],
-    ["match_joined", { courtId: "court-1", matchId: "m1", minutesToJoin: 12 }],
+    [
+      "match_joined",
+      {
+        courtId: "court-1",
+        matchId: "m1",
+        minutesToJoin: 12,
+        joinSource: "browsing",
+        homeScreen: false,
+      },
+    ],
+    ["notification_opened", { source: "push", courtId: "court-1" }],
     ["trust_rating", { courtId: "court-1", rating: 4, liveCount: 2 }],
     ["trust_skipped", { courtId: "court-1", liveCount: 2 }],
     ["court_viewed", { courtId: "court-1", reportedCount: 3 }],
@@ -997,6 +1007,40 @@ describe("events", () => {
         eventData("alice", "still_here_skipped", {}),
       ),
     );
+    await assertFails(
+      addDoc(
+        collection(db, "events"),
+        eventData("alice", "match_joined", {
+          courtId: "court-1",
+          matchId: "m1",
+          minutesToJoin: 12,
+          joinSource: "browsing",
+        }),
+      ),
+    );
+    await assertFails(
+      addDoc(
+        collection(db, "events"),
+        eventData("alice", "match_joined", {
+          courtId: "court-1",
+          matchId: "m1",
+          minutesToJoin: 12,
+          homeScreen: false,
+        }),
+      ),
+    );
+    await assertFails(
+      addDoc(
+        collection(db, "events"),
+        eventData("alice", "notification_opened", { source: "banner", courtId: "court-1" }),
+      ),
+    );
+    await assertFails(
+      addDoc(
+        collection(db, "events"),
+        eventData("alice", "notification_opened", { source: "push" }),
+      ),
+    );
   });
 
   it("R-52 auto_checkin_changed must be a real change from the app's screens", async () => {
@@ -1061,6 +1105,61 @@ describe("users", () => {
     await assertFails(setDoc(doc(asGuest(), "users/alice"), profile));
   });
 
+});
+
+describe("users/fcmTokens", () => {
+  const tokenDoc = { token: "tok-123", createdAt: serverTimestamp() };
+
+  it("R-44a a user can save their own FCM token", async () => {
+    await assertSucceeds(
+      setDoc(doc(asUser("alice"), "users/alice/fcmTokens/tok-123"), tokenDoc),
+    );
+  });
+
+  it("R-44b a user can read and delete their own FCM token", async () => {
+    await seed("users/alice/fcmTokens/tok-123", {
+      token: "tok-123",
+      createdAt: Timestamp.now(),
+    });
+    await assertSucceeds(
+      getDoc(doc(asUser("alice"), "users/alice/fcmTokens/tok-123")),
+    );
+    await assertSucceeds(
+      deleteDoc(doc(asUser("alice"), "users/alice/fcmTokens/tok-123")),
+    );
+  });
+
+  it("R-44c a user cannot touch another user's FCM tokens", async () => {
+    await seed("users/alice/fcmTokens/tok-123", {
+      token: "tok-123",
+      createdAt: Timestamp.now(),
+    });
+    await assertFails(
+      setDoc(doc(asUser("bob"), "users/alice/fcmTokens/tok-9"), tokenDoc),
+    );
+    await assertFails(
+      getDoc(doc(asUser("bob"), "users/alice/fcmTokens/tok-123")),
+    );
+    await assertFails(
+      deleteDoc(doc(asUser("bob"), "users/alice/fcmTokens/tok-123")),
+    );
+  });
+
+  it("R-44d a token doc rejects extra fields and empty token", async () => {
+    await assertFails(
+      setDoc(doc(asUser("alice"), "users/alice/fcmTokens/tok-123"), {
+        token: "tok-123",
+        createdAt: serverTimestamp(),
+        platform: "web",
+      }),
+    );
+    await assertFails(
+      setDoc(doc(asUser("alice"), "users/alice/fcmTokens/empty"), {
+        token: "",
+        createdAt: serverTimestamp(),
+      }),
+    );
+  });
 });
 
 describe("users: write-once check-in variant (SAC-50)", () => {

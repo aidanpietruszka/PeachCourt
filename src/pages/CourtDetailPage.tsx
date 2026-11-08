@@ -18,7 +18,7 @@ import {
   IonToolbar,
 } from "@ionic/react";
 import { Geolocation } from "@capacitor/geolocation";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import MatchBoard from "../components/MatchBoard";
 import RealCountSheet from "../components/RealCountSheet";
 import { useAuth } from "../hooks/useAuth";
@@ -43,6 +43,7 @@ import {
   formatMinutesAgo,
 } from "../utils/geo";
 import { CROWD_RANGES, displayRange } from "../utils/crowdRange";
+import { parseJoinSource } from "../utils/notifications";
 import "./CourtDetailPage.css";
 
 const CHECK_IN_MINUTES = 60;
@@ -98,6 +99,10 @@ function saveDetailsExpanded(value: boolean) {
 
 const CourtDetailPage: React.FC = () => {
   const { courtId } = useParams<{ courtId: string }>();
+  const location = useLocation();
+  const joinSource = parseJoinSource(
+    new URLSearchParams(location.search).get("src"),
+  );
   const { user } = useAuth();
   const uid = user?.uid ?? null;
   const isTeamMember = useIsTeamMember(uid);
@@ -205,6 +210,15 @@ const CourtDetailPage: React.FC = () => {
       console.error("Unable to log court view", error),
     );
   }, [courtId, courtLoaded, uid]);
+
+  useEffect(() => {
+    if (!courtId || !uid || joinSource !== "push") {
+      return;
+    }
+    EventService.recordNotificationOpened(courtId).catch((error: unknown) =>
+      console.error("Unable to log notification open", error),
+    );
+  }, [courtId, uid, joinSource]);
 
   useEffect(() => {
     if (!courtLoaded || !hasReport || sessionFlag(TRUST_PROMPT_KEY)) {
@@ -591,6 +605,7 @@ const CourtDetailPage: React.FC = () => {
                 court={court}
                 isPostOpen={isPostOpen}
                 onClosePost={() => setIsPostOpen(false)}
+                joinSource={joinSource}
               />
             </>
           ) : (

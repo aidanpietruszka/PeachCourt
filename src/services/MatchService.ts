@@ -14,6 +14,7 @@ import { auth, db } from "./firebase";
 import type { Match, MatchFormat, SkillLevel, Sport } from "../types/types";
 import { isValidSkill } from "../utils/skill";
 import { findConflict, type PlayerGame } from "../utils/gameOverlap";
+import { isStandaloneDisplay } from "../utils/notifications";
 
 export const SPOTS_BY_FORMAT: Record<MatchFormat, number> = {
   singles: 1,
@@ -339,6 +340,7 @@ export const MatchService = {
           Math.round((now.toMillis() - match.createdAt.toMillis()) / 60_000),
         ),
         joinSource,
+        homeScreen: isStandaloneDisplay(),
         timestamp: now,
       });
     });
