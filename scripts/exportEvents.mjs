@@ -3,7 +3,12 @@ import { parseArgs } from "node:util";
 import { cert, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
-import { participantRows, summarize } from "../src/utils/exportStats.ts";
+import {
+  checkInMethod,
+  includeInExport,
+  participantRows,
+  summarize,
+} from "../src/utils/exportStats.ts";
 
 const USAGE =
   "Usage: npm run export -- --since YYYY-MM-DD --exclude team1@x.com,team2@y.com";
@@ -39,6 +44,11 @@ const EVENT_COLUMNS = [
   ["spots_total", (event) => event.spotsTotal],
   ["minutes_to_join", (event) => event.minutesToJoin],
   ["join_source", (event) => event.joinSource],
+  ["home_screen", (event) => event.homeScreen],
+  ["alert_type", (event) => event.alertType],
+  ["granted", (event) => event.granted],
+  ["game_start", (event) => formatTime(event.startAt)],
+  ["check_in_method", (event) => checkInMethod(event)],
   ["app_count", (event) => event.appPlayerCount],
   ["auto_was_on", (event) => event.wasOn],
   ["auto_is_on", (event) => event.isOn],
@@ -207,15 +217,14 @@ const eventsSnapshot = await db
   .get();
 const rawEvents = eventsSnapshot.docs
   .map((item) => plainValues(item.data()))
-  .filter(
-    (event) =>
-      typeof event.uid === "string" &&
-      typeof event.timestamp === "number" &&
-      !teamUids.has(event.uid),
-  );
+  .filter((event) => includeInExport(event, teamUids));
 
 const usersByUid = new Map(users.map((user) => [user.uid, user]));
-const testerUids = new Set(rawEvents.map((event) => event.uid));
+const testerUids = new Set(
+  rawEvents
+    .filter((event) => !teamUids.has(event.uid))
+    .map((event) => event.uid),
+);
 users.forEach((user) => {
   const created = Date.parse(user.metadata.creationTime);
   if (!teamUids.has(user.uid) && created >= since.getTime()) {
@@ -260,7 +269,7 @@ const participants = testers.map((tester) => ({
 const events = rawEvents
   .map(({ uid, ...event }) => ({
     ...event,
-    participant: participantIds.get(uid),
+    participant: participantIds.get(uid) ?? "team",
   }))
   .sort((a, b) => a.timestamp - b.timestamp);
 

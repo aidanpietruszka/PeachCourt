@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  checkInMethod,
+  includeInExport,
   mean,
   median,
   participantRows,
@@ -434,5 +436,135 @@ describe("Q4 notification-driven joins", () => {
     const rows = summarize(testers(1), [], {});
     expect(stat(rows, "Games joined")).toEqual({ value: 0, n: 0 });
     expect(stat(rows, "Joined via notification (%)")).toEqual({ value: null, n: 0 });
+  });
+
+  it("U-218 counts notifications sent, opened and the open rate", () => {
+    const events: ExportEvent[] = [
+      event("P01", "notification_sent", { matchId: "m1", alertType: "new_game" }),
+      event("P01", "notification_sent", { matchId: "m2", alertType: "game_reminder" }),
+      event("P02", "notification_sent", { matchId: "m3", alertType: "new_message" }),
+      event("P01", "notification_opened", { courtId: "c1", source: "push" }),
+    ];
+    const rows = summarize(testers(2), events, {});
+    expect(stat(rows, "Notifications sent")).toEqual({ value: 3, n: 3 });
+    expect(stat(rows, "Notifications opened")).toEqual({ value: 1, n: 3 });
+    expect(stat(rows, "Open rate (%)")).toEqual({ value: 33.3, n: 3 });
+  });
+
+  it("U-219 measures notification joins among Home Screen players only", () => {
+    const events: ExportEvent[] = [
+      event("P01", "match_joined", { matchId: "m1", minutesToJoin: 5, joinSource: "push", homeScreen: true }),
+      event("P01", "match_joined", { matchId: "m2", minutesToJoin: 8, joinSource: "browsing", homeScreen: true }),
+      event("P02", "match_joined", { matchId: "m3", minutesToJoin: 2, joinSource: "banner", homeScreen: false }),
+    ];
+    const rows = summarize(testers(2), events, {});
+    expect(
+      stat(rows, "Joins from notifications among Home Screen players (%)"),
+    ).toEqual({ value: 50, n: 2 });
+  });
+
+  it("U-220 empty notification data gives null rates without dividing by zero", () => {
+    const rows = summarize(testers(1), [], {});
+    expect(stat(rows, "Notifications sent")).toEqual({ value: 0, n: 0 });
+    expect(stat(rows, "Open rate (%)")).toEqual({ value: null, n: 0 });
+    expect(
+      stat(rows, "Joins from notifications among Home Screen players (%)"),
+    ).toEqual({ value: null, n: 0 });
+  });
+});
+
+describe("Q3 wide join window", () => {
+  it("U-221 counts games joined within 60 min alongside the 30-min metric", () => {
+    const rows = summarize(
+      testers(2),
+      [
+        event("P01", "match_posted", { matchId: "m1" }),
+        event("P01", "match_posted", { matchId: "m2" }),
+        event("P01", "match_posted", { matchId: "m3" }),
+        event("P02", "match_joined", { matchId: "m1", minutesToJoin: 20 }),
+        event("P02", "match_joined", { matchId: "m2", minutesToJoin: 45 }),
+        event("P03", "match_joined", { matchId: "m3", minutesToJoin: 75 }),
+      ],
+      {},
+    );
+    expect(stat(rows, "Games joined within 30 min")).toEqual({ value: 1, n: 3 });
+    expect(stat(rows, "Games joined within 60 min")).toEqual({ value: 2, n: 3 });
+    expect(stat(rows, "Games joined within 60 min (%)")).toEqual({
+      value: 66.7,
+      n: 3,
+    });
+  });
+
+  it("U-222 no posted games gives a null 60-min percentage", () => {
+    const rows = summarize(testers(1), [], {});
+    expect(stat(rows, "Games joined within 60 min")).toEqual({ value: 0, n: 0 });
+    expect(stat(rows, "Games joined within 60 min (%)")).toEqual({
+      value: null,
+      n: 0,
+    });
+  });
+});
+
+describe("Q1 manual and automatic check-ins per A/B group", () => {
+  const group: Participant[] = [
+    { id: "P01", signedUpAt: start, method: "email", variant: "auto_on", locationEnabled: true, autoCheckin: true },
+    { id: "P02", signedUpAt: start, method: "email", variant: "auto_off", locationEnabled: true, autoCheckin: false },
+    { id: "P03", signedUpAt: start, method: "email", variant: "auto_off", locationEnabled: false, autoCheckin: false },
+  ];
+
+  it("U-223 splits check-ins by method within each compared group", () => {
+    const rows = summarize(
+      group,
+      [
+        event("P01", "check_in", { courtId: "a", method: "auto" }),
+        event("P01", "check_in", { courtId: "a" }),
+        event("P02", "check_in", { courtId: "a", method: "auto" }),
+        event("P03", "check_in", { courtId: "a", method: "auto" }),
+      ],
+      {},
+    );
+    expect(stat(rows, "Default on: automatic check-ins")).toEqual({ value: 1, n: 2 });
+    expect(stat(rows, "Default on: manual check-ins")).toEqual({ value: 1, n: 2 });
+    expect(stat(rows, "Default off: automatic check-ins")).toEqual({ value: 1, n: 1 });
+    expect(stat(rows, "Default off: manual check-ins")).toEqual({ value: 0, n: 1 });
+  });
+
+  it("U-224 no check-ins gives zero counts", () => {
+    const rows = summarize(group, [], {});
+    expect(stat(rows, "Default on: automatic check-ins")).toEqual({ value: 0, n: 0 });
+    expect(stat(rows, "Default on: manual check-ins")).toEqual({ value: 0, n: 0 });
+  });
+});
+
+describe("includeInExport (Q2 team handling)", () => {
+  const team = new Set(["team-1"]);
+
+  it("U-225 keeps non-team events", () => {
+    expect(
+      includeInExport({ uid: "tester-1", timestamp: start, eventName: "check_in" }, team),
+    ).toBe(true);
+  });
+
+  it("U-226 keeps a team in_person_count but drops other team events", () => {
+    expect(
+      includeInExport({ uid: "team-1", timestamp: start, eventName: "in_person_count" }, team),
+    ).toBe(true);
+    expect(
+      includeInExport({ uid: "team-1", timestamp: start, eventName: "court_viewed" }, team),
+    ).toBe(false);
+  });
+
+  it("U-227 drops malformed events", () => {
+    expect(includeInExport({ timestamp: start, eventName: "check_in" }, team)).toBe(false);
+    expect(includeInExport({ uid: "tester-1", eventName: "check_in" }, team)).toBe(false);
+  });
+});
+
+describe("checkInMethod (Q1 column)", () => {
+  it("U-228 reads auto, defaults missing to manual, ignores other events", () => {
+    expect(checkInMethod({ eventName: "check_in", method: "auto" })).toBe("auto");
+    expect(checkInMethod({ eventName: "check_in", method: "manual" })).toBe("manual");
+    expect(checkInMethod({ eventName: "check_in" })).toBe("manual");
+    expect(checkInMethod({ eventName: "court_viewed" })).toBeNull();
   });
 });

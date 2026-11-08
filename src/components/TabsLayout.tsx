@@ -6,11 +6,15 @@ import {
   IonTabButton,
   IonTabs,
   IonLabel,
-  IonIcon,
   useIonRouter,
 } from "@ionic/react";
 import { Route } from "react-router-dom";
-import { chatbubblesOutline, locationOutline, personOutline, timeOutline } from "ionicons/icons";
+import {
+  ActivityTabIcon,
+  ChatsTabIcon,
+  CourtsTabIcon,
+  ProfileTabIcon,
+} from "./TabBarIcons";
 import CourtsPage from "../pages/CourtsPage";
 import ProfilePage from "../pages/ProfilePage";
 import ChatsPage from "../pages/ChatsPage";
@@ -183,20 +187,20 @@ const TabsLayout: React.FC = () => {
         </IonRouterOutlet>
         <IonTabBar slot="bottom">
           <IonTabButton tab="profile" href="/profile">
-            <IonIcon icon={personOutline} />
+            <ProfileTabIcon />
             <IonLabel>Profile</IonLabel>
           </IonTabButton>
           <IonTabButton tab="courts" href="/courts">
-            <IonIcon icon={locationOutline} />
+            <CourtsTabIcon />
             <IonLabel>Courts</IonLabel>
           </IonTabButton>
           <IonTabButton tab="activity" href="/activity">
-            <IonIcon icon={timeOutline} />
+            <ActivityTabIcon />
             <IonLabel>My Activity</IonLabel>
           </IonTabButton>
           {flags.gameChat && (
             <IonTabButton tab="chats" href="/chats">
-              <IonIcon icon={chatbubblesOutline} />
+              <ChatsTabIcon />
               <IonLabel>Chats</IonLabel>
               {unreadChatCount > 0 && (
                 <span className="tab-badge" aria-label={`${unreadChatCount} unread`}>

@@ -88,6 +88,16 @@ test("E2E-192 in-app banner appears when new alert is seeded", async ({ browser 
   await context.close();
 });
 
+test("E2E-209 empty notification inbox shows guidance subtext", async ({ browser }) => {
+  const { context, page } = await newUser(browser, "Ana");
+  await page.goto("/notifications");
+  await expect(page.locator(".inbox__empty-title")).toHaveText("No notifications yet");
+  await expect(page.locator(".inbox__empty-sub")).toContainText(
+    "New games, changes to your games and reminders show up here.",
+  );
+  await context.close();
+});
+
 test("E2E-193 a join from the inbox is logged with joinSource inbox", async ({ browser }) => {
   const { a, b, joins } = await joinWithSource(browser, "inbox");
   expect(joins).toHaveLength(1);

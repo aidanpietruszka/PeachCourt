@@ -60,10 +60,10 @@ const ProfilePage: React.FC = () => {
     }
   };
 
-  const displayName =
-    profile
-      ? `${profile.firstName} ${profile.lastName.charAt(0)}.`
-      : "";
+  const fullName = profile ? `${profile.firstName} ${profile.lastName}` : "";
+  const shownAs = profile
+    ? `${profile.firstName} ${profile.lastName.charAt(0)}.`
+    : "";
 
   return (
     <IonPage>
@@ -80,10 +80,14 @@ const ProfilePage: React.FC = () => {
 
           {!loading && profile && (
             <>
-              <p className="profile-page__name">{displayName}</p>
+              <p className="profile-page__name">{fullName}</p>
+              {user?.email && (
+                <p className="profile-page__email">{user.email}</p>
+              )}
+              <p className="profile-page__shown">Shown to others as {shownAs}</p>
 
               <div className="profile-page__section">
-                <p className="profile-page__section-title">Sports</p>
+                <p className="profile-page__section-title">Sports &amp; skill</p>
                 <div className="profile-page__sports">
                   {profile.sports.map((sport) => (
                     <span key={sport} className="profile-page__sport-chip">
@@ -94,7 +98,6 @@ const ProfilePage: React.FC = () => {
               </div>
 
               <div className="profile-page__section">
-                <p className="profile-page__section-title">Skill level</p>
                 <IonList inset>
                   {profile.sports.map((sport) => (
                     <IonItem key={sport}>
@@ -134,7 +137,7 @@ const ProfilePage: React.FC = () => {
               fill="outline"
               onClick={() => void handleLogout()}
             >
-              Log out
+              Sign out
             </IonButton>
           </div>
         </div>

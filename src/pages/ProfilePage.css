@@ -18,6 +18,18 @@
   margin: 0;
 }
 
+.profile-page__email {
+  font-size: 15px;
+  color: var(--ion-color-medium);
+  margin: 4px 0 0;
+}
+
+.profile-page__shown {
+  font-size: 13px;
+  color: var(--ion-color-medium);
+  margin: 2px 0 0;
+}
+
 .profile-page__section-title {
   font-size: 13px;
   font-weight: 600;

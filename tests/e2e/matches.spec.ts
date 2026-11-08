@@ -6,6 +6,7 @@ import {
   gameCard,
   ionButton,
   joinGame,
+  loggedEvents,
   newUser,
   openCourt,
   postGame,
@@ -15,6 +16,28 @@ import {
 
 test.beforeEach(async () => {
   await resetData();
+});
+
+test("E2E-208 match_posted and match_joined record the game start time", async ({ browser }) => {
+  const a = await newUser(browser, "Ana");
+  const b = await newUser(browser, "Ben");
+  await openCourt(a.page, COURTS.alpha.name);
+  await openCourt(b.page, COURTS.alpha.name);
+
+  await postGame(a.page, { skill: "Any level" });
+  const posted = await loggedEvents("match_posted");
+  expect(posted).toHaveLength(1);
+  expect(typeof posted[0].startAt).toBe("string");
+
+  const guestCard = gameCard(b.page, "Ana");
+  await joinGame(b.page, guestCard);
+  await expect(visibleText(b.page, /You joined Doubles at/)).toBeVisible();
+  const joined = await loggedEvents("match_joined");
+  expect(joined).toHaveLength(1);
+  expect(typeof joined[0].startAt).toBe("string");
+
+  await a.context.close();
+  await b.context.close();
 });
 
 test("E2E-17 post, join and leave a game", async ({ browser }) => {

@@ -66,7 +66,7 @@ const SignUpPage: React.FC = () => {
       <IonContent>
         <div className="pc-screen auth-page">
           <h1 className="pc-title">Create account</h1>
-          <p className="pc-subtitle">Sign up to check in and keep your history.</p>
+          <p className="pc-subtitle">Join PeachCourt to check in and post games.</p>
 
           <form onSubmit={handleSubmit}>
             <div className="auth-field">

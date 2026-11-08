@@ -825,6 +825,7 @@ describe("events", () => {
         format: "doubles",
         skillLevel: 4,
         spotsTotal: 3,
+        startAt: Timestamp.now(),
       },
     ],
     [
@@ -835,6 +836,7 @@ describe("events", () => {
         minutesToJoin: 12,
         joinSource: "browsing",
         homeScreen: false,
+        startAt: Timestamp.now(),
       },
     ],
     ["notification_opened", { source: "push", courtId: "court-1" }],

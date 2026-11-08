@@ -23,6 +23,8 @@ test("E2E-197 My Activity shows empty state before any activity", async ({ brows
   await goToMyActivity(page);
   await expect(page.locator(".my-activity__empty-heading")).toContainText("Nothing here yet");
   await expect(page.locator(".my-activity__find-btn")).toBeVisible();
+  await expect(page.locator(".my-activity__empty-icon svg")).toHaveCount(1);
+  await expect(page.locator(".my-activity__empty-icon")).not.toContainText("🏓");
   await context.close();
 });
 

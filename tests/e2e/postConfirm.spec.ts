@@ -21,6 +21,9 @@ test("E2E-175 confirm sheet opens after Post game is clicked with valid time", a
   await openCourt(page, COURTS.alpha.name);
   await ionButton(page.locator("ion-footer"), "Post a game").click();
   const form = page.locator("ion-modal").filter({ visible: true }).last();
+  await expect(form).toContainText(
+    "Players near your skill level get an alert.",
+  );
   await form.locator("ion-select").nth(0).click();
   await page.locator("ion-popover").getByText("Tomorrow", { exact: true }).click();
   await form.locator('input[type="time"]').fill("10:00");
@@ -46,7 +49,7 @@ test("E2E-176 confirm sheet shows all summary rows", async ({ browser }) => {
   await expect(confirmSheet).toContainText("Tennis");
   await expect(confirmSheet).toContainText("Doubles (4 players)");
   await expect(confirmSheet).toContainText("Tomorrow");
-  await expect(confirmSheet).toContainText("3.5");
+  await expect(confirmSheet).toContainText("3.5 (from your profile)");
   await context.close();
 });
 

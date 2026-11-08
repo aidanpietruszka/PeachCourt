@@ -42,10 +42,21 @@
 }
 
 .inbox__empty {
-  color: var(--ion-color-medium);
-  font-size: 15px;
   margin: 32px 0 0;
   text-align: center;
+}
+
+.inbox__empty-title {
+  color: var(--pc-text, #111);
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.inbox__empty-sub {
+  color: var(--ion-color-medium);
+  font-size: 14px;
+  margin: 6px 0 0;
 }
 
 .inbox__section-label {

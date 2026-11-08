@@ -72,6 +72,14 @@
   flex-shrink: 0;
 }
 
+ion-tab-button svg {
+  color: var(--pc-text-muted, #8a8a8e);
+}
+
+ion-tab-button.tab-selected svg {
+  color: var(--ion-color-primary, #0d9677);
+}
+
 .tab-badge {
   position: absolute;
   top: 6px;
