@@ -42,6 +42,16 @@ test("E2E-04 signed-out users are sent to login", async ({ page }) => {
 test("E2E-05 welcome page has no guest option", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByText("Continue as guest")).not.toBeVisible();
+  await expect(
+    page.getByText("See which courts are busy and find someone to play with."),
+  ).toBeVisible();
   await expect(page.getByRole("button", { name: "Log in" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Create account" })).toBeVisible();
+});
+
+test("E2E-210 sign up page shows the Figma subtitle", async ({ page }) => {
+  await page.goto("/signup");
+  await expect(
+    page.getByText("Join PeachCourt to check in and post games."),
+  ).toBeVisible();
 });

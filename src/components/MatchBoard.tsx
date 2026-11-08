@@ -793,9 +793,7 @@ const MatchBoard: React.FC<MatchBoardProps> = ({
               </IonItem>
             </IonList>
             <p className="match-board__note">
-              {SPOTS_BY_FORMAT[format]} open spot
-              {SPOTS_BY_FORMAT[format] === 1 ? "" : "s"}. Anyone viewing this
-              court can join.
+              Players near your skill level get an alert.
             </p>
             <IonButton
               expand="block"
@@ -854,7 +852,13 @@ const MatchBoard: React.FC<MatchBoardProps> = ({
               <div className="confirm-sheet__row">
                 <span className="confirm-sheet__label">Skill level</span>
                 <span className="confirm-sheet__value">
-                  {skillLevel === "any" ? "Any level" : formatSkill(sport, skillLevel as number)}
+                  {skillLevel === "any"
+                    ? "Any level"
+                    : `${formatSkill(sport, skillLevel as number)}${
+                        profile?.skillLevels[sport] === skillLevel
+                          ? " (from your profile)"
+                          : ""
+                      }`}
                 </span>
               </div>
             </div>

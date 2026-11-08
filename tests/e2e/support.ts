@@ -294,12 +294,21 @@ export async function backdateReport(courtId: string, minutesAgo = 31) {
 type StoredValue = {
   stringValue?: string;
   integerValue?: string;
+  booleanValue?: boolean;
+  timestampValue?: string;
   nullValue?: null;
 };
 
+function readStoredValue(value: StoredValue): string | number | boolean | null {
+  if (value.integerValue !== undefined) return Number(value.integerValue);
+  if (value.booleanValue !== undefined) return value.booleanValue;
+  if (value.timestampValue !== undefined) return value.timestampValue;
+  return value.stringValue ?? null;
+}
+
 export async function loggedEvents(
   eventName: string,
-): Promise<Array<Record<string, string | number | null>>> {
+): Promise<Array<Record<string, string | number | boolean | null>>> {
   const response = await fetch(
     `${FIRESTORE}/v1/projects/${PROJECT_ID}/databases/(default)/documents/events?pageSize=500`,
     { headers: { Authorization: "Bearer owner" } },
@@ -313,9 +322,7 @@ export async function loggedEvents(
       Object.fromEntries(
         Object.entries(fields).map(([key, value]) => [
           key,
-          value.integerValue !== undefined
-            ? Number(value.integerValue)
-            : (value.stringValue ?? null),
+          readStoredValue(value),
         ]),
       ),
     )

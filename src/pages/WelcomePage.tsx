@@ -21,7 +21,7 @@ const WelcomePage: React.FC = () => {
             <img className="welcome__logo" src="/logo.svg" alt="" />
             <h1 className="welcome__title">PeachCourt</h1>
             <p className="welcome__tagline">
-              Find open tennis and pickleball courts in Atlanta
+              See which courts are busy and find someone to play with.
             </p>
           </div>
 

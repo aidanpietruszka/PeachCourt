@@ -171,7 +171,12 @@ const NotificationInboxPage: React.FC = () => {
           <h1 className="inbox__title">Notifications</h1>
 
           {alerts.length === 0 && (
-            <p className="inbox__empty">No notifications yet.</p>
+            <div className="inbox__empty">
+              <p className="inbox__empty-title">No notifications yet</p>
+              <p className="inbox__empty-sub">
+                New games, changes to your games and reminders show up here.
+              </p>
+            </div>
           )}
 
           {todayAlerts.length > 0 && (

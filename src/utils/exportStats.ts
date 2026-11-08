@@ -1,8 +1,32 @@
 import { rangeFromCount } from "./crowdRange";
 
 export const JOIN_WINDOW_MINUTES = 30;
+export const JOIN_WINDOW_WIDE_MINUTES = 60;
 export const TOP_COURTS = 5;
 export const NOTIFICATION_SOURCES = ["push", "banner", "inbox"] as const;
+
+export function includeInExport(
+  event: { uid?: unknown; timestamp?: unknown; eventName?: unknown },
+  teamUids: Set<string>,
+): boolean {
+  if (typeof event.uid !== "string" || typeof event.timestamp !== "number") {
+    return false;
+  }
+  if (teamUids.has(event.uid)) {
+    return event.eventName === "in_person_count";
+  }
+  return true;
+}
+
+export function checkInMethod(event: {
+  eventName?: unknown;
+  method?: unknown;
+}): "auto" | "manual" | null {
+  if (event.eventName !== "check_in") {
+    return null;
+  }
+  return event.method === "auto" ? "auto" : "manual";
+}
 const AUTO_TEST = "Auto check-in test";
 const AUTO_VARIANTS: Array<[string, string]> = [
   ["auto_on", "Default on"],
@@ -317,6 +341,9 @@ export function summarize(
   const joinedInWindow = joinMinutes.filter(
     (minutes) => minutes <= JOIN_WINDOW_MINUTES,
   ).length;
+  const joinedInWideWindow = joinMinutes.filter(
+    (minutes) => minutes <= JOIN_WINDOW_WIDE_MINUTES,
+  ).length;
 
   add("Games", "Games posted", posted.size, posted.size);
   add("Games", "Games with at least 1 join", firstJoin.size, posted.size);
@@ -330,6 +357,18 @@ export function summarize(
     "Games",
     `Games joined within ${JOIN_WINDOW_MINUTES} min (%)`,
     percent(joinedInWindow, posted.size),
+    posted.size,
+  );
+  add(
+    "Games",
+    `Games joined within ${JOIN_WINDOW_WIDE_MINUTES} min`,
+    joinedInWideWindow,
+    posted.size,
+  );
+  add(
+    "Games",
+    `Games joined within ${JOIN_WINDOW_WIDE_MINUTES} min (%)`,
+    percent(joinedInWideWindow, posted.size),
     posted.size,
   );
   add(
@@ -426,6 +465,23 @@ export function summarize(
       percent(group.filter((p) => checkers.has(p.id)).length, group.length),
       group.length,
     );
+
+    const groupCheckIns = mine(named(events, "check_in"));
+    const autoGroupCheckIns = groupCheckIns.filter(
+      (event) => event.method === "auto",
+    ).length;
+    add(
+      AUTO_TEST,
+      `${label}: manual check-ins`,
+      groupCheckIns.length - autoGroupCheckIns,
+      groupCheckIns.length,
+    );
+    add(
+      AUTO_TEST,
+      `${label}: automatic check-ins`,
+      autoGroupCheckIns,
+      groupCheckIns.length,
+    );
   });
 
   const views = named(events, "court_viewed");
@@ -479,6 +535,40 @@ export function summarize(
     "Joined via notification (%)",
     percent(notifJoins, allJoins.length),
     allJoins.length,
+  );
+
+  const notificationsSent = named(events, "notification_sent").length;
+  const notificationsOpened = named(events, "notification_opened").length;
+  add(
+    "Notification-driven joins (Q4)",
+    "Notifications sent",
+    notificationsSent,
+    notificationsSent,
+  );
+  add(
+    "Notification-driven joins (Q4)",
+    "Notifications opened",
+    notificationsOpened,
+    notificationsSent,
+  );
+  add(
+    "Notification-driven joins (Q4)",
+    "Open rate (%)",
+    percent(notificationsOpened, notificationsSent),
+    notificationsSent,
+  );
+
+  const homeScreenJoins = allJoins.filter((event) => event.homeScreen === true);
+  const homeScreenNotifJoins = homeScreenJoins.filter(
+    (event) =>
+      typeof event.joinSource === "string" &&
+      (NOTIFICATION_SOURCES as readonly string[]).includes(event.joinSource),
+  ).length;
+  add(
+    "Notification-driven joins (Q4)",
+    "Joins from notifications among Home Screen players (%)",
+    percent(homeScreenNotifJoins, homeScreenJoins.length),
+    homeScreenJoins.length,
   );
 
   return rows;

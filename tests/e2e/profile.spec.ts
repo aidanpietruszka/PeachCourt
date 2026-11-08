@@ -112,7 +112,10 @@ test("E2E-99 profile tab shows saved name and sports", async ({ browser }) => {
   const { context, page } = await newUser(browser, "Sam");
   await page.locator("ion-tab-button[tab='profile']").click();
   await expect(page).toHaveURL(/\/profile$/);
-  await expect(page.locator(".profile-page__name")).toHaveText("Sam T.");
+  await expect(page.locator(".profile-page__name")).toHaveText("Sam Test");
+  await expect(page.locator(".profile-page__shown")).toHaveText(
+    "Shown to others as Sam T.",
+  );
   await expect(page.locator(".profile-page__sport-chip", { hasText: "Tennis" })).toBeVisible();
   await expect(page.locator("ion-item", { hasText: "Tennis (NTRP)" })).toContainText("3.5");
   await context.close();
@@ -135,7 +138,7 @@ test("E2E-101 edit profile opens full-screen form and saves changes", async ({
   await page.getByLabel("First name").fill("Samuel");
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page).toHaveURL(/\/profile$/);
-  await expect(page.locator(".profile-page__name")).toHaveText("Samuel T.");
+  await expect(page.locator(".profile-page__name")).toHaveText("Samuel Test");
   await context.close();
 });
 

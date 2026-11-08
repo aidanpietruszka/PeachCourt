@@ -279,6 +279,7 @@ export const MatchService = {
       format,
       skillLevel,
       spotsTotal,
+      startAt: Timestamp.fromDate(startAt),
       timestamp: now,
     });
 
@@ -341,6 +342,7 @@ export const MatchService = {
         ),
         joinSource,
         homeScreen: isStandaloneDisplay(),
+        startAt: match.startAt,
         timestamp: now,
       });
     });
