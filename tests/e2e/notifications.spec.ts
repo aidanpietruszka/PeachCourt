@@ -10,6 +10,7 @@ import {
   postGame,
   resetData,
   seedAlert,
+  seedChat,
   visibleText,
 } from "./support";
 
@@ -131,4 +132,43 @@ test("E2E-196 a plain browse join is logged with joinSource browsing", async ({ 
   expect(joins[0].joinSource).toBe("browsing");
   await a.context.close();
   await b.context.close();
+});
+
+test("E2E-210 a chat push open logs notification_opened once, even after a reload", async ({ browser }) => {
+  const { context, page, email } = await newUser(browser, "Ana");
+  const uid = await getUidByEmail(email);
+  await seedChat("chat-1", { playerUids: [uid], playerNames: ["Ana"] });
+  await page.goto("/chats/chat-1?src=push");
+  await expect(page.locator(".game-chat__title")).toBeVisible();
+  await expect.poll(() => loggedEvents("notification_opened")).toHaveLength(1);
+  await page.reload();
+  await expect(page.locator(".game-chat__title")).toBeVisible();
+  await page.waitForTimeout(1_000);
+  const opens = await loggedEvents("notification_opened");
+  expect(opens).toHaveLength(1);
+  expect(opens[0].courtId).toBe(COURTS.alpha.id);
+  await context.close();
+});
+
+test("E2E-211 a court push open logs notification_opened once, even after a reload", async ({ browser }) => {
+  const { context, page } = await newUser(browser, "Ana");
+  await page.goto(`/courts/${COURTS.alpha.id}?src=push`);
+  await expect.poll(() => loggedEvents("notification_opened")).toHaveLength(1);
+  await page.reload();
+  await page.waitForTimeout(1_000);
+  const opens = await loggedEvents("notification_opened");
+  expect(opens).toHaveLength(1);
+  expect(opens[0].courtId).toBe(COURTS.alpha.id);
+  await context.close();
+});
+
+test("E2E-212 a non-push chat visit logs nothing", async ({ browser }) => {
+  const { context, page, email } = await newUser(browser, "Ana");
+  const uid = await getUidByEmail(email);
+  await seedChat("chat-1", { playerUids: [uid], playerNames: ["Ana"] });
+  await page.goto("/chats/chat-1");
+  await expect(page.locator(".game-chat__title")).toBeVisible();
+  await page.waitForTimeout(1_000);
+  expect(await loggedEvents("notification_opened")).toHaveLength(0);
+  await context.close();
 });

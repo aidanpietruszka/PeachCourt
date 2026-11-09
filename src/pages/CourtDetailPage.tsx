@@ -43,7 +43,7 @@ import {
   formatMinutesAgo,
 } from "../utils/geo";
 import { CROWD_RANGES, displayRange } from "../utils/crowdRange";
-import { parseJoinSource } from "../utils/notifications";
+import { consumeNotificationOpen, parseJoinSource } from "../utils/notifications";
 import "./CourtDetailPage.css";
 
 const CHECK_IN_MINUTES = 60;
@@ -213,6 +213,9 @@ const CourtDetailPage: React.FC = () => {
 
   useEffect(() => {
     if (!courtId || !uid || joinSource !== "push") {
+      return;
+    }
+    if (!consumeNotificationOpen(`court:${courtId}`)) {
       return;
     }
     EventService.recordNotificationOpened(courtId).catch((error: unknown) =>

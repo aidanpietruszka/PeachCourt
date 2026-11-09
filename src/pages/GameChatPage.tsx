@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { IonContent, IonPage, useIonRouter } from "@ionic/react";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "../services/firebase";
 import { useAuth } from "../hooks/useAuth";
 import { UserService } from "../services/UserService";
 import { useChatMessages } from "../hooks/useChatMessages";
 import { ChatService } from "../services/ChatService";
+import { EventService } from "../services/EventService";
+import { consumeNotificationOpen, parseJoinSource } from "../utils/notifications";
 import type { Chat } from "../types/types";
 import "./GameChatPage.css";
 
@@ -29,6 +31,10 @@ function formatChatTime(d: Date, now: number): string {
 
 const GameChatPage: React.FC = () => {
   const { matchId } = useParams<{ matchId: string }>();
+  const location = useLocation();
+  const joinSource = parseJoinSource(
+    new URLSearchParams(location.search).get("src"),
+  );
   const ionRouter = useIonRouter();
   const { user } = useAuth();
   const uid = user?.uid ?? null;
@@ -48,6 +54,16 @@ const GameChatPage: React.FC = () => {
     });
     return unsub;
   }, [matchId]);
+
+  useEffect(() => {
+    if (!matchId || !uid || joinSource !== "push") return;
+    const courtId = chat?.courtId;
+    if (!courtId) return;
+    if (!consumeNotificationOpen(`chat:${matchId}`)) return;
+    EventService.recordNotificationOpened(courtId).catch((error: unknown) =>
+      console.error("Unable to log notification open", error),
+    );
+  }, [matchId, uid, joinSource, chat?.courtId]);
 
   useEffect(() => {
     if (!uid) return;

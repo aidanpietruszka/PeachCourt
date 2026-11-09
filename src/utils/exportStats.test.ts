@@ -444,11 +444,12 @@ describe("Q4 notification-driven joins", () => {
       event("P01", "notification_sent", { matchId: "m2", alertType: "game_reminder" }),
       event("P02", "notification_sent", { matchId: "m3", alertType: "new_message" }),
       event("P01", "notification_opened", { courtId: "c1", source: "push" }),
+      event("P02", "notification_opened", { courtId: "c2", source: "push" }),
     ];
     const rows = summarize(testers(2), events, {});
     expect(stat(rows, "Notifications sent")).toEqual({ value: 3, n: 3 });
-    expect(stat(rows, "Notifications opened")).toEqual({ value: 1, n: 3 });
-    expect(stat(rows, "Open rate (%)")).toEqual({ value: 33.3, n: 3 });
+    expect(stat(rows, "Notifications opened")).toEqual({ value: 2, n: 3 });
+    expect(stat(rows, "Open rate (%)")).toEqual({ value: 66.7, n: 3 });
   });
 
   it("U-219 measures notification joins among Home Screen players only", () => {
