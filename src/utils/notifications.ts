@@ -43,6 +43,21 @@ export function parseJoinSource(value: string | null | undefined): JoinSource {
     : "browsing";
 }
 
+const NOTIFICATION_OPEN_PREFIX = "peachcourt-notif-opened-";
+
+export function consumeNotificationOpen(key: string): boolean {
+  const storageKey = `${NOTIFICATION_OPEN_PREFIX}${key}`;
+  try {
+    if (sessionStorage.getItem(storageKey) === "true") {
+      return false;
+    }
+    sessionStorage.setItem(storageKey, "true");
+    return true;
+  } catch {
+    return true;
+  }
+}
+
 export interface PushData {
   type?: string;
   gameId?: string;
