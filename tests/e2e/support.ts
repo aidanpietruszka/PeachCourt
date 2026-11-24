@@ -361,6 +361,27 @@ export async function loggedEvents(
     .filter((event) => event.eventName === eventName);
 }
 
+export async function clientErrors(): Promise<
+  Array<Record<string, string | number | boolean | null>>
+> {
+  const response = await fetch(
+    `${FIRESTORE}/v1/projects/${PROJECT_ID}/databases/(default)/documents/clientErrors?pageSize=500`,
+    { headers: { Authorization: "Bearer owner" } },
+  );
+  expect(response.ok).toBe(true);
+  const body = (await response.json()) as {
+    documents?: Array<{ fields: Record<string, StoredValue> }>;
+  };
+  return (body.documents ?? []).map(({ fields }) =>
+    Object.fromEntries(
+      Object.entries(fields).map(([key, value]) => [
+        key,
+        readStoredValue(value),
+      ]),
+    ),
+  );
+}
+
 export async function newUser(
   browser: Browser,
   name: string,

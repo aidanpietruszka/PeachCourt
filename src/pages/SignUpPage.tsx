@@ -12,6 +12,7 @@ import {
   useIonRouter,
 } from '@ionic/react';
 import { authErrorMessage, signInWithGoogle, signUpWithEmail } from '../services/auth';
+import { ErrorService } from '../services/ErrorService';
 import './AuthPages.css';
 
 const SignUpPage: React.FC = () => {
@@ -30,7 +31,11 @@ const SignUpPage: React.FC = () => {
       await action();
       ionRouter.push('/onboarding', 'root', 'replace');
     } catch (e) {
-      setError(authErrorMessage(e));
+      const message = authErrorMessage(e);
+      setError(message);
+      if (message) {
+        void ErrorService.logSignInFailed(e);
+      }
     } finally {
       setBusy(false);
     }

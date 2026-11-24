@@ -17,6 +17,7 @@ import {
   signInWithGoogle,
 } from "../services/auth";
 import { auth } from "../services/firebase";
+import { ErrorService } from "../services/ErrorService";
 import { UserService } from "../services/UserService";
 import "./AuthPages.css";
 
@@ -36,7 +37,11 @@ const LoginPage: React.FC = () => {
       const profile = uid ? await UserService.getProfile(uid) : null;
       ionRouter.push(profile?.onboardingDone ? "/courts" : "/onboarding", "root", "replace");
     } catch (e) {
-      setError(authErrorMessage(e));
+      const message = authErrorMessage(e);
+      setError(message);
+      if (message) {
+        void ErrorService.logSignInFailed(e);
+      }
     } finally {
       setBusy(false);
     }

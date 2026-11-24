@@ -1608,3 +1608,193 @@ describe("config/flags", () => {
     await assertFails(setDoc(doc(asUser("alice"), "config/flags"), { autoCheckin: false }));
   });
 });
+
+describe("clientErrors", () => {
+  function clientErrorData(
+    uid: string | null,
+    overrides: Record<string, unknown> = {},
+  ) {
+    return {
+      type: "unexpected",
+      screen: "/courts",
+      device: "iPhone",
+      browser: "Safari",
+      appVersion: "0.0.1",
+      code: "Error",
+      message: "something broke",
+      uid,
+      createdAt: Timestamp.now(),
+      ...overrides,
+    };
+  }
+
+  it("R-102 owner can create their own entry", async () => {
+    await assertSucceeds(
+      addDoc(collection(asUser("alice"), "clientErrors"), clientErrorData("alice")),
+    );
+  });
+
+  it("R-103 signed-out sign_in_failed with null uid is allowed", async () => {
+    await assertSucceeds(
+      addDoc(
+        collection(asGuest(), "clientErrors"),
+        clientErrorData(null, { type: "sign_in_failed" }),
+      ),
+    );
+  });
+
+  it("R-104 signed-out non sign_in_failed type is denied", async () => {
+    await assertFails(
+      addDoc(
+        collection(asGuest(), "clientErrors"),
+        clientErrorData(null, { type: "unexpected" }),
+      ),
+    );
+  });
+
+  it("R-105 signed-out sign_in_failed with a non-null uid is denied", async () => {
+    await assertFails(
+      addDoc(
+        collection(asGuest(), "clientErrors"),
+        clientErrorData("alice", { type: "sign_in_failed" }),
+      ),
+    );
+  });
+
+  it("R-106 signed-in player cannot create an entry for another uid", async () => {
+    await assertFails(
+      addDoc(collection(asUser("alice"), "clientErrors"), clientErrorData("bob")),
+    );
+  });
+
+  it("R-107 signed-in player cannot create a null-uid entry", async () => {
+    await assertFails(
+      addDoc(
+        collection(asUser("alice"), "clientErrors"),
+        clientErrorData(null, { type: "sign_in_failed" }),
+      ),
+    );
+  });
+
+  it("R-108 an unknown type is denied", async () => {
+    await assertFails(
+      addDoc(
+        collection(asUser("alice"), "clientErrors"),
+        clientErrorData("alice", { type: "boom" }),
+      ),
+    );
+  });
+
+  it("R-109 extra fields are rejected", async () => {
+    await assertFails(
+      addDoc(
+        collection(asUser("alice"), "clientErrors"),
+        clientErrorData("alice", { latitude: 33.78 }),
+      ),
+    );
+  });
+
+  it("R-110 a missing field is rejected", async () => {
+    const data = clientErrorData("alice") as Record<string, unknown>;
+    delete data.screen;
+    await assertFails(
+      addDoc(collection(asUser("alice"), "clientErrors"), data),
+    );
+  });
+
+  it("R-111 an oversized message is rejected", async () => {
+    await assertFails(
+      addDoc(
+        collection(asUser("alice"), "clientErrors"),
+        clientErrorData("alice", { message: "x".repeat(1001) }),
+      ),
+    );
+  });
+
+  it("R-112 an oversized code is rejected", async () => {
+    await assertFails(
+      addDoc(
+        collection(asUser("alice"), "clientErrors"),
+        clientErrorData("alice", { code: "x".repeat(201) }),
+      ),
+    );
+  });
+
+  it("R-121 an oversized screen is rejected", async () => {
+    await assertFails(
+      addDoc(
+        collection(asUser("alice"), "clientErrors"),
+        clientErrorData("alice", { screen: "x".repeat(201) }),
+      ),
+    );
+  });
+
+  it("R-122 an oversized uid is rejected", async () => {
+    await assertFails(
+      addDoc(
+        collection(asUser("x".repeat(201)), "clientErrors"),
+        clientErrorData("x".repeat(201)),
+      ),
+    );
+  });
+
+  it("R-119 a message at the cap is allowed", async () => {
+    await assertSucceeds(
+      addDoc(
+        collection(asUser("alice"), "clientErrors"),
+        clientErrorData("alice", { message: "x".repeat(1000) }),
+      ),
+    );
+  });
+
+  it("R-120 a string field at the cap is allowed", async () => {
+    await assertSucceeds(
+      addDoc(
+        collection(asUser("alice"), "clientErrors"),
+        clientErrorData("alice", { code: "x".repeat(200) }),
+      ),
+    );
+  });
+
+  it("R-113 a non-timestamp createdAt is rejected", async () => {
+    await assertFails(
+      addDoc(
+        collection(asUser("alice"), "clientErrors"),
+        clientErrorData("alice", { createdAt: Date.now() }),
+      ),
+    );
+  });
+
+  it("R-114 anonymous users cannot create an entry", async () => {
+    await assertFails(
+      addDoc(
+        collection(asAnonymous(), "clientErrors"),
+        clientErrorData(null, { type: "sign_in_failed" }),
+      ),
+    );
+  });
+
+  it("R-115 clients cannot update an entry", async () => {
+    await seed("clientErrors/err-1", clientErrorData("alice"));
+    await assertFails(
+      updateDoc(doc(asUser("alice"), "clientErrors/err-1"), { message: "changed" }),
+    );
+  });
+
+  it("R-116 clients cannot delete an entry", async () => {
+    await seed("clientErrors/err-1", clientErrorData("alice"));
+    await assertFails(deleteDoc(doc(asUser("alice"), "clientErrors/err-1")));
+  });
+
+  it("R-117 team members can read entries", async () => {
+    await seed("config/teamAccounts", { uids: ["alice"] });
+    await seed("clientErrors/err-1", clientErrorData("bob"));
+    await assertSucceeds(getDoc(doc(asUser("alice"), "clientErrors/err-1")));
+  });
+
+  it("R-118 non-team players cannot read entries", async () => {
+    await seed("config/teamAccounts", { uids: ["alice"] });
+    await seed("clientErrors/err-1", clientErrorData("bob"));
+    await assertFails(getDoc(doc(asUser("bob"), "clientErrors/err-1")));
+  });
+});
