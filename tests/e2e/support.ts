@@ -1,17 +1,49 @@
 import {
   expect,
+  test,
   type Browser,
   type BrowserContext,
+  type BrowserContextOptions,
   type Locator,
   type Page,
 } from "@playwright/test";
 
-export const APP_URL = "http://127.0.0.1:5174";
+export const APP_URL = `http://127.0.0.1:${process.env.E2E_APP_PORT ?? "5174"}`;
 export const PIEDMONT_PARK = { latitude: 33.7851, longitude: -84.3738 };
 
+const TILE_PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M8AAAMBAQDJ/pLvAAAAAElFTkSuQmCC",
+  "base64",
+);
+
+export function deviceContextOptions(): BrowserContextOptions {
+  const projectUse = test.info().project.use as Record<string, unknown>;
+  const keys = [
+    "userAgent",
+    "viewport",
+    "deviceScaleFactor",
+    "isMobile",
+    "hasTouch",
+    "screen",
+  ] as const;
+  const options: Record<string, unknown> = {};
+  for (const key of keys) {
+    if (projectUse[key] !== undefined) {
+      options[key] = projectUse[key];
+    }
+  }
+  return options as BrowserContextOptions;
+}
+
+export async function stubMapTiles(target: BrowserContext | Page) {
+  await target.route(/tile\.openstreetmap\.org\/.*\.png/, (route) =>
+    route.fulfill({ contentType: "image/png", body: TILE_PNG }),
+  );
+}
+
 const PROJECT_ID = "demo-peachcourt";
-const FIRESTORE = "http://127.0.0.1:8080";
-const AUTH = "http://127.0.0.1:9099";
+const FIRESTORE = `http://127.0.0.1:${process.env.E2E_FIRESTORE_PORT ?? "8080"}`;
+const AUTH = `http://127.0.0.1:${process.env.E2E_AUTH_PORT ?? "9099"}`;
 
 export const COURTS = {
   alpha: {
@@ -337,11 +369,12 @@ export async function newUser(
   const { skipPrompts = true, geolocation = true } = options;
   const context = await browser.newContext({
     baseURL: APP_URL,
-    viewport: { width: 390, height: 844 },
+    ...deviceContextOptions(),
     ...(geolocation
       ? { geolocation: PIEDMONT_PARK, permissions: ["geolocation"] }
       : { permissions: [] }),
   });
+  await stubMapTiles(context);
   if (skipPrompts) {
     await context.addInitScript(() => {
       try {
@@ -364,7 +397,7 @@ export async function signUp(page: Page, name: string) {
   await page.getByPlaceholder("Password (6+ characters)").fill("secret123");
   await page.getByPlaceholder("Confirm password").fill("secret123");
   await page.getByRole("button", { name: "Sign up", exact: true }).click();
-  await expect(page).toHaveURL(/\/onboarding$/);
+  await expect(page).toHaveURL(/\/onboarding$/, { timeout: 30_000 });
   await page.getByLabel("First name").fill(name);
   await page.getByLabel("Last name").fill("Test");
   await page.getByRole("button", { name: "Tennis" }).click();
@@ -375,9 +408,20 @@ export async function signUp(page: Page, name: string) {
   await expect(page.getByText("Use your location")).toBeVisible();
   await page.getByRole("button", { name: "Skip for now" }).click();
   await expect(page.getByText("Get game alerts")).toBeVisible();
-  await page.getByRole("button", { name: "Skip for now" }).click();
+  await finishOnboardingStep3(page);
   await expect(page).toHaveURL(/\/courts$/);
   return email;
+}
+
+export async function finishOnboardingStep3(page: Page) {
+  const skip = page.getByRole("button", { name: "Skip for now" });
+  const cont = page.getByRole("button", { name: "Continue" });
+  await expect(skip.or(cont)).toBeVisible();
+  if (await skip.isVisible()) {
+    await skip.click();
+  } else {
+    await cont.click();
+  }
 }
 
 export async function expectLoginPageShown(page: Page) {
@@ -668,4 +712,232 @@ export async function seedMessage(
     },
   );
   expect(response.ok).toBe(true);
+}
+
+export async function signInWithGoogle(
+  page: Page,
+  options: { email?: string; onPage?: "login" | "signup" } = {},
+): Promise<string> {
+  const email =
+    options.email ??
+    `google-${Date.now()}-${Math.floor(Math.random() * 1e6)}@gmail.com`;
+  const buttonName =
+    options.onPage === "signup" ? "Sign up with Google" : "Continue with Google";
+  const popupPromise = page.context().waitForEvent("page");
+  await page.getByRole("button", { name: buttonName }).click();
+  const popup = await popupPromise;
+  await popup.waitForLoadState("domcontentloaded");
+  const addAccount = popup.getByRole("button", { name: "Add new account" });
+  if (await addAccount.isVisible().catch(() => false)) {
+    await addAccount.click();
+  }
+  const emailInput = popup.locator("#email-input");
+  await emailInput.waitFor({ state: "visible" });
+  await emailInput.fill(email);
+  await popup
+    .getByRole("button", { name: /Sign in with Google\.com/i })
+    .click();
+  return email;
+}
+
+export async function deleteUserProfile(uid: string) {
+  const response = await fetch(
+    `${FIRESTORE}/v1/projects/${PROJECT_ID}/databases/(default)/documents/users/${uid}`,
+    { method: "DELETE", headers: { Authorization: "Bearer owner" } },
+  );
+  expect(response.ok || response.status === 404).toBe(true);
+}
+
+export async function seedProfileMissingFields(uid: string) {
+  await seedUserProfile(uid, {
+    firstName: "Pat",
+    onboardingDone: true,
+  });
+}
+
+export async function seedOnboardingStep(uid: string, step: 1 | 2 | 3) {
+  if (step === 1) {
+    await deleteUserProfile(uid);
+    return;
+  }
+  await seedUserProfile(uid, {
+    firstName: "Sam",
+    lastName: "Test",
+    sports: ["tennis"],
+    skillLevels: { tennis: 3.5 },
+    checkinVariant: "auto_off",
+  });
+  if (step === 3) {
+    await seedUserProfile(uid, {
+      locationEnabled: false,
+      autoCheckin: false,
+    });
+  }
+}
+
+export async function installClock(page: Page, now: number = Date.now()) {
+  await page.clock.install({ time: now });
+  await page.clock.pauseAt(now);
+}
+
+export async function advanceClock(page: Page, ms: number) {
+  await page.clock.fastForward(ms);
+}
+
+export async function runClockFor(page: Page, ms: number) {
+  await page.clock.runFor(ms);
+}
+
+export async function setClockTime(page: Page, time: number | Date) {
+  await page.clock.setFixedTime(time);
+}
+
+type PermissionState = "allowed" | "denied" | "not_asked";
+
+export async function setLocationPermission(
+  context: BrowserContext,
+  state: PermissionState,
+) {
+  if (state === "allowed") {
+    await context.grantPermissions(["geolocation"]);
+    return;
+  }
+  const reported = state === "denied" ? "denied" : "prompt";
+  await context.addInitScript((value) => {
+    const query = navigator.permissions.query.bind(navigator.permissions);
+    navigator.permissions.query = ((descriptor: PermissionDescriptor) =>
+      descriptor.name === "geolocation"
+        ? Promise.resolve({
+            state: value,
+            onchange: null,
+            addEventListener: () => undefined,
+            removeEventListener: () => undefined,
+            dispatchEvent: () => false,
+          } as unknown as PermissionStatus)
+        : query(descriptor)) as typeof navigator.permissions.query;
+    navigator.geolocation.getCurrentPosition = (_success, error) => {
+      if (error) {
+        error({ code: 1, message: value } as GeolocationPositionError);
+      }
+    };
+  }, reported);
+}
+
+export async function setNotificationPermission(
+  context: BrowserContext,
+  state: PermissionState,
+) {
+  const permission =
+    state === "allowed" ? "granted" : state === "denied" ? "denied" : "default";
+  if (state === "allowed") {
+    await context.grantPermissions(["notifications"]).catch(() => undefined);
+  }
+  await context.addInitScript((value) => {
+    const holder = globalThis as { Notification?: unknown };
+    if (typeof holder.Notification === "undefined") {
+      holder.Notification = {
+        permission: value,
+        requestPermission: () => Promise.resolve(value),
+      };
+      return;
+    }
+    try {
+      Object.defineProperty(Notification, "permission", {
+        configurable: true,
+        get: () => value,
+      });
+      Notification.requestPermission = () =>
+        Promise.resolve(value as NotificationPermission);
+    } catch {
+      return;
+    }
+  }, permission);
+}
+
+export async function freshContext(
+  browser: Browser,
+  options: { geolocation?: boolean } = {},
+): Promise<BrowserContext> {
+  const { geolocation = true } = options;
+  const context = await browser.newContext({
+    baseURL: APP_URL,
+    ...deviceContextOptions(),
+    ...(geolocation
+      ? { geolocation: PIEDMONT_PARK, permissions: ["geolocation"] }
+      : { permissions: [] }),
+  });
+  await stubMapTiles(context);
+  return context;
+}
+
+export async function waitForDocument(
+  path: string,
+  timeoutMs = 10_000,
+): Promise<Record<string, string | number | boolean | null>> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const response = await fetch(
+      `${FIRESTORE}/v1/projects/${PROJECT_ID}/databases/(default)/documents/${path}`,
+      { headers: { Authorization: "Bearer owner" } },
+    );
+    if (response.ok) {
+      const body = (await response.json()) as {
+        fields?: Record<string, StoredValue>;
+      };
+      return Object.fromEntries(
+        Object.entries(body.fields ?? {}).map(([key, value]) => [
+          key,
+          readStoredValue(value),
+        ]),
+      );
+    }
+    await new Promise((resolve) => setTimeout(resolve, 150));
+  }
+  throw new Error(`Document never appeared: ${path}`);
+}
+
+export async function waitForCollection(
+  collection: string,
+  timeoutMs = 10_000,
+): Promise<Array<Record<string, string | number | boolean | null>>> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const response = await fetch(
+      `${FIRESTORE}/v1/projects/${PROJECT_ID}/databases/(default)/documents/${collection}?pageSize=50`,
+      { headers: { Authorization: "Bearer owner" } },
+    );
+    if (response.ok) {
+      const body = (await response.json()) as {
+        documents?: Array<{ fields: Record<string, StoredValue> }>;
+      };
+      const docs = body.documents ?? [];
+      if (docs.length > 0) {
+        return docs.map(({ fields }) =>
+          Object.fromEntries(
+            Object.entries(fields).map(([key, value]) => [
+              key,
+              readStoredValue(value),
+            ]),
+          ),
+        );
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 150));
+  }
+  throw new Error(`Collection never had documents: ${collection}`);
+}
+
+export async function waitForEvent(
+  eventName: string,
+  timeoutMs = 10_000,
+): Promise<Array<Record<string, string | number | boolean | null>>> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const events = await loggedEvents(eventName);
+    if (events.length > 0) {
+      return events;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 150));
+  }
+  throw new Error(`Event never logged: ${eventName}`);
 }

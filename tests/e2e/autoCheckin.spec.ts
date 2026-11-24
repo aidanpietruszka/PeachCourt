@@ -130,6 +130,10 @@ test("E2E-156 Wrong court undoes the auto check-in", async ({ browser }) => {
 test("E2E-157 auto check-out fires after away-timer elapses", async ({
   browser,
 }) => {
+  test.skip(
+    test.info().project.name === "iPhone",
+    "WebKit does not re-fire watchPosition on setGeolocation; checked via DEVICE_CHECKLIST",
+  );
   const { context, page } = await setupAutoCheckin(browser);
 
   await page.goto("/courts");

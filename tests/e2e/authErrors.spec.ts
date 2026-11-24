@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import {
+  APP_URL,
   COURTS,
   expectLoginPageShown,
   newUser,
@@ -82,7 +83,7 @@ test("E2E-36 sign up rejects an email that already has an account", async ({
 }) => {
   const { context, email } = await newUser(browser, "Sam");
   await context.close();
-  const second = await browser.newContext({ baseURL: "http://127.0.0.1:5174" });
+  const second = await browser.newContext({ baseURL: APP_URL });
   const page = await second.newPage();
   await fillSignUp(page, {
     email,
@@ -112,7 +113,7 @@ test("E2E-38 log in with a wrong password shows an error", async ({
 }) => {
   const { context, email } = await newUser(browser, "Sam");
   await context.close();
-  const second = await browser.newContext({ baseURL: "http://127.0.0.1:5174" });
+  const second = await browser.newContext({ baseURL: APP_URL });
   const page = await second.newPage();
   await fillLogin(page, email, "wrong-password");
   await expect(visibleText(page, "Incorrect email or password.")).toBeVisible();
@@ -130,7 +131,7 @@ test("E2E-40 a failed log in can be corrected and retried", async ({
 }) => {
   const { context, email } = await newUser(browser, "Sam");
   await context.close();
-  const second = await browser.newContext({ baseURL: "http://127.0.0.1:5174" });
+  const second = await browser.newContext({ baseURL: APP_URL });
   const page = await second.newPage();
   await fillLogin(page, email, "wrong-password");
   await expect(visibleText(page, "Incorrect email or password.")).toBeVisible();
