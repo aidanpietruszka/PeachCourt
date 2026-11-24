@@ -20,6 +20,20 @@ service cloud.firestore {
       return value in ['auto_on', 'auto_off'];
     }
 
+    function isValidClientError(d) {
+      return d.keys().hasOnly(['type', 'screen', 'device', 'browser', 'appVersion', 'code', 'message', 'uid', 'createdAt'])
+        && d.keys().hasAll(['type', 'screen', 'device', 'browser', 'appVersion', 'code', 'message', 'uid', 'createdAt'])
+        && d.type in ['listener_failed', 'save_failed', 'push_token_failed', 'sign_in_failed', 'unexpected']
+        && d.screen is string && d.screen.size() <= 200
+        && d.device is string && d.device.size() <= 200
+        && d.browser is string && d.browser.size() <= 200
+        && d.appVersion is string && d.appVersion.size() <= 200
+        && d.code is string && d.code.size() <= 200
+        && d.message is string && d.message.size() <= 1000
+        && (d.uid == null || (d.uid is string && d.uid.size() <= 200))
+        && d.createdAt is timestamp;
+    }
+
     function isTeamMember() {
       return request.auth != null
         && exists(/databases/$(database)/documents/config/teamAccounts)
@@ -416,6 +430,20 @@ service cloud.firestore {
           )
         );
       allow read, update, delete: if false;
+    }
+
+    match /clientErrors/{errorId} {
+      allow read: if isTeamMember();
+      allow create: if isValidClientError(request.resource.data)
+        && (
+          (signedIn() && request.resource.data.uid == request.auth.uid)
+          || (
+            request.auth == null
+            && request.resource.data.type == 'sign_in_failed'
+            && request.resource.data.uid == null
+          )
+        );
+      allow update, delete: if false;
     }
   }
 }
