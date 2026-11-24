@@ -854,6 +854,24 @@ describe("alertTypeEnabled", () => {
     ).toBe(false);
   });
 
+  it("F-43b maps every alert type to the right key and default", () => {
+    const cases: Array<{ type: string; key: string; defaultOn: boolean }> = [
+      { type: "new_game", key: "newGamesAlert", defaultOn: true },
+      { type: "game_reminder", key: "gameRemindersAlert", defaultOn: true },
+      { type: "new_message", key: "chatMessagesAlert", defaultOn: false },
+      { type: "player_joined", key: "changesGamesAlert", defaultOn: true },
+      { type: "player_left", key: "changesGamesAlert", defaultOn: true },
+      { type: "player_removed", key: "changesGamesAlert", defaultOn: true },
+      { type: "host_transferred", key: "changesGamesAlert", defaultOn: true },
+      { type: "game_deleted", key: "changesGamesAlert", defaultOn: true },
+    ];
+    for (const { type, key, defaultOn } of cases) {
+      expect(alertTypeEnabled(type, {})).toBe(defaultOn);
+      expect(alertTypeEnabled(type, { [key]: !defaultOn })).toBe(!defaultOn);
+      expect(alertTypeEnabled(type, { [key]: defaultOn })).toBe(defaultOn);
+    }
+  });
+
   it("F-44 rejects an unknown alert type", () => {
     expect(alertTypeEnabled("mystery", {})).toBe(false);
   });

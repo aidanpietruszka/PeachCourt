@@ -1,5 +1,5 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
-import { newUser, resetData, signUp, getUidByEmail, seedUserProfile } from "./support";
+import { APP_URL, newUser, resetData, signUp, getUidByEmail, seedUserProfile } from "./support";
 
 test.beforeEach(async () => {
   await resetData();
@@ -26,7 +26,7 @@ async function newUserWithNotifs(
   name: string,
 ): Promise<{ context: Awaited<ReturnType<Browser["newContext"]>>; page: Page }> {
   const context = await browser.newContext({
-    baseURL: "http://127.0.0.1:5174",
+    baseURL: APP_URL,
     viewport: { width: 390, height: 844 },
     geolocation: { latitude: 33.7851, longitude: -84.3738 },
     permissions: ["geolocation", "notifications"],
@@ -193,6 +193,10 @@ test("E2E-118 sub-toggles are disabled when notifications are off", async ({
 test("E2E-119 turning on Notifications enables sub-toggles", async ({
   browser,
 }) => {
+  test.skip(
+    test.info().project.name === "iPhone",
+    "iOS Safari has no web push; notification UI is checked via DEVICE_CHECKLIST",
+  );
   const { context, page } = await newUserWithNotifs(browser, "Sam");
   await page.goto("/settings");
   const notifToggle = page.locator("ion-toggle[aria-label='Notifications']");
@@ -379,6 +383,10 @@ test("E2E-133 notifications denied sub-toggles are dimmed", async ({
 test("E2E-134 notifications help sheet opens and has tabs", async ({
   browser,
 }) => {
+  test.skip(
+    test.info().project.name === "iPhone",
+    "iOS Safari has no web push; notification UI is checked via DEVICE_CHECKLIST",
+  );
   const { context, page } = await newUser(browser, "Sam");
   await mockNotifDenied(page);
   await page.goto("/settings");
@@ -393,6 +401,10 @@ test("E2E-134 notifications help sheet opens and has tabs", async ({
 test("E2E-135 notifications help sheet Blocked tab auto-selected when denied", async ({
   browser,
 }) => {
+  test.skip(
+    test.info().project.name === "iPhone",
+    "iOS Safari has no web push; notification UI is checked via DEVICE_CHECKLIST",
+  );
   const { context, page } = await newUser(browser, "Sam");
   await mockNotifDenied(page);
   await page.goto("/settings");
@@ -468,6 +480,10 @@ test("E2E-140 settings page reachable directly via URL", async ({
 test("E2E-141 new games alert saves off and persists on reload", async ({
   browser,
 }) => {
+  test.skip(
+    test.info().project.name === "iPhone",
+    "iOS Safari has no web push; notification UI is checked via DEVICE_CHECKLIST",
+  );
   const { context, page } = await newUserWithNotifs(browser, "Sam");
   await page.goto("/settings");
   await page.locator("ion-toggle[aria-label='Notifications']").click();
@@ -488,6 +504,10 @@ test("E2E-141 new games alert saves off and persists on reload", async ({
 test("E2E-142 changes to my games alert saves off and persists on reload", async ({
   browser,
 }) => {
+  test.skip(
+    test.info().project.name === "iPhone",
+    "iOS Safari has no web push; notification UI is checked via DEVICE_CHECKLIST",
+  );
   const { context, page } = await newUserWithNotifs(browser, "Sam");
   await page.goto("/settings");
   await page.locator("ion-toggle[aria-label='Notifications']").click();
@@ -508,6 +528,10 @@ test("E2E-142 changes to my games alert saves off and persists on reload", async
 test("E2E-143 game reminders alert saves off and persists on reload", async ({
   browser,
 }) => {
+  test.skip(
+    test.info().project.name === "iPhone",
+    "iOS Safari has no web push; notification UI is checked via DEVICE_CHECKLIST",
+  );
   const { context, page } = await newUserWithNotifs(browser, "Sam");
   await page.goto("/settings");
   await page.locator("ion-toggle[aria-label='Notifications']").click();
@@ -560,6 +584,10 @@ test("E2E-145 disabling location clears auto check-in", async ({ browser }) => {
 test("E2E-146 notifications blocked tab shows phone settings steps", async ({
   browser,
 }) => {
+  test.skip(
+    test.info().project.name === "iPhone",
+    "iOS Safari has no web push; notification UI is checked via DEVICE_CHECKLIST",
+  );
   const { context, page } = await newUser(browser, "Sam");
   await mockNotifDenied(page);
   await page.goto("/settings");
@@ -583,6 +611,10 @@ test("E2E-147 stored sheet mentions email address", async ({ browser }) => {
 test("E2E-148 notifications home-screen tab shows add-to-home-screen steps", async ({
   browser,
 }) => {
+  test.skip(
+    test.info().project.name === "iPhone",
+    "iOS Safari has no web push; notification UI is checked via DEVICE_CHECKLIST",
+  );
   const { context, page } = await newUser(browser, "Sam");
   await mockNotifDenied(page);
   await page.goto("/settings");

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { newUser, resetData, signUp } from "./support";
+import { finishOnboardingStep3, newUser, resetData, signUp } from "./support";
 
 test.beforeEach(async () => {
   await resetData();
@@ -223,8 +223,10 @@ test("E2E-106 onboarding step 3 Skip navigates to courts", async ({
   await page.locator(".onboarding__skill-row").first().click();
   await page.locator("ion-action-sheet button").filter({ hasText: "3.5" }).click();
   await page.getByRole("button", { name: "Next" }).click();
+  await expect(page.getByText("Use your location")).toBeVisible();
   await page.getByRole("button", { name: "Skip for now" }).click();
-  await page.getByRole("button", { name: "Skip for now" }).click();
+  await expect(page.getByText("Get game alerts")).toBeVisible();
+  await finishOnboardingStep3(page);
   await expect(page).toHaveURL(/\/courts$/);
 });
 
@@ -252,6 +254,10 @@ test("E2E-107 step 2 auto check-in toggle is disabled until location is on", asy
 test("E2E-108 step 3 shows notifications toggle in browser context", async ({
   page,
 }) => {
+  test.skip(
+    test.info().project.name === "iPhone",
+    "iOS Safari has no web push; notification UI is checked via DEVICE_CHECKLIST",
+  );
   const email = `sam-${Date.now()}@test.dev`;
   await page.goto("/signup");
   await page.getByPlaceholder("Email").fill(email);

@@ -136,19 +136,14 @@ test("E2E-27 court detail shows each hours group on its own line", async ({
   await expect(hours).toContainText("Sat–Sun 8:30 AM–8 PM");
   const lineTops = await hours.evaluate((element) => {
     const text = element.firstChild as Text;
-    const content = text.textContent ?? "";
-    const split = content.indexOf("\n");
-    const first = document.createRange();
-    first.setStart(text, 0);
-    first.setEnd(text, 1);
-    const second = document.createRange();
-    second.setStart(text, split + 1);
-    second.setEnd(text, split + 2);
-    return [
-      first.getBoundingClientRect().top,
-      second.getBoundingClientRect().top,
-    ];
+    const range = document.createRange();
+    range.selectNodeContents(text);
+    const tops = Array.from(range.getClientRects()).map((rect) =>
+      Math.round(rect.top),
+    );
+    return Array.from(new Set(tops)).sort((a, b) => a - b);
   });
+  expect(lineTops.length).toBeGreaterThanOrEqual(2);
   expect(lineTops[1]).toBeGreaterThan(lineTops[0]);
   await expect(infoRow(page, "Reservations")).toContainText(
     "Call the front desk",
