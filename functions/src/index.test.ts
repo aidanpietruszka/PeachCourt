@@ -29,6 +29,7 @@ import {
   type PushMessage,
   type SendResult,
 } from "./alertPush";
+import { SETTING_DEFAULTS } from "./alertDefaults";
 
 function mockResponse() {
   const response = {
@@ -625,6 +626,21 @@ describe("handleGameCreated", () => {
     expect(db.addedAlerts).toHaveLength(1);
     expect(db.addedAlerts[0].recipientUid).toBe("bob");
   });
+
+  it("F-54 sends new_game when newGamesAlert is missing (default on)", async () => {
+    const db = makeAlertDb();
+    await handleGameCreated(
+      "m1",
+      baseNewGame,
+      makeUsers({ bob: { sports: ["tennis"], skillLevels: { tennis: 3.5 } } }),
+      db,
+    );
+    expect(db.addedAlerts).toHaveLength(1);
+    expect(db.addedAlerts[0]).toMatchObject({
+      type: "new_game",
+      recipientUid: "bob",
+    });
+  });
 });
 
 describe("sendGameReminders", () => {
@@ -656,6 +672,18 @@ describe("sendGameReminders", () => {
     await sendGameReminders([{ id: "m1", data: reminderGame }], getUser, db);
     expect(db.addedAlerts).toHaveLength(1);
     expect(db.addedAlerts[0].recipientUid).toBe("alice");
+  });
+
+  it("F-55 sends game_reminder when gameRemindersAlert is missing (default on)", async () => {
+    const db = makeAlertDb();
+    const getUser = async (uid: string) =>
+      ({ alice: {}, bob: {} }[uid] ?? null);
+    await sendGameReminders([{ id: "m1", data: reminderGame }], getUser, db);
+    expect(db.addedAlerts).toHaveLength(2);
+    expect(db.addedAlerts[0]).toMatchObject({
+      type: "game_reminder",
+      gameId: "m1",
+    });
   });
 
   it("F-32a reminder window is at least as wide as the 15-minute cron so no start time is skipped", () => {
@@ -874,6 +902,15 @@ describe("alertTypeEnabled", () => {
 
   it("F-44 rejects an unknown alert type", () => {
     expect(alertTypeEnabled("mystery", {})).toBe(false);
+  });
+
+  it("F-56 derives one default per setting key", () => {
+    expect(SETTING_DEFAULTS).toEqual({
+      newGamesAlert: true,
+      changesGamesAlert: true,
+      gameRemindersAlert: true,
+      chatMessagesAlert: false,
+    });
   });
 });
 

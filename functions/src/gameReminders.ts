@@ -1,4 +1,5 @@
 import type { AlertDb } from "./matchNotifications";
+import { alertTypeEnabled } from "./alertDefaults";
 
 export type GameRecord = { id: string; data: Record<string, unknown> };
 
@@ -27,7 +28,7 @@ export async function sendGameReminders(
     const allUids = hostUid ? [hostUid, ...playerUids] : playerUids;
     for (const uid of allUids) {
       const profile = await getUser(uid);
-      if (!profile?.gameRemindersAlert) continue;
+      if (!profile || !alertTypeEnabled("game_reminder", profile)) continue;
       await alertDb.collection("alerts").add({
         recipientUid: uid,
         type: "game_reminder",

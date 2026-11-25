@@ -1,3 +1,7 @@
+import { ALERT_SETTING, alertTypeEnabled } from "./alertDefaults";
+
+export { ALERT_SETTING, alertTypeEnabled };
+
 export type AlertDoc = {
   recipientUid: string;
   type: string;
@@ -28,27 +32,6 @@ export type PushDeps = {
   logEvent: (data: Record<string, unknown>) => Promise<void>;
   deleteToken: (uid: string, token: string) => Promise<void>;
 };
-
-export const ALERT_SETTING: Record<string, { key: string; defaultOn: boolean }> = {
-  new_game: { key: "newGamesAlert", defaultOn: true },
-  game_reminder: { key: "gameRemindersAlert", defaultOn: true },
-  new_message: { key: "chatMessagesAlert", defaultOn: false },
-  player_joined: { key: "changesGamesAlert", defaultOn: true },
-  player_left: { key: "changesGamesAlert", defaultOn: true },
-  player_removed: { key: "changesGamesAlert", defaultOn: true },
-  host_transferred: { key: "changesGamesAlert", defaultOn: true },
-  game_deleted: { key: "changesGamesAlert", defaultOn: true },
-};
-
-export function alertTypeEnabled(
-  type: string,
-  profile: Record<string, unknown>,
-): boolean {
-  const map = ALERT_SETTING[type];
-  if (!map) return false;
-  const value = profile[map.key];
-  return value === undefined ? map.defaultOn : value === true;
-}
 
 function titleCase(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);

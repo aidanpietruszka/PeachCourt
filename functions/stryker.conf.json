@@ -3,7 +3,7 @@
   "packageManager": "npm",
   "testRunner": "vitest",
   "coverageAnalysis": "perTest",
-  "mutate": ["src/alertPush.ts:32-51"],
+  "mutate": ["src/alertDefaults.ts"],
   "reporters": ["clear-text", "progress"],
   "thresholds": {
     "high": 90,
