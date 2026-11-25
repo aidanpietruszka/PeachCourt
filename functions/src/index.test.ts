@@ -30,6 +30,7 @@ import {
   type SendResult,
 } from "./alertPush";
 import { SETTING_DEFAULTS } from "./alertDefaults";
+import { chatMembersFromMatch, backfillChatDoc } from "./chatMembers";
 
 function mockResponse() {
   const response = {
@@ -734,10 +735,12 @@ describe("handleMessageCreated", () => {
     sport: "tennis",
     format: "doubles",
     startAt: { seconds: 9999999 },
-    playerUids: ["alice", "bob", "carol"],
+    hostUid: "alice",
+    playerUids: ["bob", "carol"],
+    memberUids: ["alice", "bob", "carol"],
   };
 
-  it("F-33 sends new_message alert to all players except the sender", async () => {
+  it("F-33 sends new_message alert to all members except the sender", async () => {
     const db = makeAlertDb();
     const msgData: Record<string, unknown> = {
       senderUid: "alice",
@@ -767,15 +770,83 @@ describe("handleMessageCreated", () => {
     });
   });
 
-  it("F-35 no alerts when sender is the only player", async () => {
+  it("F-35 no alerts when sender is the only member", async () => {
     const db = makeAlertDb();
     await handleMessageCreated(
       "m1",
       { senderUid: "alice", senderName: "Alice", text: "Hi" },
-      { ...chatData, playerUids: ["alice"] },
+      { ...chatData, playerUids: [], memberUids: ["alice"] },
       db,
     );
     expect(db.addedAlerts).toHaveLength(0);
+  });
+
+  it("F-57 a player's message alerts the host", async () => {
+    const db = makeAlertDb();
+    await handleMessageCreated(
+      "m1",
+      { senderUid: "bob", senderName: "Bob", text: "On my way" },
+      chatData,
+      db,
+    );
+    const recipients = db.addedAlerts.map((a) => a.recipientUid);
+    expect(recipients).toContain("alice");
+    expect(recipients).not.toContain("bob");
+  });
+});
+
+describe("chatMembersFromMatch", () => {
+  it("F-58 includes the host first, then players, deduped", () => {
+    expect(
+      chatMembersFromMatch({ hostUid: "alice", playerUids: ["bob", "carol"] }),
+    ).toEqual(["alice", "bob", "carol"]);
+  });
+
+  it("F-59 includes the host even with no players", () => {
+    expect(chatMembersFromMatch({ hostUid: "alice", playerUids: [] })).toEqual([
+      "alice",
+    ]);
+  });
+
+  it("F-60 drops a player who left or was removed", () => {
+    expect(
+      chatMembersFromMatch({ hostUid: "alice", playerUids: ["bob"] }),
+    ).toEqual(["alice", "bob"]);
+  });
+
+  it("F-61 keeps the new host once and drops the old host after handoff", () => {
+    expect(
+      chatMembersFromMatch({ hostUid: "bob", playerUids: ["bob", "carol"] }),
+    ).toEqual(["bob", "carol"]);
+  });
+
+  it("F-62 ignores a missing or empty host", () => {
+    expect(chatMembersFromMatch({ playerUids: ["bob"] })).toEqual(["bob"]);
+    expect(chatMembersFromMatch({ hostUid: "", playerUids: ["bob"] })).toEqual([
+      "bob",
+    ]);
+  });
+
+  it("F-65 treats a missing playerUids field as no players", () => {
+    expect(chatMembersFromMatch({ hostUid: "alice" })).toEqual(["alice"]);
+  });
+});
+
+describe("backfillChatDoc", () => {
+  it("F-63 sets memberUids on an old-format chat", () => {
+    expect(
+      backfillChatDoc({ hostUid: "alice", playerUids: ["bob"] }),
+    ).toEqual({ memberUids: ["alice", "bob"] });
+  });
+
+  it("F-64 is idempotent when memberUids already exists", () => {
+    expect(
+      backfillChatDoc({
+        hostUid: "alice",
+        playerUids: ["bob"],
+        memberUids: ["alice", "bob"],
+      }),
+    ).toBeNull();
   });
 });
 

@@ -26,6 +26,7 @@ import { handleGameCreated } from "./gameAlerts";
 import { sendGameReminders, reminderWindow } from "./gameReminders";
 import { handleMessageCreated, deleteExpiredChatsImpl } from "./chatNotifications";
 import { sendAlertPush, type AlertDoc, type PushMessage } from "./alertPush";
+import { chatMembersFromMatch } from "./chatMembers";
 import type { CloudEvent } from "firebase-functions/v2";
 import type { MessagePublishedData } from "firebase-functions/v2/pubsub";
 
@@ -109,6 +110,7 @@ function chatDocFromMatch(matchId: string, data: Record<string, unknown>): Recor
     hostName: data.hostName,
     playerUids: data.playerUids ?? [],
     playerNames: data.playerNames ?? [],
+    memberUids: chatMembersFromMatch(data),
     lastMessage: null,
     lastSenderName: null,
     lastSenderUid: null,
@@ -210,6 +212,7 @@ export const onMatchUpdated = onDocumentUpdated(
           hostName: after.hostName,
           playerUids: after.playerUids ?? [],
           playerNames: after.playerNames ?? [],
+          memberUids: chatMembersFromMatch(after),
         },
         { merge: true },
       ),

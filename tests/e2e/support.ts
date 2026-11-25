@@ -323,24 +323,37 @@ export async function backdateReport(courtId: string, minutesAgo = 31) {
   expect(response.ok).toBe(true);
 }
 
+type ReadValue =
+  | string
+  | number
+  | boolean
+  | null
+  | Array<string | number | boolean | null>;
+
 type StoredValue = {
   stringValue?: string;
   integerValue?: string;
   booleanValue?: boolean;
   timestampValue?: string;
   nullValue?: null;
+  arrayValue?: { values?: StoredValue[] };
 };
 
-function readStoredValue(value: StoredValue): string | number | boolean | null {
+function readStoredValue(value: StoredValue): ReadValue {
   if (value.integerValue !== undefined) return Number(value.integerValue);
   if (value.booleanValue !== undefined) return value.booleanValue;
   if (value.timestampValue !== undefined) return value.timestampValue;
+  if (value.arrayValue !== undefined) {
+    return (value.arrayValue.values ?? []).map(
+      (v) => readStoredValue(v) as string | number | boolean | null,
+    );
+  }
   return value.stringValue ?? null;
 }
 
 export async function loggedEvents(
   eventName: string,
-): Promise<Array<Record<string, string | number | boolean | null>>> {
+): Promise<Array<Record<string, ReadValue>>> {
   const response = await fetch(
     `${FIRESTORE}/v1/projects/${PROJECT_ID}/databases/(default)/documents/events?pageSize=500`,
     { headers: { Authorization: "Bearer owner" } },
@@ -362,7 +375,7 @@ export async function loggedEvents(
 }
 
 export async function clientErrors(): Promise<
-  Array<Record<string, string | number | boolean | null>>
+  Array<Record<string, ReadValue>>
 > {
   const response = await fetch(
     `${FIRESTORE}/v1/projects/${PROJECT_ID}/databases/(default)/documents/clientErrors?pageSize=500`,
@@ -587,16 +600,16 @@ export async function postGame(
       .click();
   }
   await modal.locator("ion-select").nth(0).click();
-  await page
-    .locator("ion-popover")
-    .getByText("Tomorrow", { exact: true })
-    .click();
+  const datePopover = page.locator("ion-popover").filter({ visible: true }).last();
+  await expect(datePopover).toBeVisible();
+  await datePopover.getByText("Tomorrow", { exact: true }).click();
+  await expect(datePopover).toBeHidden();
   await modal.locator('input[type="time"]').fill(options.time ?? "10:00");
   await modal.locator("ion-select").nth(1).click();
-  await page
-    .locator("ion-popover")
-    .getByText(options.skill, { exact: true })
-    .click();
+  const skillPopover = page.locator("ion-popover").filter({ visible: true }).last();
+  await expect(skillPopover).toBeVisible();
+  await skillPopover.getByText(options.skill, { exact: true }).click();
+  await expect(skillPopover).toBeHidden();
   await ionButton(modal, "Post game").click();
   const confirmSheet = page.locator('ion-modal[aria-label="Confirm game"]');
   await expect(confirmSheet).toBeVisible();
@@ -662,26 +675,35 @@ export async function seedChat(
   matchId: string,
   overrides: Record<string, unknown> = {},
 ) {
+  const merged: Record<string, unknown> = {
+    matchId,
+    courtId: COURTS.alpha.id,
+    courtName: COURTS.alpha.name,
+    format: "doubles",
+    sport: "tennis",
+    startAt: { timestampValue: new Date(Date.now() + 90 * 60_000).toISOString() },
+    hostUid: "alice",
+    hostName: "Alice",
+    playerUids: ["alice", "bob"],
+    playerNames: ["Alice", "Bob"],
+    lastMessage: null,
+    lastSenderName: null,
+    lastSenderUid: null,
+    lastMessageAt: null,
+    readAt: {},
+    createdAt: { timestampValue: new Date().toISOString() },
+    ...overrides,
+  };
+  if (merged.memberUids === undefined) {
+    merged.memberUids = [
+      ...new Set([
+        merged.hostUid as string,
+        ...((merged.playerUids as string[] | undefined) ?? []),
+      ]),
+    ];
+  }
   const fields = Object.fromEntries(
-    Object.entries({
-      matchId,
-      courtId: COURTS.alpha.id,
-      courtName: COURTS.alpha.name,
-      format: "doubles",
-      sport: "tennis",
-      startAt: { timestampValue: new Date(Date.now() + 90 * 60_000).toISOString() },
-      hostUid: "alice",
-      hostName: "Alice",
-      playerUids: ["alice", "bob"],
-      playerNames: ["Alice", "Bob"],
-      lastMessage: null,
-      lastSenderName: null,
-      lastSenderUid: null,
-      lastMessageAt: null,
-      readAt: {},
-      createdAt: { timestampValue: new Date().toISOString() },
-      ...overrides,
-    }).map(([key, value]) => {
+    Object.entries(merged).map(([key, value]) => {
       if (
         typeof value === "object" &&
         value !== null &&
@@ -894,7 +916,7 @@ export async function freshContext(
 export async function waitForDocument(
   path: string,
   timeoutMs = 10_000,
-): Promise<Record<string, string | number | boolean | null>> {
+): Promise<Record<string, ReadValue>> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     const response = await fetch(
@@ -920,7 +942,7 @@ export async function waitForDocument(
 export async function waitForCollection(
   collection: string,
   timeoutMs = 10_000,
-): Promise<Array<Record<string, string | number | boolean | null>>> {
+): Promise<Array<Record<string, ReadValue>>> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     const response = await fetch(
@@ -951,7 +973,7 @@ export async function waitForCollection(
 export async function waitForEvent(
   eventName: string,
   timeoutMs = 10_000,
-): Promise<Array<Record<string, string | number | boolean | null>>> {
+): Promise<Array<Record<string, ReadValue>>> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     const events = await loggedEvents(eventName);

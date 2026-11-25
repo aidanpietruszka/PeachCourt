@@ -55,6 +55,7 @@ export interface Chat {
   hostName: string;
   playerUids: string[];
   playerNames: string[];
+  memberUids: string[];
   lastMessage: string | null;
   lastSenderName: string | null;
   lastSenderUid: string | null;

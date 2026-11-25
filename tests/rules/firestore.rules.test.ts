@@ -1299,8 +1299,9 @@ function chatData(overrides: Record<string, unknown> = {}) {
     startAt: minutesFromNow(60),
     hostUid: "alice",
     hostName: "Alice",
-    playerUids: ["alice", "bob"],
-    playerNames: ["Alice", "Bob"],
+    playerUids: ["bob"],
+    playerNames: ["Bob"],
+    memberUids: ["alice", "bob"],
     lastMessage: null,
     lastSenderName: null,
     lastSenderUid: null,
@@ -1322,7 +1323,7 @@ function messageData(senderUid: string, overrides: Record<string, unknown> = {})
 }
 
 describe("chats", () => {
-  it("R-72 a player can read their own chat", async () => {
+  it("R-72 the host and a player can read their own chat", async () => {
     await seed("chats/m1", chatData());
     await assertSucceeds(getDoc(doc(asUser("alice"), "chats/m1")));
     await assertSucceeds(getDoc(doc(asUser("bob"), "chats/m1")));
@@ -1389,6 +1390,41 @@ describe("chats", () => {
       updateDoc(doc(asUser("alice"), "chats/m1/messages/msg1"), { text: "edited" }),
     );
     await assertFails(deleteDoc(doc(asUser("alice"), "chats/m1/messages/msg1")));
+  });
+
+  it("R-131 the host can send and read messages in their own chat", async () => {
+    await seed("chats/m1", chatData());
+    await assertSucceeds(
+      addDoc(collection(asUser("alice"), "chats/m1/messages"), messageData("alice")),
+    );
+    await seed("chats/m1/messages/msg1", messageData("bob", { senderName: "Bob" }));
+    await assertSucceeds(getDoc(doc(asUser("alice"), "chats/m1/messages/msg1")));
+  });
+
+  it("R-132 the host can mark their own readAt", async () => {
+    await seed("chats/m1", chatData());
+    await assertSucceeds(
+      updateDoc(doc(asUser("alice"), "chats/m1"), { "readAt.alice": Timestamp.now() }),
+    );
+  });
+
+  it("R-133 a removed or left player loses chat and message access", async () => {
+    await seed("chats/m1", chatData({ playerUids: [], memberUids: ["alice"] }));
+    await seed("chats/m1/messages/msg1", messageData("alice"));
+    await assertFails(getDoc(doc(asUser("bob"), "chats/m1")));
+    await assertFails(getDoc(doc(asUser("bob"), "chats/m1/messages/msg1")));
+    await assertFails(
+      addDoc(collection(asUser("bob"), "chats/m1/messages"), messageData("bob", { senderName: "Bob" })),
+    );
+  });
+
+  it("R-134 a new host after handoff keeps chat access", async () => {
+    await seed(
+      "chats/m1",
+      chatData({ hostUid: "bob", hostName: "Bob", playerUids: [], memberUids: ["bob"] }),
+    );
+    await assertSucceeds(getDoc(doc(asUser("bob"), "chats/m1")));
+    await assertFails(getDoc(doc(asUser("alice"), "chats/m1")));
   });
 });
 

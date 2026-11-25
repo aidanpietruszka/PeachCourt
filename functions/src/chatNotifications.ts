@@ -29,9 +29,9 @@ export async function handleMessageCreated(
 ): Promise<void> {
   const senderUid = msgData.senderUid as string;
   const senderName = msgData.senderName as string;
-  const playerUids = (chatData.playerUids as string[]) ?? [];
+  const memberUids = (chatData.memberUids as string[]) ?? [];
 
-  for (const uid of playerUids) {
+  for (const uid of memberUids) {
     if (uid === senderUid) continue;
     await db.collection("alerts").add({
       recipientUid: uid,

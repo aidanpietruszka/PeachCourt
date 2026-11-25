@@ -1,5 +1,5 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
-import { APP_URL, newUser, resetData, signUp, getUidByEmail, seedUserProfile } from "./support";
+import { APP_URL, newUser, resetData, signUp, getUidByEmail, seedUserProfile, waitForDocument } from "./support";
 
 test.beforeEach(async () => {
   await resetData();
@@ -567,17 +567,26 @@ test("E2E-145 disabling location clears auto check-in", async ({ browser }) => {
   const uid = await getUidByEmail(email);
   await seedUserProfile(uid, { locationEnabled: true, autoCheckin: true });
   await page.goto("/settings");
-  await expect(
-    page.locator("ion-toggle[aria-label='Automatic check-in']"),
-  ).toBeChecked();
-  await page.locator("ion-toggle[aria-label='Use my location']").click();
-  await expect(
-    page.locator("ion-toggle[aria-label='Automatic check-in']"),
-  ).not.toBeChecked();
+  const locationToggle = page.locator("ion-toggle[aria-label='Use my location']");
+  const autoCheckinToggle = page.locator(
+    "ion-toggle[aria-label='Automatic check-in']",
+  );
+  await expect(autoCheckinToggle).toBeChecked();
+  await expect(locationToggle).toBeChecked();
+  await expect(async () => {
+    if (await locationToggle.isChecked()) {
+      await locationToggle.click();
+    }
+    await expect(locationToggle).not.toBeChecked();
+  }).toPass({ timeout: 15_000 });
+  await expect(autoCheckinToggle).not.toBeChecked();
+  await expect
+    .poll(async () => (await waitForDocument(`users/${uid}`)).autoCheckin, {
+      timeout: 15_000,
+    })
+    .toBe(false);
   await page.reload();
-  await expect(
-    page.locator("ion-toggle[aria-label='Automatic check-in']"),
-  ).not.toBeChecked();
+  await expect(autoCheckinToggle).not.toBeChecked();
   await context.close();
 });
 
