@@ -36,6 +36,19 @@ async function seed(path: string, data: Record<string, unknown>) {
   });
 }
 
+async function seedOnboarded(...uids: string[]) {
+  for (const uid of uids) {
+    await seed(`users/${uid}`, {
+      firstName: "Test",
+      lastName: "User",
+      sports: ["tennis"],
+      skillLevels: { tennis: 3.5 },
+      locationEnabled: true,
+      onboardingDone: true,
+    });
+  }
+}
+
 type Data = Record<string, unknown>;
 
 function without(data: Data, key: string): Data {
@@ -107,6 +120,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await env.clearFirestore();
+  await seedOnboarded("alice", "bob", "cara", "dan", "eve");
 });
 
 afterAll(async () => {

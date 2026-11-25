@@ -16,7 +16,7 @@ test("E2E-213 a forced error writes exactly one clientErrors document", async ({
   browser,
 }) => {
   const { context, page } = await newUser(browser, "Erin");
-  await page.waitForLoadState("networkidle");
+  await expect(page.getByText("Courts near you")).toBeVisible();
 
   await page.evaluate(() => {
     window.dispatchEvent(
@@ -40,7 +40,7 @@ test("E2E-216 an unhandled promise rejection writes one unexpected document", as
   browser,
 }) => {
   const { context, page } = await newUser(browser, "Rex");
-  await page.waitForLoadState("networkidle");
+  await expect(page.getByText("Courts near you")).toBeVisible();
 
   await page.evaluate(() => {
     void Promise.reject(new Error("forced e2e rejection"));

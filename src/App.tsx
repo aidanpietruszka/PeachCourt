@@ -42,7 +42,7 @@ const App: React.FC = () => (
           <Route
             path="/onboarding"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute onboardingRoute>
                 <OnboardingPage />
               </ProtectedRoute>
             }
@@ -87,10 +87,38 @@ const App: React.FC = () => (
               </ProtectedRoute>
             }
           />
-          <Route path="/courts" element={<TabsLayout />} />
-          <Route path="/profile" element={<TabsLayout />} />
-          <Route path="/activity" element={<TabsLayout />} />
-          <Route path="/chats" element={<TabsLayout />} />
+          <Route
+            path="/courts"
+            element={
+              <ProtectedRoute>
+                <TabsLayout />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <TabsLayout />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/activity"
+            element={
+              <ProtectedRoute>
+                <TabsLayout />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/chats"
+            element={
+              <ProtectedRoute>
+                <TabsLayout />
+              </ProtectedRoute>
+            }
+          />
         </IonRouterOutlet>
       </IonReactRouter>
     </AuthProvider>

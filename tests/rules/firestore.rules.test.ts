@@ -41,6 +41,19 @@ async function seed(path: string, data: Record<string, unknown>) {
   });
 }
 
+async function seedOnboarded(...uids: string[]) {
+  for (const uid of uids) {
+    await seed(`users/${uid}`, {
+      firstName: "Test",
+      lastName: "User",
+      sports: ["tennis"],
+      skillLevels: { tennis: 3.5 },
+      locationEnabled: true,
+      onboardingDone: true,
+    });
+  }
+}
+
 function checkinData(uid: string, overrides: Record<string, unknown> = {}) {
   return {
     uid,
@@ -130,6 +143,10 @@ describe("courts", () => {
 });
 
 describe("checkins", () => {
+  beforeEach(async () => {
+    await seedOnboarded("alice", "bob");
+  });
+
   it("R-03 a user can create their own check-in", async () => {
     await assertSucceeds(
       addDoc(collection(asUser("alice"), "checkins"), checkinData("alice")),
@@ -355,6 +372,10 @@ describe("courtStatus", () => {
 });
 
 describe("matches: posting", () => {
+  beforeEach(async () => {
+    await seedOnboarded("alice", "bob");
+  });
+
   it("R-20 a valid tennis game posts", async () => {
     await assertSucceeds(
       setDoc(doc(asUser("alice"), "matches/m1"), matchData("alice")),
@@ -472,6 +493,10 @@ describe("matches: posting", () => {
 });
 
 describe("matches: joining and leaving", () => {
+  beforeEach(async () => {
+    await seedOnboarded("alice", "bob", "cara", "dan", "eve");
+  });
+
   it("R-32 another user can join", async () => {
     await seed("matches/m1", matchData("alice"));
     await assertSucceeds(
@@ -802,6 +827,10 @@ describe("alerts", () => {
 });
 
 describe("events", () => {
+  beforeEach(async () => {
+    await seedOnboarded("alice", "bob");
+  });
+
   const valid: Array<[string, Record<string, unknown>]> = [
     [
       "check_in",
@@ -1516,6 +1545,7 @@ describe("inPersonCounts", () => {
 describe("in_person_count event", () => {
   beforeEach(async () => {
     await seed("config/teamAccounts", { uids: ["alice"] });
+    await seedOnboarded("alice");
   });
 
   it("R-94 team member can log in_person_count with int appPlayerCount", async () => {
@@ -1796,5 +1826,91 @@ describe("clientErrors", () => {
     await seed("config/teamAccounts", { uids: ["alice"] });
     await seed("clientErrors/err-1", clientErrorData("bob"));
     await assertFails(getDoc(doc(asUser("bob"), "clientErrors/err-1")));
+  });
+});
+
+describe("onboarding gate (F1)", () => {
+  function unfinishedProfile(overrides: Record<string, unknown> = {}) {
+    return {
+      firstName: "Test",
+      lastName: "User",
+      sports: ["tennis"],
+      skillLevels: { tennis: 3.5 },
+      ...overrides,
+    };
+  }
+
+  it("R-123 an event cannot be created without a users doc", async () => {
+    await assertFails(
+      addDoc(
+        collection(asUser("alice"), "events"),
+        eventData("alice", "feedback_skipped", {}),
+      ),
+    );
+  });
+
+  it("R-124 an event is allowed once a profile exists, even before onboarding is done", async () => {
+    await seed("users/alice", unfinishedProfile());
+    await assertSucceeds(
+      addDoc(
+        collection(asUser("alice"), "events"),
+        eventData("alice", "feedback_skipped", {}),
+      ),
+    );
+  });
+
+  it("R-125 a check-in is denied until onboarding is done", async () => {
+    await seed("users/alice", unfinishedProfile({ locationEnabled: true }));
+    await assertFails(
+      addDoc(collection(asUser("alice"), "checkins"), checkinData("alice")),
+    );
+  });
+
+  it("R-126 a check-in is allowed once onboarding is done", async () => {
+    await seed(
+      "users/alice",
+      unfinishedProfile({ locationEnabled: true, onboardingDone: true }),
+    );
+    await assertSucceeds(
+      addDoc(collection(asUser("alice"), "checkins"), checkinData("alice")),
+    );
+  });
+
+  it("R-127 posting a game is denied until onboarding is done", async () => {
+    await seed("users/alice", unfinishedProfile());
+    await assertFails(
+      addDoc(collection(asUser("alice"), "matches"), matchData("alice")),
+    );
+  });
+
+  it("R-128 posting a game is allowed once onboarding is done", async () => {
+    await seed("users/alice", unfinishedProfile({ onboardingDone: true }));
+    await assertSucceeds(
+      addDoc(collection(asUser("alice"), "matches"), matchData("alice")),
+    );
+  });
+
+  it("R-129 joining a game is denied until the joiner's onboarding is done", async () => {
+    await seed("users/bob", unfinishedProfile());
+    await seed("matches/m1", matchData("alice"));
+    await assertFails(
+      updateDoc(doc(asUser("bob"), "matches/m1"), {
+        playerUids: ["bob"],
+        playerNames: ["Bob"],
+        status: "open",
+      }),
+    );
+  });
+
+  it("R-130 joining a game is allowed once the joiner's onboarding is done", async () => {
+    await seed("users/bob", unfinishedProfile({ onboardingDone: true }));
+    await seed("matches/m1", matchData("alice"));
+    await assertSucceeds(
+      updateDoc(doc(asUser("bob"), "matches/m1"), {
+        playerUids: ["bob"],
+        playerNames: ["Bob"],
+        status: "open",
+      }),
+    );
   });
 });

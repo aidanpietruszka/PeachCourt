@@ -1,11 +1,13 @@
 import { IonContent, IonPage, IonSpinner } from "@ionic/react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { onboardingComplete } from "../utils/onboarding";
 
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
-  const { user, loading } = useAuth();
+const ProtectedRoute: React.FC<{
+  children: React.ReactNode;
+  onboardingRoute?: boolean;
+}> = ({ children, onboardingRoute = false }) => {
+  const { user, profile, loading } = useAuth();
 
   if (loading) {
     return (
@@ -27,7 +29,14 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
   }
 
   if (!user) return <Navigate to="/login" replace />;
-  return <>{children}</>;
+
+  const complete = onboardingComplete(profile);
+
+  if (onboardingRoute) {
+    return complete ? <Navigate to="/courts" replace /> : <>{children}</>;
+  }
+
+  return complete ? <>{children}</> : <Navigate to="/onboarding" replace />;
 };
 
 export default ProtectedRoute;

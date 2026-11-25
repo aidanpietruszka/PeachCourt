@@ -1,6 +1,8 @@
 import {
   deleteDoc,
   doc,
+  type DocumentData,
+  type DocumentSnapshot,
   getDoc,
   onSnapshot,
   runTransaction,
@@ -15,6 +17,27 @@ import { SKILL_LEVELS } from "../utils/skill";
 
 export const TENNIS_SKILL_LEVELS = SKILL_LEVELS.tennis;
 export const PICKLEBALL_SKILL_LEVELS = SKILL_LEVELS.pickleball;
+
+function mapProfile(data: DocumentData): UserProfile {
+  return {
+    firstName: data.firstName ?? "",
+    lastName: data.lastName ?? "",
+    sports: data.sports ?? [],
+    skillLevels: data.skillLevels ?? {},
+    locationEnabled: data.locationEnabled,
+    autoCheckin: data.autoCheckin,
+    checkinVariant: isCheckinVariant(data.checkinVariant)
+      ? data.checkinVariant
+      : undefined,
+    notificationsEnabled: data.notificationsEnabled,
+    notificationsPrompted: data.notificationsPrompted,
+    onboardingDone: data.onboardingDone,
+    newGamesAlert: data.newGamesAlert,
+    changesGamesAlert: data.changesGamesAlert,
+    gameRemindersAlert: data.gameRemindersAlert,
+    chatMessagesAlert: data.chatMessagesAlert,
+  };
+}
 
 export const UserService = {
   async saveProfile(uid: string, profile: UserProfile): Promise<void> {
@@ -62,25 +85,7 @@ export const UserService = {
     if (!snap.exists()) {
       return null;
     }
-    const data = snap.data();
-    return {
-      firstName: data.firstName ?? "",
-      lastName: data.lastName ?? "",
-      sports: data.sports ?? [],
-      skillLevels: data.skillLevels ?? {},
-      locationEnabled: data.locationEnabled,
-      autoCheckin: data.autoCheckin,
-      checkinVariant: isCheckinVariant(data.checkinVariant)
-        ? data.checkinVariant
-        : undefined,
-      notificationsEnabled: data.notificationsEnabled,
-      notificationsPrompted: data.notificationsPrompted,
-      onboardingDone: data.onboardingDone,
-      newGamesAlert: data.newGamesAlert,
-      changesGamesAlert: data.changesGamesAlert,
-      gameRemindersAlert: data.gameRemindersAlert,
-      chatMessagesAlert: data.chatMessagesAlert,
-    };
+    return mapProfile(snap.data());
   },
 
   async saveFcmToken(uid: string, token: string): Promise<void> {
@@ -102,35 +107,18 @@ export const UserService = {
     uid: string,
     onChange: (profile: UserProfile | null) => void,
     onError: (error: Error) => void,
+    options: { serverOnly?: boolean } = {},
   ): () => void {
-    return onSnapshot(
-      doc(db, "users", uid),
-      (snap) => {
-        if (!snap.exists()) {
-          onChange(null);
-          return;
-        }
-        const data = snap.data();
-        onChange({
-          firstName: data.firstName ?? "",
-          lastName: data.lastName ?? "",
-          sports: data.sports ?? [],
-          skillLevels: data.skillLevels ?? {},
-          locationEnabled: data.locationEnabled,
-          autoCheckin: data.autoCheckin,
-          checkinVariant: isCheckinVariant(data.checkinVariant)
-            ? data.checkinVariant
-            : undefined,
-          notificationsEnabled: data.notificationsEnabled,
-          notificationsPrompted: data.notificationsPrompted,
-          onboardingDone: data.onboardingDone,
-          newGamesAlert: data.newGamesAlert,
-          changesGamesAlert: data.changesGamesAlert,
-          gameRemindersAlert: data.gameRemindersAlert,
-          chatMessagesAlert: data.chatMessagesAlert,
-        });
-      },
-      onError,
-    );
+    const ref = doc(db, "users", uid);
+    const handle = (snap: DocumentSnapshot) => {
+      if (options.serverOnly && snap.metadata.hasPendingWrites) {
+        return;
+      }
+      onChange(snap.exists() ? mapProfile(snap.data()) : null);
+    };
+    if (options.serverOnly) {
+      return onSnapshot(ref, { includeMetadataChanges: true }, handle, onError);
+    }
+    return onSnapshot(ref, handle, onError);
   },
 };

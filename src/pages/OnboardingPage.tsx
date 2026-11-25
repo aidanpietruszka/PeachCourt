@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   IonButton,
   IonContent,
@@ -19,6 +19,7 @@ import {
 } from "../services/UserService";
 import type { CheckinVariant, Sport, UserProfile } from "../types/types";
 import { variantDefaultsToOn } from "../utils/abTest";
+import { resumeStep } from "../utils/onboarding";
 import "./OnboardingPage.css";
 
 const SPORTS: { value: Sport; label: string }[] = [
@@ -39,29 +40,48 @@ interface Props {
 
 const OnboardingPage: React.FC<Props> = ({ onComplete }) => {
   const ionRouter = useIonRouter();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [presentActionSheet] = useIonActionSheet();
 
-  const [step, setStep] = useState<Step>(1);
+  const initialStep = resumeStep(profile);
+  const [resumed] = useState(initialStep > 1);
+  const [step, setStep] = useState<Step>(initialStep);
 
   const [firstName, setFirstName] = useState(
-    user?.displayName?.split(" ")[0] ?? "",
+    profile?.firstName || (user?.displayName?.split(" ")[0] ?? ""),
   );
   const [lastName, setLastName] = useState(
-    user?.displayName?.split(" ").slice(1).join(" ") ?? "",
+    profile?.lastName ||
+      (user?.displayName?.split(" ").slice(1).join(" ") ?? ""),
   );
-  const [sports, setSports] = useState<Sport[]>([]);
+  const [sports, setSports] = useState<Sport[]>(profile?.sports ?? []);
   const [skillLevels, setSkillLevels] = useState<
     Partial<Record<Sport, number>>
-  >({});
+  >(profile?.skillLevels ?? {});
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const [locationEnabled, setLocationEnabled] = useState(false);
-  const [autoCheckin, setAutoCheckin] = useState(false);
+  const [locationEnabled, setLocationEnabled] = useState(
+    profile?.locationEnabled ?? false,
+  );
+  const [autoCheckin, setAutoCheckin] = useState(profile?.autoCheckin ?? false);
   const [locationBlocked, setLocationBlocked] = useState(false);
-  const [variant, setVariant] = useState<CheckinVariant | undefined>();
+  const [variant, setVariant] = useState<CheckinVariant | undefined>(
+    profile?.checkinVariant,
+  );
+  const [preparing, setPreparing] = useState(
+    initialStep === 2 && !profile?.checkinVariant,
+  );
   const defaultApplied = useRef(false);
+
+  useEffect(() => {
+    if (initialStep === 2 && !variant && user) {
+      void UserService.assignCheckinVariant(user.uid)
+        .then((assigned) => setVariant(assigned))
+        .catch(() => undefined)
+        .finally(() => setPreparing(false));
+    }
+  }, [initialStep, user, variant]);
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
@@ -149,8 +169,7 @@ const OnboardingPage: React.FC<Props> = ({ onComplete }) => {
       try {
         setVariant(await UserService.assignCheckinVariant(user!.uid));
       } catch {
-        // Onboarding continues without a test group; this player is left out
-        // of the comparison and gets the normal default (off).
+        setVariant(undefined);
       }
       setStep(2);
     } catch {
@@ -231,28 +250,19 @@ const OnboardingPage: React.FC<Props> = ({ onComplete }) => {
 
   const handleStep2Next = async () => {
     setBusy(true);
-    try {
-      await UserService.saveOnboardingPrefs(user!.uid, {
-        locationEnabled,
-        autoCheckin,
-      });
-    } catch {
-      // continue
-    } finally {
-      setBusy(false);
-    }
+    await UserService.saveOnboardingPrefs(user!.uid, {
+      locationEnabled,
+      autoCheckin,
+    }).catch(() => undefined);
+    setBusy(false);
     setStep(3);
   };
 
   const handleStep2Skip = async () => {
-    try {
-      await UserService.saveOnboardingPrefs(user!.uid, {
-        locationEnabled: false,
-        autoCheckin: false,
-      });
-    } catch {
-      // continue
-    }
+    await UserService.saveOnboardingPrefs(user!.uid, {
+      locationEnabled: false,
+      autoCheckin: false,
+    }).catch(() => undefined);
     setStep(3);
   };
 
@@ -275,6 +285,7 @@ const OnboardingPage: React.FC<Props> = ({ onComplete }) => {
 
   const handleFinish = async (notifEnabled: boolean, prompted: boolean) => {
     setBusy(true);
+    setError("");
     try {
       await UserService.saveOnboardingPrefs(user!.uid, {
         notificationsEnabled: notifEnabled,
@@ -282,10 +293,13 @@ const OnboardingPage: React.FC<Props> = ({ onComplete }) => {
         onboardingDone: true,
       });
     } catch {
-      // continue
-    } finally {
+      setError(
+        "Couldn't finish setting up. Check your connection and try again.",
+      );
       setBusy(false);
+      return;
     }
+    setBusy(false);
     if (onComplete) {
       onComplete();
     } else {
@@ -302,12 +316,38 @@ const OnboardingPage: React.FC<Props> = ({ onComplete }) => {
     </div>
   );
 
+  const resumeBanner = resumed ? (
+    <div className="onboarding__resume-banner">
+      Welcome back. Finish setting up to start using PeachCourt.
+    </div>
+  ) : null;
+
+  if (preparing) {
+    return (
+      <IonPage>
+        <IonContent>
+          <div
+            style={{
+              display: "flex",
+              height: "100%",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <IonSpinner />
+          </div>
+        </IonContent>
+      </IonPage>
+    );
+  }
+
   if (step === 1) {
     return (
       <IonPage>
         <IonContent scrollY={true}>
           <div className="onboarding">
             {progress}
+            {resumeBanner}
 
             <p className="onboarding__title">Your game</p>
             <p className="onboarding__subtitle">
@@ -405,6 +445,7 @@ const OnboardingPage: React.FC<Props> = ({ onComplete }) => {
         <IonContent scrollY={true}>
           <div className="onboarding">
             {progress}
+            {resumeBanner}
 
             <p className="onboarding__title">Use your location</p>
             <p className="onboarding__subtitle">
@@ -482,6 +523,7 @@ const OnboardingPage: React.FC<Props> = ({ onComplete }) => {
         <IonContent scrollY={true}>
           <div className="onboarding">
             {progress}
+            {resumeBanner}
 
             <p className="onboarding__title">Get game alerts</p>
             <p className="onboarding__subtitle">
@@ -513,6 +555,8 @@ const OnboardingPage: React.FC<Props> = ({ onComplete }) => {
               Until then you'll still see alerts while PeachCourt is open.
             </p>
 
+            {error && <p className="onboarding__error">{error}</p>}
+
             <div className="onboarding__spacer" />
 
             <IonButton
@@ -533,6 +577,7 @@ const OnboardingPage: React.FC<Props> = ({ onComplete }) => {
       <IonContent scrollY={true}>
         <div className="onboarding">
           {progress}
+          {resumeBanner}
 
           <p className="onboarding__title">Get game alerts</p>
           <p className="onboarding__subtitle">
@@ -573,6 +618,8 @@ const OnboardingPage: React.FC<Props> = ({ onComplete }) => {
               />
             </div>
           </div>
+
+          {error && <p className="onboarding__error">{error}</p>}
 
           <div className="onboarding__spacer" />
 

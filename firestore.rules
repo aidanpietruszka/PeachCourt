@@ -20,6 +20,14 @@ service cloud.firestore {
       return value in ['auto_on', 'auto_off'];
     }
 
+    function hasProfile() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function onboardingDone() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('onboardingDone', false) == true;
+    }
+
     function isValidClientError(d) {
       return d.keys().hasOnly(['type', 'screen', 'device', 'browser', 'appVersion', 'code', 'message', 'uid', 'createdAt'])
         && d.keys().hasAll(['type', 'screen', 'device', 'browser', 'appVersion', 'code', 'message', 'uid', 'createdAt'])
@@ -76,6 +84,7 @@ service cloud.firestore {
 
     match /checkins/{checkinId} {
       allow create: if signedIn()
+        && onboardingDone()
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.courtId is string
         && request.resource.data.playerCount is int
@@ -135,6 +144,7 @@ service cloud.firestore {
       allow read: if signedIn();
 
       allow create: if signedIn()
+        && onboardingDone()
         && request.resource.data.keys().hasOnly([
           'courtId', 'courtName', 'sport', 'hostUid', 'hostName', 'format', 'startAt', 'skillLevel',
           'spotsTotal', 'playerUids', 'playerNames', 'removedUids', 'status', 'createdAt'
@@ -171,7 +181,8 @@ service cloud.firestore {
             && request.resource.data.playerNames.size() == request.resource.data.playerUids.size()
             && (
               (
-                resource.data.hostUid != request.auth.uid
+                onboardingDone()
+                && resource.data.hostUid != request.auth.uid
                 && !(request.auth.uid in resource.data.playerUids)
                 && !(request.auth.uid in resource.data.get('removedUids', []))
                 && resource.data.playerUids.size() < resource.data.spotsTotal
@@ -281,6 +292,7 @@ service cloud.firestore {
 
     match /events/{eventId} {
       allow create: if signedIn()
+        && hasProfile()
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.timestamp is timestamp
         && (

@@ -1,17 +1,22 @@
 import { useEffect } from "react";
 import { IonButton, IonContent, IonPage, useIonRouter } from "@ionic/react";
 import { useAuth } from "../hooks/useAuth";
+import { onboardingComplete } from "../utils/onboarding";
 import "./WelcomePage.css";
 
 const WelcomePage: React.FC = () => {
   const ionRouter = useIonRouter();
-  const { user, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
 
   useEffect(() => {
     if (!loading && user) {
-      ionRouter.push("/courts", "root", "replace");
+      ionRouter.push(
+        onboardingComplete(profile) ? "/courts" : "/onboarding",
+        "root",
+        "replace",
+      );
     }
-  }, [loading, user, ionRouter]);
+  }, [loading, user, profile, ionRouter]);
 
   return (
     <IonPage>
