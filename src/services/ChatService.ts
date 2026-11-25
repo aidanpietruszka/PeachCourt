@@ -21,7 +21,7 @@ export const ChatService = {
   ): Unsubscribe {
     const q = query(
       collection(db, "chats"),
-      where("playerUids", "array-contains", uid),
+      where("memberUids", "array-contains", uid),
     );
     return onSnapshot(
       q,

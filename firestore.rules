@@ -233,10 +233,10 @@ service cloud.firestore {
 
     match /chats/{matchId} {
       allow read: if signedIn()
-        && request.auth.uid in resource.data.playerUids;
+        && request.auth.uid in resource.data.memberUids;
       allow create, delete: if false;
       allow update: if signedIn()
-        && request.auth.uid in resource.data.playerUids
+        && request.auth.uid in resource.data.memberUids
         && request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly(['readAt'])
         && request.resource.data.readAt.diff(resource.data.readAt).affectedKeys()
@@ -244,9 +244,9 @@ service cloud.firestore {
 
       match /messages/{msgId} {
         allow read: if signedIn()
-          && request.auth.uid in get(/databases/$(database)/documents/chats/$(matchId)).data.playerUids;
+          && request.auth.uid in get(/databases/$(database)/documents/chats/$(matchId)).data.memberUids;
         allow create: if signedIn()
-          && request.auth.uid in get(/databases/$(database)/documents/chats/$(matchId)).data.playerUids
+          && request.auth.uid in get(/databases/$(database)/documents/chats/$(matchId)).data.memberUids
           && request.resource.data.keys().hasOnly(['text', 'senderUid', 'senderName', 'createdAt'])
           && request.resource.data.senderUid == request.auth.uid
           && request.resource.data.text is string
