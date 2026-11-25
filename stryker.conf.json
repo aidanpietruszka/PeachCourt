@@ -6,7 +6,11 @@
     "configFile": "vite.config.ts"
   },
   "coverageAnalysis": "perTest",
-  "mutate": ["src/utils/gameOverlap.ts", "src/utils/activity.ts"],
+  "mutate": [
+    "src/utils/gameOverlap.ts",
+    "src/utils/activity.ts",
+    "src/utils/onboarding.ts"
+  ],
   "reporters": ["clear-text", "progress"],
   "thresholds": {
     "high": 90,
