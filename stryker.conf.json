@@ -9,7 +9,8 @@
   "mutate": [
     "src/utils/gameOverlap.ts",
     "src/utils/activity.ts",
-    "src/utils/onboarding.ts"
+    "src/utils/onboarding.ts",
+    "src/utils/alertDefaults.ts"
   ],
   "reporters": ["clear-text", "progress"],
   "thresholds": {

@@ -1,4 +1,5 @@
 import type { AlertDb } from "./matchNotifications";
+import { alertTypeEnabled } from "./alertDefaults";
 
 export type UserRecord = { id: string; data: Record<string, unknown> };
 
@@ -21,7 +22,7 @@ export async function handleGameCreated(
   const users = await listUsers();
   for (const { id: uid, data: profile } of users) {
     if (uid === hostUid) continue;
-    if (!profile.newGamesAlert) continue;
+    if (!alertTypeEnabled("new_game", profile)) continue;
     const sports = (profile.sports as string[] | undefined) ?? [];
     if (!sports.includes(sport)) continue;
     if (skillLevel !== "any") {

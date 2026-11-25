@@ -21,6 +21,7 @@ import { UserService } from "../services/UserService";
 import { MessagingService } from "../services/messaging";
 import { EventService } from "../services/EventService";
 import type { UserProfile } from "../types/types";
+import { SETTING_DEFAULTS } from "../utils/alertDefaults";
 import "./SettingsPage.css";
 
 type HelpSheet = "location" | "notifications" | "stored" | null;
@@ -71,12 +72,11 @@ const SUB_TOGGLES: Array<{
     | "chatMessagesAlert"
   >;
   label: string;
-  defaultOn: boolean;
 }> = [
-  { key: "newGamesAlert", label: "New games for my sport & skill", defaultOn: true },
-  { key: "changesGamesAlert", label: "Changes to my games", defaultOn: true },
-  { key: "gameRemindersAlert", label: "Game reminders", defaultOn: true },
-  { key: "chatMessagesAlert", label: "Chat messages", defaultOn: false },
+  { key: "newGamesAlert", label: "New games for my sport & skill" },
+  { key: "changesGamesAlert", label: "Changes to my games" },
+  { key: "gameRemindersAlert", label: "Game reminders" },
+  { key: "chatMessagesAlert", label: "Chat messages" },
 ];
 
 const SettingsPage: React.FC = () => {
@@ -111,7 +111,7 @@ const SettingsPage: React.FC = () => {
         });
         setLocationBlocked(perm.state === "denied");
       } catch {
-        // permissions API unavailable
+        setLocationBlocked(false);
       }
 
       if ("Notification" in window && Notification.permission === "denied") {
@@ -119,17 +119,7 @@ const SettingsPage: React.FC = () => {
       }
 
       try {
-        const p = await UserService.getProfile(user.uid);
-        const seeds: Partial<UserProfile> = {};
-        for (const { key, defaultOn } of SUB_TOGGLES) {
-          if (p?.[key] === undefined) {
-            (seeds as Record<string, boolean>)[key] = defaultOn;
-          }
-        }
-        if (Object.keys(seeds).length > 0) {
-          void UserService.saveSettings(user.uid, seeds);
-        }
-        setProfile(p ? { ...p, ...seeds } : p);
+        setProfile(await UserService.getProfile(user.uid));
       } finally {
         setLoading(false);
       }
@@ -352,7 +342,7 @@ const SettingsPage: React.FC = () => {
                 onIonChange={(e) => void handleNotifToggle(e.detail.checked)}
               />
             </div>
-            {SUB_TOGGLES.map(({ key, label, defaultOn }) => (
+            {SUB_TOGGLES.map(({ key, label }) => (
               <div
                 key={key}
                 className={`settings-page__row${subDisabled ? " settings-page__row--disabled" : ""}`}
@@ -362,7 +352,7 @@ const SettingsPage: React.FC = () => {
                 </div>
                 <IonToggle
                   aria-label={label}
-                  checked={profile?.[key] ?? defaultOn}
+                  checked={profile?.[key] ?? SETTING_DEFAULTS[key]}
                   disabled={subDisabled}
                   onIonChange={(e) => save({ [key]: e.detail.checked })}
                 />
