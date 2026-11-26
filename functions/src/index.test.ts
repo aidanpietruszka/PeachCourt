@@ -410,6 +410,9 @@ function makeAlertDb() {
   };
 }
 
+const profileDefaults = async () => ({});
+const chatAlertsOn = async () => ({ chatMessagesAlert: true });
+
 const baseMatch: Record<string, unknown> = {
   hostUid: "alice",
   hostName: "Alice",
@@ -426,7 +429,7 @@ describe("handleMatchUpdated", () => {
   it("F-17 sends player_left alert to host when non-host player leaves", async () => {
     const db = makeAlertDb();
     const after = { ...baseMatch, playerUids: [], playerNames: [] };
-    await handleMatchUpdated("m1", baseMatch, after, db);
+    await handleMatchUpdated("m1", baseMatch, after, db, profileDefaults);
     expect(db.addedAlerts).toHaveLength(1);
     expect(db.addedAlerts[0]).toMatchObject({
       recipientUid: "alice",
@@ -446,7 +449,7 @@ describe("handleMatchUpdated", () => {
       playerUids: [],
       playerNames: [],
     };
-    await handleMatchUpdated("m1", before, after, db);
+    await handleMatchUpdated("m1", before, after, db, profileDefaults);
     expect(db.addedAlerts).toHaveLength(1);
     expect(db.addedAlerts[0]).toMatchObject({
       recipientUid: "bob",
@@ -464,7 +467,7 @@ describe("handleMatchUpdated", () => {
       playerNames: [],
       removedUids: ["bob"],
     };
-    await handleMatchUpdated("m1", baseMatch, after, db);
+    await handleMatchUpdated("m1", baseMatch, after, db, profileDefaults);
     expect(db.addedAlerts).toHaveLength(1);
     expect(db.addedAlerts[0]).toMatchObject({
       recipientUid: "bob",
@@ -477,7 +480,7 @@ describe("handleMatchUpdated", () => {
   it("F-20 sends no alert when no meaningful change occurs", async () => {
     const db = makeAlertDb();
     const after = { ...baseMatch, status: "full" };
-    await handleMatchUpdated("m1", baseMatch, after, db);
+    await handleMatchUpdated("m1", baseMatch, after, db, profileDefaults);
     expect(db.addedAlerts).toHaveLength(0);
   });
 });
@@ -486,7 +489,7 @@ describe("handleMatchDeleted", () => {
   it("F-21 sends game_deleted alert to each player when game is deleted", async () => {
     const db = makeAlertDb();
     const data = { ...baseMatch, playerUids: ["bob", "cara"], playerNames: ["Bob", "Cara"] };
-    await handleMatchDeleted("m1", data, db);
+    await handleMatchDeleted("m1", data, db, profileDefaults);
     expect(db.addedAlerts).toHaveLength(2);
     expect(db.addedAlerts[0]).toMatchObject({
       recipientUid: "bob",
@@ -503,7 +506,7 @@ describe("handleMatchDeleted", () => {
   it("F-22 sends no alerts when deleted game has no players", async () => {
     const db = makeAlertDb();
     const data = { ...baseMatch, playerUids: [], playerNames: [] };
-    await handleMatchDeleted("m1", data, db);
+    await handleMatchDeleted("m1", data, db, profileDefaults);
     expect(db.addedAlerts).toHaveLength(0);
   });
 });
@@ -513,7 +516,7 @@ describe("handleMatchUpdated player_joined", () => {
     const db = makeAlertDb();
     const before = { ...baseMatch, playerUids: [], playerNames: [] };
     const after = { ...baseMatch, playerUids: ["bob"], playerNames: ["Bob"] };
-    await handleMatchUpdated("m1", before, after, db);
+    await handleMatchUpdated("m1", before, after, db, profileDefaults);
     expect(db.addedAlerts).toHaveLength(1);
     expect(db.addedAlerts[0]).toMatchObject({
       recipientUid: "alice",
@@ -527,7 +530,7 @@ describe("handleMatchUpdated player_joined", () => {
     const db = makeAlertDb();
     const before = { ...baseMatch, playerUids: [], playerNames: [] };
     const after = { ...baseMatch, playerUids: ["bob"], playerNames: ["Bob"] };
-    await handleMatchUpdated("m1", before, after, db);
+    await handleMatchUpdated("m1", before, after, db, profileDefaults);
     expect(db.addedAlerts[0].createdAt).toBeInstanceOf(Date);
   });
 });
@@ -747,7 +750,7 @@ describe("handleMessageCreated", () => {
       senderName: "Alice",
       text: "Hello",
     };
-    await handleMessageCreated("m1", msgData, chatData, db);
+    await handleMessageCreated("m1", msgData, chatData, db, chatAlertsOn);
     expect(db.addedAlerts).toHaveLength(2);
     const recipients = db.addedAlerts.map((a) => a.recipientUid);
     expect(recipients).toContain("bob");
@@ -762,6 +765,7 @@ describe("handleMessageCreated", () => {
       { senderUid: "alice", senderName: "Alice", text: "Hi" },
       chatData,
       db,
+      chatAlertsOn,
     );
     expect(db.addedAlerts[0]).toMatchObject({
       type: "new_message",
@@ -777,6 +781,7 @@ describe("handleMessageCreated", () => {
       { senderUid: "alice", senderName: "Alice", text: "Hi" },
       { ...chatData, playerUids: [], memberUids: ["alice"] },
       db,
+      chatAlertsOn,
     );
     expect(db.addedAlerts).toHaveLength(0);
   });
@@ -788,10 +793,135 @@ describe("handleMessageCreated", () => {
       { senderUid: "bob", senderName: "Bob", text: "On my way" },
       chatData,
       db,
+      chatAlertsOn,
     );
     const recipients = db.addedAlerts.map((a) => a.recipientUid);
     expect(recipients).toContain("alice");
     expect(recipients).not.toContain("bob");
+  });
+});
+
+describe("alert setting gating (F6)", () => {
+  const chatData: Record<string, unknown> = {
+    courtId: "court-1",
+    courtName: "City Park",
+    sport: "tennis",
+    format: "doubles",
+    startAt: { seconds: 9999999 },
+    hostUid: "alice",
+    playerUids: ["bob"],
+    memberUids: ["alice", "bob"],
+  };
+  const msg = { senderUid: "alice", senderName: "Alice", text: "Hi" };
+
+  it("F-66 new_message is created when the chat messages alert is on", async () => {
+    const db = makeAlertDb();
+    await handleMessageCreated("m1", msg, chatData, db, async () => ({
+      chatMessagesAlert: true,
+    }));
+    expect(db.addedAlerts).toHaveLength(1);
+  });
+
+  it("F-67 new_message is suppressed when the chat messages alert is off", async () => {
+    const db = makeAlertDb();
+    await handleMessageCreated("m1", msg, chatData, db, async () => ({
+      chatMessagesAlert: false,
+    }));
+    expect(db.addedAlerts).toHaveLength(0);
+  });
+
+  it("F-68 new_message is suppressed when the setting is missing (default off)", async () => {
+    const db = makeAlertDb();
+    await handleMessageCreated("m1", msg, chatData, db, async () => ({}));
+    expect(db.addedAlerts).toHaveLength(0);
+  });
+
+  it("F-69 new_message is created only for recipients with the setting on", async () => {
+    const db = makeAlertDb();
+    const chat = {
+      ...chatData,
+      playerUids: ["bob", "carol"],
+      memberUids: ["alice", "bob", "carol"],
+    };
+    await handleMessageCreated("m1", msg, chat, db, async (uid) => ({
+      chatMessagesAlert: uid === "bob",
+    }));
+    expect(db.addedAlerts.map((a) => a.recipientUid)).toEqual(["bob"]);
+  });
+
+  const joinBefore = { ...baseMatch, playerUids: [], playerNames: [] };
+  const joinAfter = { ...baseMatch, playerUids: ["bob"], playerNames: ["Bob"] };
+  const leftAfter = { ...baseMatch, playerUids: [], playerNames: [] };
+  const removedAfter = {
+    ...baseMatch,
+    playerUids: [],
+    playerNames: [],
+    removedUids: ["bob"],
+  };
+  const handoffBefore = { ...baseMatch, playerUids: ["bob"], playerNames: ["Bob"] };
+  const handoffAfter = {
+    ...baseMatch,
+    hostUid: "bob",
+    hostName: "Bob",
+    playerUids: [],
+    playerNames: [],
+  };
+  const changesOff = async () => ({ changesGamesAlert: false });
+
+  it("F-70 player_joined is suppressed when the changes alert is off", async () => {
+    const db = makeAlertDb();
+    await handleMatchUpdated("m1", joinBefore, joinAfter, db, changesOff);
+    expect(db.addedAlerts).toHaveLength(0);
+  });
+
+  it("F-71 player_left is suppressed when the changes alert is off", async () => {
+    const db = makeAlertDb();
+    await handleMatchUpdated("m1", baseMatch, leftAfter, db, changesOff);
+    expect(db.addedAlerts).toHaveLength(0);
+  });
+
+  it("F-72 player_removed is suppressed when the changes alert is off", async () => {
+    const db = makeAlertDb();
+    await handleMatchUpdated("m1", baseMatch, removedAfter, db, changesOff);
+    expect(db.addedAlerts).toHaveLength(0);
+  });
+
+  it("F-73 host_transferred is suppressed when the changes alert is off", async () => {
+    const db = makeAlertDb();
+    await handleMatchUpdated("m1", handoffBefore, handoffAfter, db, changesOff);
+    expect(db.addedAlerts).toHaveLength(0);
+  });
+
+  it("F-74 player_joined is created when the changes alert is explicitly on", async () => {
+    const db = makeAlertDb();
+    await handleMatchUpdated("m1", joinBefore, joinAfter, db, async () => ({
+      changesGamesAlert: true,
+    }));
+    expect(db.addedAlerts).toHaveLength(1);
+  });
+
+  it("F-75 game_deleted is suppressed when the changes alert is off", async () => {
+    const db = makeAlertDb();
+    const data = {
+      ...baseMatch,
+      playerUids: ["bob", "carol"],
+      playerNames: ["Bob", "Carol"],
+    };
+    await handleMatchDeleted("m1", data, db, changesOff);
+    expect(db.addedAlerts).toHaveLength(0);
+  });
+
+  it("F-76 game_deleted is created only for recipients with the setting on", async () => {
+    const db = makeAlertDb();
+    const data = {
+      ...baseMatch,
+      playerUids: ["bob", "carol"],
+      playerNames: ["Bob", "Carol"],
+    };
+    await handleMatchDeleted("m1", data, db, async (uid) => ({
+      changesGamesAlert: uid === "carol",
+    }));
+    expect(db.addedAlerts.map((a) => a.recipientUid)).toEqual(["carol"]);
   });
 });
 

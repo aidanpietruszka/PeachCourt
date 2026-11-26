@@ -1,12 +1,27 @@
+import { alertTypeEnabled } from "./alertDefaults";
+
 export type AlertDb = {
   collection: (name: string) => { add: (data: Record<string, unknown>) => Promise<unknown> };
 };
+
+export type GetUser = (uid: string) => Promise<Record<string, unknown> | null>;
+
+export async function addIfEnabled(
+  db: AlertDb,
+  getUser: GetUser,
+  alert: Record<string, unknown>,
+): Promise<void> {
+  const profile = (await getUser(alert.recipientUid as string)) ?? {};
+  if (!alertTypeEnabled(alert.type as string, profile)) return;
+  await db.collection("alerts").add(alert);
+}
 
 export async function handleMatchUpdated(
   matchId: string,
   before: Record<string, unknown>,
   after: Record<string, unknown>,
   db: AlertDb,
+  getUser: GetUser,
 ): Promise<void> {
   const beforeRemoved = (before.removedUids as string[]) ?? [];
   const afterRemoved = (after.removedUids as string[]) ?? [];
@@ -14,7 +29,7 @@ export async function handleMatchUpdated(
   if (afterRemoved.length > beforeRemoved.length) {
     const removedUid = afterRemoved.find((uid) => !beforeRemoved.includes(uid));
     if (removedUid) {
-      await db.collection("alerts").add({
+      await addIfEnabled(db, getUser, {
         recipientUid: removedUid,
         type: "player_removed",
         gameId: matchId,
@@ -39,7 +54,7 @@ export async function handleMatchUpdated(
     const joinedIndex = joinedUid !== undefined ? afterPlayers.indexOf(joinedUid) : -1;
     const joinedName =
       joinedIndex >= 0 ? (after.playerNames as string[])[joinedIndex] : "A player";
-    await db.collection("alerts").add({
+    await addIfEnabled(db, getUser, {
       recipientUid: after.hostUid,
       type: "player_joined",
       gameId: matchId,
@@ -60,7 +75,7 @@ export async function handleMatchUpdated(
     const leftIndex = leftUid !== undefined ? beforePlayers.indexOf(leftUid) : -1;
     const leftName =
       leftIndex >= 0 ? (before.playerNames as string[])[leftIndex] : "A player";
-    await db.collection("alerts").add({
+    await addIfEnabled(db, getUser, {
       recipientUid: before.hostUid,
       type: "player_left",
       gameId: matchId,
@@ -77,7 +92,7 @@ export async function handleMatchUpdated(
   }
 
   if (before.hostUid !== after.hostUid) {
-    await db.collection("alerts").add({
+    await addIfEnabled(db, getUser, {
       recipientUid: after.hostUid,
       type: "host_transferred",
       gameId: matchId,
@@ -97,10 +112,11 @@ export async function handleMatchDeleted(
   matchId: string,
   data: Record<string, unknown>,
   db: AlertDb,
+  getUser: GetUser,
 ): Promise<void> {
   const playerUids = (data.playerUids as string[]) ?? [];
   for (const uid of playerUids) {
-    await db.collection("alerts").add({
+    await addIfEnabled(db, getUser, {
       recipientUid: uid,
       type: "game_deleted",
       gameId: matchId,
