@@ -288,7 +288,7 @@ const OnboardingPage: React.FC<Props> = ({ onComplete }) => {
     setError("");
     try {
       await UserService.saveOnboardingPrefs(user!.uid, {
-        notificationsEnabled: notifEnabled,
+        ...(notifEnabled ? { notificationsEnabled: true } : {}),
         ...(prompted ? { notificationsPrompted: true } : {}),
         onboardingDone: true,
       });

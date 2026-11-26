@@ -297,3 +297,52 @@
   padding: 0;
   white-space: nowrap;
 }
+.game-alerts-card {
+  margin: 12px 0 0;
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--pc-green-light);
+}
+
+.game-alerts-card__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--pc-text);
+}
+
+.game-alerts-card__subtitle {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--pc-text-muted);
+}
+
+.game-alerts-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 14px;
+}
+
+.game-alerts-card__turn-on {
+  border: none;
+  border-radius: 10px;
+  background: var(--pc-green);
+  color: #fff;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 10px 22px;
+  cursor: pointer;
+}
+
+.game-alerts-card__not-now {
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--pc-green);
+  cursor: pointer;
+  padding: 0;
+}

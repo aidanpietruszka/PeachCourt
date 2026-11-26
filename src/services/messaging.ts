@@ -6,6 +6,7 @@ import {
 } from "firebase/messaging";
 import { app } from "./firebase";
 import { UserService } from "./UserService";
+import { ErrorService } from "./ErrorService";
 import {
   notificationStatus,
   type NotifEnv,
@@ -59,14 +60,19 @@ export const MessagingService = {
   async enable(uid: string): Promise<string | null> {
     if (notificationStatus(currentEnv()) !== "ok") return null;
     if (!(await isSupported().catch(() => false))) return null;
-    const registration = await register();
-    const token = await getToken(getMessaging(app), {
-      vapidKey: VAPID_KEY,
-      serviceWorkerRegistration: registration,
-    });
-    if (!token) return null;
-    await UserService.saveFcmToken(uid, token);
-    return token;
+    try {
+      const registration = await register();
+      const token = await getToken(getMessaging(app), {
+        vapidKey: VAPID_KEY,
+        serviceWorkerRegistration: registration,
+      });
+      if (!token) return null;
+      await UserService.saveFcmToken(uid, token);
+      return token;
+    } catch (error) {
+      await ErrorService.logPushTokenFailed(error);
+      return null;
+    }
   },
 
   async disable(uid: string): Promise<void> {

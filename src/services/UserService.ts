@@ -31,6 +31,7 @@ function mapProfile(data: DocumentData): UserProfile {
       : undefined,
     notificationsEnabled: data.notificationsEnabled,
     notificationsPrompted: data.notificationsPrompted,
+    gameAlertsCardDismissed: data.gameAlertsCardDismissed,
     onboardingDone: data.onboardingDone,
     newGamesAlert: data.newGamesAlert,
     changesGamesAlert: data.changesGamesAlert,
@@ -75,7 +76,7 @@ export const UserService = {
 
   async saveSettings(
     uid: string,
-    settings: Partial<Pick<UserProfile, "locationEnabled" | "autoCheckin" | "notificationsEnabled" | "newGamesAlert" | "changesGamesAlert" | "gameRemindersAlert" | "chatMessagesAlert">>,
+    settings: Partial<Pick<UserProfile, "locationEnabled" | "autoCheckin" | "notificationsEnabled" | "newGamesAlert" | "changesGamesAlert" | "gameRemindersAlert" | "chatMessagesAlert" | "gameAlertsCardDismissed">>,
   ): Promise<void> {
     await setDoc(doc(db, "users", uid), settings, { merge: true });
   },

@@ -10,7 +10,8 @@
     "src/utils/gameOverlap.ts",
     "src/utils/activity.ts",
     "src/utils/onboarding.ts",
-    "src/utils/alertDefaults.ts"
+    "src/utils/alertDefaults.ts",
+    "src/utils/notifications.ts"
   ],
   "reporters": ["clear-text", "progress"],
   "thresholds": {

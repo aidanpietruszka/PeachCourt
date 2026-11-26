@@ -3,6 +3,8 @@ import {
   notificationStatus,
   parseJoinSource,
   pushTargetUrl,
+  shouldShowGameAlertsCard,
+  type GameAlertsCardInput,
   type NotifEnv,
 } from "./notifications";
 
@@ -89,6 +91,77 @@ describe("pushTargetUrl", () => {
 
   it("U-241 falls back to the courts list with no ids", () => {
     expect(pushTargetUrl({})).toBe("/courts");
+  });
+});
+
+const baseCard: GameAlertsCardInput = {
+  hasNotification: true,
+  isIPhone: false,
+  isStandalone: false,
+  permission: "default",
+  notificationsEnabled: undefined,
+  dismissed: undefined,
+};
+
+describe("shouldShowGameAlertsCard", () => {
+  it("U-260 shows on Android when permission was never asked", () => {
+    expect(shouldShowGameAlertsCard(baseCard)).toBe(true);
+  });
+
+  it("U-261 shows on an iPhone added to the Home Screen", () => {
+    expect(
+      shouldShowGameAlertsCard({
+        ...baseCard,
+        isIPhone: true,
+        isStandalone: true,
+      }),
+    ).toBe(true);
+  });
+
+  it("U-262 hides in a Safari tab on an iPhone", () => {
+    expect(
+      shouldShowGameAlertsCard({
+        ...baseCard,
+        isIPhone: true,
+        isStandalone: false,
+      }),
+    ).toBe(false);
+  });
+
+  it("U-263 hides when the Notification API is missing", () => {
+    expect(
+      shouldShowGameAlertsCard({ ...baseCard, hasNotification: false }),
+    ).toBe(false);
+  });
+
+  it("U-264 hides once permission is granted", () => {
+    expect(
+      shouldShowGameAlertsCard({ ...baseCard, permission: "granted" }),
+    ).toBe(false);
+  });
+
+  it("U-265 hides once permission is denied", () => {
+    expect(shouldShowGameAlertsCard({ ...baseCard, permission: "denied" })).toBe(
+      false,
+    );
+  });
+
+  it("U-266 hides when the Notifications switch is off", () => {
+    expect(
+      shouldShowGameAlertsCard({ ...baseCard, notificationsEnabled: false }),
+    ).toBe(false);
+  });
+
+  it("U-267 shows when the Notifications switch is on", () => {
+    expect(
+      shouldShowGameAlertsCard({ ...baseCard, notificationsEnabled: true }),
+    ).toBe(true);
+  });
+
+  it("U-268 hides after the card was dismissed", () => {
+    expect(shouldShowGameAlertsCard({ ...baseCard, dismissed: true })).toBe(
+      false,
+    );
   });
 });
 
