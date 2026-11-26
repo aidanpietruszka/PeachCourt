@@ -67,6 +67,17 @@ describe("ErrorService.logListener", () => {
   });
 });
 
+describe("ErrorService.logSaveFailed", () => {
+  it("U-271 logs a save_failed entry with the action code and message", async () => {
+    const service = await loadService();
+    await service.logSaveFailed("onboarding_finish", new Error("write blew up"));
+    const entry = lastWrite();
+    expect(entry.type).toBe("save_failed");
+    expect(entry.code).toBe("onboarding_finish");
+    expect(entry.message).toBe("write blew up");
+  });
+});
+
 describe("ErrorService field shape", () => {
   it("U-261 writes exactly the allowed fields", async () => {
     const service = await loadService();
