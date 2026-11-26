@@ -87,6 +87,14 @@ export const ErrorService = {
     });
   },
 
+  async logPushTokenFailed(error: unknown): Promise<void> {
+    await write({
+      type: "push_token_failed",
+      code: errorCode(error),
+      message: errorMessage(error),
+    });
+  },
+
   async logSignInFailed(error: unknown): Promise<void> {
     await write({
       type: "sign_in_failed",

@@ -22,8 +22,6 @@ import MyActivityPage from "../pages/MyActivityPage";
 import ProtectedRoute from "./ProtectedRoute";
 import { useAuth } from "../hooks/useAuth";
 import { useFlags } from "../hooks/useFlags";
-import { UserService } from "../services/UserService";
-import { MessagingService } from "../services/messaging";
 import { useAlerts } from "../hooks/useAlerts";
 import { useChatList } from "../hooks/useChatList";
 import { AlertService, type Alert } from "../services/AlertService";
@@ -78,27 +76,6 @@ const TabsLayout: React.FC = () => {
   const [bannerAlert, setBannerAlert] = useState<Alert | null>(null);
   const bannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bannerCutoffRef = useRef<number>(Date.now());
-
-  useEffect(() => {
-    if (!user) return;
-    const isStandalone =
-      (navigator as { standalone?: boolean }).standalone === true ||
-      window.matchMedia("(display-mode: standalone)").matches;
-    if (!isStandalone) return;
-    if (!("Notification" in window)) return;
-
-    void UserService.getProfile(user.uid).then((profile) => {
-      if (!profile?.onboardingDone || profile.notificationsPrompted) return;
-      void Notification.requestPermission().then((result) => {
-        const granted = result === "granted";
-        void UserService.saveOnboardingPrefs(user.uid, {
-          notificationsEnabled: granted,
-          notificationsPrompted: true,
-        });
-        if (granted) void MessagingService.enable(user.uid).catch(() => undefined);
-      });
-    });
-  }, [user?.uid]);
 
   useEffect(() => {
     const cutoff = bannerCutoffRef.current;

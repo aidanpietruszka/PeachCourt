@@ -33,6 +33,11 @@ import {
   searchRows,
 } from "../utils/courtFilters";
 import { courtSummary } from "../utils/courts";
+import {
+  shouldShowGameAlertsCard,
+  type NotifPermission,
+} from "../utils/notifications";
+import { MessagingService } from "../services/messaging";
 import { formatDistance } from "../utils/geo";
 import { CROWD_RANGES, displayRange } from "../utils/crowdRange";
 import { distanceBetweenMeters } from "../utils/geo";
@@ -79,6 +84,33 @@ const CourtsPage: React.FC = () => {
   const [toastMessage, setToastMessage] = useState("");
   const gotLocation = useRef(false);
   const activity = useLiveCourtData();
+  const [notifPermission, setNotifPermission] = useState<NotifPermission>(() =>
+    typeof window !== "undefined" && "Notification" in window
+      ? (Notification.permission as NotifPermission)
+      : "denied",
+  );
+
+  const handleTurnOnAlerts = async () => {
+    if (!("Notification" in window)) return;
+    const result = await Notification.requestPermission();
+    setNotifPermission(result as NotifPermission);
+    if (!uid) return;
+    const granted = result === "granted";
+    void UserService.saveSettings(uid, {
+      notificationsEnabled: granted,
+    }).catch(() => undefined);
+    if (granted) void MessagingService.enable(uid).catch(() => undefined);
+  };
+
+  const handleNotNowAlerts = () => {
+    if (!uid) return;
+    setProfile((prev) =>
+      prev ? { ...prev, gameAlertsCardDismissed: true } : prev,
+    );
+    void UserService.saveSettings(uid, {
+      gameAlertsCardDismissed: true,
+    }).catch(() => undefined);
+  };
 
   useEffect(() => {
     return CourtService.subscribeToCourts(setCourts, (error) => {
@@ -166,6 +198,19 @@ const CourtsPage: React.FC = () => {
   }, []);
 
   const autoEnabled = !!(flags.autoCheckin && profile?.autoCheckin && profile?.locationEnabled);
+
+  const showGameAlertsCard =
+    profile != null &&
+    shouldShowGameAlertsCard({
+      hasNotification: typeof window !== "undefined" && "Notification" in window,
+      isIPhone: /iPhone|iPad|iPod/.test(navigator.userAgent),
+      isStandalone:
+        (navigator as { standalone?: boolean }).standalone === true ||
+        window.matchMedia("(display-mode: standalone)").matches,
+      permission: notifPermission,
+      notificationsEnabled: profile.notificationsEnabled,
+      dismissed: profile.gameAlertsCardDismissed,
+    });
 
   useEffect(() => {
     if (!autoEnabled || !userLocation) {
@@ -463,6 +508,32 @@ const CourtsPage: React.FC = () => {
                   <IonLabel>Tennis</IonLabel>
                 </IonSegmentButton>
               </IonSegment>
+            )}
+
+            {!isSearching && showGameAlertsCard && (
+              <div className="game-alerts-card">
+                <p className="game-alerts-card__title">Turn on game alerts</p>
+                <p className="game-alerts-card__subtitle">
+                  Get a notification when someone posts a game for your sport and
+                  skill.
+                </p>
+                <div className="game-alerts-card__actions">
+                  <button
+                    type="button"
+                    className="game-alerts-card__turn-on"
+                    onClick={() => void handleTurnOnAlerts()}
+                  >
+                    Turn on
+                  </button>
+                  <button
+                    type="button"
+                    className="game-alerts-card__not-now"
+                    onClick={handleNotNowAlerts}
+                  >
+                    Not now
+                  </button>
+                </div>
+              </div>
             )}
           </div>
 

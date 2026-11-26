@@ -36,6 +36,14 @@ vi.mock("./UserService", () => ({
   },
 }));
 
+const logPushTokenFailed = vi.fn().mockResolvedValue(undefined);
+
+vi.mock("./ErrorService", () => ({
+  ErrorService: {
+    logPushTokenFailed: (...args: unknown[]) => logPushTokenFailed(...args),
+  },
+}));
+
 type BrowserOptions = {
   permission?: "default" | "granted" | "denied";
   standalone?: boolean;
@@ -125,6 +133,35 @@ describe("MessagingService.enable", () => {
     const result = await service.enable("alice");
     expect(result).toBeNull();
     expect(getToken).not.toHaveBeenCalled();
+  });
+
+  it("U-280 logs push_token_failed and returns null when the token lookup throws", async () => {
+    setupBrowser({ permission: "granted" });
+    getToken.mockRejectedValue(new Error("fcm down"));
+    const service = await loadService();
+    const result = await service.enable("alice");
+    expect(result).toBeNull();
+    expect(logPushTokenFailed).toHaveBeenCalledTimes(1);
+    expect(saveFcmToken).not.toHaveBeenCalled();
+  });
+
+  it("U-281 logs push_token_failed and returns null when saving the token throws", async () => {
+    setupBrowser({ permission: "granted" });
+    getToken.mockResolvedValue("tok-1");
+    saveFcmToken.mockRejectedValueOnce(new Error("write failed"));
+    const service = await loadService();
+    const result = await service.enable("alice");
+    expect(result).toBeNull();
+    expect(logPushTokenFailed).toHaveBeenCalledTimes(1);
+  });
+
+  it("U-282 does not log when no token is issued", async () => {
+    setupBrowser({ permission: "granted" });
+    getToken.mockResolvedValue("");
+    const service = await loadService();
+    const result = await service.enable("alice");
+    expect(result).toBeNull();
+    expect(logPushTokenFailed).not.toHaveBeenCalled();
   });
 });
 

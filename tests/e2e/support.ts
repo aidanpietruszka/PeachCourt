@@ -876,11 +876,17 @@ export async function setNotificationPermission(
     await context.grantPermissions(["notifications"]).catch(() => undefined);
   }
   await context.addInitScript((value) => {
+    const counter = globalThis as { __notifRequestCount?: number };
+    counter.__notifRequestCount = counter.__notifRequestCount ?? 0;
+    const request = () => {
+      counter.__notifRequestCount = (counter.__notifRequestCount ?? 0) + 1;
+      return Promise.resolve(value as NotificationPermission);
+    };
     const holder = globalThis as { Notification?: unknown };
     if (typeof holder.Notification === "undefined") {
       holder.Notification = {
         permission: value,
-        requestPermission: () => Promise.resolve(value),
+        requestPermission: request,
       };
       return;
     }
@@ -889,12 +895,75 @@ export async function setNotificationPermission(
         configurable: true,
         get: () => value,
       });
-      Notification.requestPermission = () =>
-        Promise.resolve(value as NotificationPermission);
+      Notification.requestPermission = request;
     } catch {
       return;
     }
   }, permission);
+}
+
+export async function setNotificationRequestResult(
+  context: BrowserContext,
+  result: "granted" | "denied",
+) {
+  await context.addInitScript((value) => {
+    const counter = globalThis as { __notifRequestCount?: number };
+    counter.__notifRequestCount = counter.__notifRequestCount ?? 0;
+    const request = () => {
+      counter.__notifRequestCount = (counter.__notifRequestCount ?? 0) + 1;
+      return Promise.resolve(value as NotificationPermission);
+    };
+    const holder = globalThis as { Notification?: unknown };
+    if (typeof holder.Notification === "undefined") {
+      holder.Notification = {
+        permission: "default",
+        requestPermission: request,
+      };
+      return;
+    }
+    try {
+      Object.defineProperty(Notification, "permission", {
+        configurable: true,
+        get: () => "default",
+      });
+      Notification.requestPermission = request;
+    } catch {
+      return;
+    }
+  }, result);
+}
+
+export async function setStandalone(context: BrowserContext) {
+  await context.addInitScript(() => {
+    try {
+      Object.defineProperty(navigator, "standalone", {
+        configurable: true,
+        get: () => true,
+      });
+    } catch {
+      return;
+    }
+    const original = window.matchMedia.bind(window);
+    window.matchMedia = ((query: string) =>
+      query.includes("display-mode: standalone")
+        ? ({
+            matches: true,
+            media: query,
+            onchange: null,
+            addListener: () => undefined,
+            removeListener: () => undefined,
+            addEventListener: () => undefined,
+            removeEventListener: () => undefined,
+            dispatchEvent: () => false,
+          } as MediaQueryList)
+        : original(query)) as typeof window.matchMedia;
+  });
+}
+
+export async function notificationRequestCount(page: Page): Promise<number> {
+  return page.evaluate(
+    () => (globalThis as { __notifRequestCount?: number }).__notifRequestCount ?? 0,
+  );
 }
 
 export async function freshContext(

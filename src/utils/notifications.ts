@@ -24,6 +24,24 @@ export function notificationStatus(env: NotifEnv): NotifStatus {
   return "ok";
 }
 
+export interface GameAlertsCardInput {
+  hasNotification: boolean;
+  isIPhone: boolean;
+  isStandalone: boolean;
+  permission: NotifPermission;
+  notificationsEnabled?: boolean;
+  dismissed?: boolean;
+}
+
+export function shouldShowGameAlertsCard(input: GameAlertsCardInput): boolean {
+  if (!input.hasNotification) return false;
+  if (input.isIPhone && !input.isStandalone) return false;
+  if (input.permission !== "default") return false;
+  if (input.notificationsEnabled === false) return false;
+  if (input.dismissed === true) return false;
+  return true;
+}
+
 export function isStandaloneDisplay(): boolean {
   if (typeof window === "undefined" || typeof navigator === "undefined") {
     return false;

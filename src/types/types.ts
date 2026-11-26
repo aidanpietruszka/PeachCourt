@@ -36,6 +36,7 @@ export interface UserProfile {
   checkinVariant?: CheckinVariant;
   notificationsEnabled?: boolean;
   notificationsPrompted?: boolean;
+  gameAlertsCardDismissed?: boolean;
   onboardingDone?: boolean;
   newGamesAlert?: boolean;
   changesGamesAlert?: boolean;
