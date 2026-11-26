@@ -95,6 +95,14 @@ export const ErrorService = {
     });
   },
 
+  async logSaveFailed(code: string, error: unknown): Promise<void> {
+    await write({
+      type: "save_failed",
+      code,
+      message: errorMessage(error),
+    });
+  },
+
   async logSignInFailed(error: unknown): Promise<void> {
     await write({
       type: "sign_in_failed",

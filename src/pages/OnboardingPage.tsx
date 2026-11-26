@@ -11,6 +11,7 @@ import {
 import { Geolocation } from "@capacitor/geolocation";
 import { useAuth } from "../hooks/useAuth";
 import { EventService } from "../services/EventService";
+import { ErrorService } from "../services/ErrorService";
 import { MessagingService } from "../services/messaging";
 import {
   UserService,
@@ -158,25 +159,34 @@ const OnboardingPage: React.FC<Props> = ({ onComplete }) => {
     }
     setError("");
     setBusy(true);
+    const profile: UserProfile = {
+      firstName: fn,
+      lastName: ln,
+      sports,
+      skillLevels,
+    };
     try {
-      const profile: UserProfile = {
-        firstName: fn,
-        lastName: ln,
-        sports,
-        skillLevels,
-      };
       await UserService.saveProfile(user!.uid, profile);
-      try {
-        setVariant(await UserService.assignCheckinVariant(user!.uid));
-      } catch {
-        setVariant(undefined);
-      }
-      setStep(2);
-    } catch {
-      setError("Could not save your profile. Please try again.");
-    } finally {
+    } catch (e) {
+      setError(
+        "Couldn't save your profile. Check your connection and try again.",
+      );
+      void ErrorService.logSaveFailed("onboarding_profile", e);
       setBusy(false);
+      return;
     }
+    try {
+      setVariant(await UserService.assignCheckinVariant(user!.uid));
+    } catch (e) {
+      setError(
+        "Couldn't save your profile. Check your connection and try again.",
+      );
+      void ErrorService.logSaveFailed("onboarding_variant", e);
+      setBusy(false);
+      return;
+    }
+    setBusy(false);
+    setStep(2);
   };
 
   const handleAutoCheckinToggle = (checked: boolean) => {
@@ -249,20 +259,42 @@ const OnboardingPage: React.FC<Props> = ({ onComplete }) => {
   };
 
   const handleStep2Next = async () => {
+    setError("");
     setBusy(true);
-    await UserService.saveOnboardingPrefs(user!.uid, {
-      locationEnabled,
-      autoCheckin,
-    }).catch(() => undefined);
+    try {
+      await UserService.saveOnboardingPrefs(user!.uid, {
+        locationEnabled,
+        autoCheckin,
+      });
+    } catch (e) {
+      setError(
+        "Couldn't save your choices. Check your connection and try again.",
+      );
+      void ErrorService.logSaveFailed("onboarding_step2", e);
+      setBusy(false);
+      return;
+    }
     setBusy(false);
     setStep(3);
   };
 
   const handleStep2Skip = async () => {
-    await UserService.saveOnboardingPrefs(user!.uid, {
-      locationEnabled: false,
-      autoCheckin: false,
-    }).catch(() => undefined);
+    setError("");
+    setBusy(true);
+    try {
+      await UserService.saveOnboardingPrefs(user!.uid, {
+        locationEnabled: false,
+        autoCheckin: false,
+      });
+    } catch (e) {
+      setError(
+        "Couldn't save your choices. Check your connection and try again.",
+      );
+      void ErrorService.logSaveFailed("onboarding_step2_skip", e);
+      setBusy(false);
+      return;
+    }
+    setBusy(false);
     setStep(3);
   };
 
@@ -292,10 +324,11 @@ const OnboardingPage: React.FC<Props> = ({ onComplete }) => {
         ...(prompted ? { notificationsPrompted: true } : {}),
         onboardingDone: true,
       });
-    } catch {
+    } catch (e) {
       setError(
         "Couldn't finish setting up. Check your connection and try again.",
       );
+      void ErrorService.logSaveFailed("onboarding_finish", e);
       setBusy(false);
       return;
     }
@@ -496,6 +529,8 @@ const OnboardingPage: React.FC<Props> = ({ onComplete }) => {
             </div>
 
             <div className="onboarding__spacer" />
+
+            {error && <p className="onboarding__error">{error}</p>}
 
             <IonButton
               expand="block"

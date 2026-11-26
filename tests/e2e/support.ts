@@ -7,6 +7,7 @@ import {
   type Locator,
   type Page,
 } from "@playwright/test";
+import { readFileSync } from "node:fs";
 
 export const APP_URL = `http://127.0.0.1:${process.env.E2E_APP_PORT ?? "5174"}`;
 export const PIEDMONT_PARK = { latitude: 33.7851, longitude: -84.3738 };
@@ -964,6 +965,27 @@ export async function notificationRequestCount(page: Page): Promise<number> {
   return page.evaluate(
     () => (globalThis as { __notifRequestCount?: number }).__notifRequestCount ?? 0,
   );
+}
+
+export async function setFirestoreRules(content: string) {
+  const response = await fetch(
+    `${FIRESTORE}/emulator/v1/projects/${PROJECT_ID}:securityRules`,
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer owner",
+      },
+      body: JSON.stringify({
+        rules: { files: [{ name: "firestore.rules", content }] },
+      }),
+    },
+  );
+  expect(response.ok).toBe(true);
+}
+
+export async function restoreFirestoreRules() {
+  await setFirestoreRules(readFileSync("firestore.rules", "utf8"));
 }
 
 export async function freshContext(
