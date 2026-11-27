@@ -11,16 +11,21 @@ import {
   useIonRouter,
   useIonViewWillEnter,
   IonToast,
+  IonRefresher,
+  IonRefresherContent,
 } from "@ionic/react";
 import { useAlerts } from "../hooks/useAlerts";
 import NotificationBell from "../components/NotificationBell";
+import LiveErrorBanner from "../components/LiveErrorBanner";
 import { Geolocation } from "@capacitor/geolocation";
 import CourtMap, { CourtMapItem } from "../components/CourtMap";
 import { useAuth } from "../hooks/useAuth";
 import { useLiveCourtData } from "../hooks/useLiveCourtData";
+import { useListenerError } from "../hooks/useListenerError";
 import { logout } from "../services/auth";
 import { CheckinService, type ActiveCheckIn } from "../services/CheckinService";
 import { CourtService } from "../services/CourtService";
+import { ErrorService } from "../services/ErrorService";
 import { UserService } from "../services/UserService";
 import type { UserProfile } from "../types/types";
 import type { Court, Sport } from "../types/types";
@@ -83,7 +88,12 @@ const CourtsPage: React.FC = () => {
   useIonViewWillEnter(() => setCenterSerial((s) => s + 1));
   const [toastMessage, setToastMessage] = useState("");
   const gotLocation = useRef(false);
-  const activity = useLiveCourtData();
+  const { activity, error: countsError, retry: retryCounts } = useLiveCourtData();
+  const courtsList = useListenerError("courts-list");
+  const refreshLiveData = () => {
+    courtsList.retry();
+    retryCounts();
+  };
   const [notifPermission, setNotifPermission] = useState<NotifPermission>(() =>
     typeof window !== "undefined" && "Notification" in window
       ? (Notification.permission as NotifPermission)
@@ -113,11 +123,8 @@ const CourtsPage: React.FC = () => {
   };
 
   useEffect(() => {
-    return CourtService.subscribeToCourts(setCourts, (error) => {
-      console.error("Unable to load courts", error);
-      setToastMessage("Courts are unavailable right now.");
-    });
-  }, []);
+    return CourtService.subscribeToCourts(setCourts, courtsList.handleError);
+  }, [courtsList.retryKey, courtsList.handleError]);
 
   useEffect(() => {
     if (!uid) {
@@ -127,9 +134,7 @@ const CourtsPage: React.FC = () => {
     return CheckinService.subscribeToActiveCheckIn(
       uid,
       setActiveCheckIn,
-      (error) => {
-        console.error("Unable to load your active check-in", error);
-      },
+      (error) => void ErrorService.logListener("courts-active-checkin", error),
     );
   }, [uid]);
 
@@ -138,9 +143,9 @@ const CourtsPage: React.FC = () => {
       setProfile(null);
       return;
     }
-    return UserService.subscribeToProfile(uid, setProfile, (error) => {
-      console.error("Unable to load profile", error);
-    });
+    return UserService.subscribeToProfile(uid, setProfile, (error) =>
+      void ErrorService.logListener("courts-profile", error),
+    );
   }, [uid]);
 
   useEffect(() => {
@@ -365,7 +370,10 @@ const CourtsPage: React.FC = () => {
 
   return (
     <IonPage>
-      <IonContent scrollY={false}>
+      <IonContent>
+        <IonRefresher slot="fixed" onIonRefresh={(e) => { refreshLiveData(); void e.detail.complete(); }}>
+          <IonRefresherContent />
+        </IonRefresher>
         <div className="courts-page">
           <div className="pc-screen courts-page__header">
             <div className="courts-page__title-row">
@@ -537,6 +545,12 @@ const CourtsPage: React.FC = () => {
             )}
           </div>
 
+          {courtsList.errored ? (
+            <LiveErrorBanner message="Courts couldn't load. Pull down to try again." />
+          ) : countsError ? (
+            <LiveErrorBanner message="Live counts couldn't load. Pull down to try again." />
+          ) : null}
+
           {!isSearching && (
             <div className="courts-page__map">
               <CourtMap
@@ -600,6 +614,7 @@ const CourtsPage: React.FC = () => {
                 </IonButton>
               </div>
             )}
+            {!courtsList.errored && (
             <IonList inset>
               {visibleRows.map(({ court, reported, openGames, distance }) => (
                 <IonItem
@@ -622,24 +637,31 @@ const CourtsPage: React.FC = () => {
                   <div className="courts-page__live" slot="end">
                     <span
                       className={
-                        reported !== null
+                        !countsError && reported !== null
                           ? "courts-page__activity courts-page__activity--active"
                           : "courts-page__activity"
                       }
                     >
-                      {reported === null
-                        ? "No reports"
-                        : displayRange(reported)}
+                      {countsError
+                        ? "—"
+                        : reported === null
+                          ? "No reports"
+                          : displayRange(reported)}
                     </span>
-                    {openGames > 0 && (
-                      <span className="courts-page__games">
-                        {`${openGames} open ${openGames === 1 ? "game" : "games"}`}
-                      </span>
+                    {countsError ? (
+                      <span className="courts-page__games">—</span>
+                    ) : (
+                      openGames > 0 && (
+                        <span className="courts-page__games">
+                          {`${openGames} open ${openGames === 1 ? "game" : "games"}`}
+                        </span>
+                      )
                     )}
                   </div>
                 </IonItem>
               ))}
             </IonList>
+            )}
           </section>
         </div>
       </IonContent>

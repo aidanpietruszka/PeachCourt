@@ -23,6 +23,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useMyGames } from "../hooks/useMyGames";
 import { MatchService, SPOTS_BY_FORMAT } from "../services/MatchService";
 import { UserService } from "../services/UserService";
+import { ErrorService } from "../services/ErrorService";
 import type {
   Court,
   Match,
@@ -97,6 +98,8 @@ interface MatchBoardProps {
   isPostOpen: boolean;
   onClosePost: () => void;
   joinSource?: string;
+  onLiveError: (error: unknown) => void;
+  retryKey: number;
 }
 
 const MatchBoard: React.FC<MatchBoardProps> = ({
@@ -104,6 +107,8 @@ const MatchBoard: React.FC<MatchBoardProps> = ({
   isPostOpen,
   onClosePost,
   joinSource = "browsing",
+  onLiveError,
+  retryKey,
 }) => {
   const ionRouter = useIonRouter();
   const { user } = useAuth();
@@ -135,21 +140,18 @@ const MatchBoard: React.FC<MatchBoardProps> = ({
     return MatchService.subscribeToCourtMatches(
       court.id,
       setMatches,
-      (error) => {
-        console.error("Unable to load open games", error);
-        setToastMessage("Open games are unavailable right now.");
-      },
+      onLiveError,
     );
-  }, [court.id]);
+  }, [court.id, retryKey, onLiveError]);
 
   useEffect(() => {
     if (!uid) {
       setProfile(null);
       return;
     }
-    return UserService.subscribeToProfile(uid, setProfile, (error) => {
-      console.error("Unable to load profile", error);
-    });
+    return UserService.subscribeToProfile(uid, setProfile, (error) =>
+      void ErrorService.logListener("court-matches-profile", error),
+    );
   }, [uid]);
 
   useEffect(() => {

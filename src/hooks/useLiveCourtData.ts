@@ -14,6 +14,7 @@ import {
   type CourtReport,
 } from "../utils/activity";
 import { useAuth } from "./useAuth";
+import { useListenerError } from "./useListenerError";
 
 export {
   EMPTY_ACTIVITY,
@@ -21,12 +22,18 @@ export {
   type CourtActivity,
 } from "../utils/activity";
 
-export function useLiveCourtData(): Record<string, CourtActivity> {
+export function useLiveCourtData(): {
+  activity: Record<string, CourtActivity>;
+  error: boolean;
+  retry: () => void;
+} {
   const { user } = useAuth();
   const [checkins, setCheckins] = useState<DocumentData[]>([]);
   const [reports, setReports] = useState<CourtReport[]>([]);
   const [matches, setMatches] = useState<DocumentData[]>([]);
   const [now, setNow] = useState(() => Date.now());
+  const { errored, retryKey, handleError, retry } =
+    useListenerError("live-court-data");
 
   useEffect(() => {
     if (!user) {
@@ -36,9 +43,9 @@ export function useLiveCourtData(): Record<string, CourtActivity> {
     return onSnapshot(
       query(collection(db, "checkins"), where("active", "==", true)),
       (snapshot) => setCheckins(snapshot.docs.map((item) => item.data())),
-      (error) => console.error("Unable to load live check-ins", error),
+      handleError,
     );
-  }, [user]);
+  }, [user, retryKey, handleError]);
 
   useEffect(() => {
     if (!user) {
@@ -63,9 +70,9 @@ export function useLiveCourtData(): Record<string, CourtActivity> {
               : [];
           }),
         ),
-      (error) => console.error("Unable to load player reports", error),
+      handleError,
     );
-  }, [user]);
+  }, [user, retryKey, handleError]);
 
   useEffect(() => {
     if (!user) {
@@ -75,17 +82,19 @@ export function useLiveCourtData(): Record<string, CourtActivity> {
     return onSnapshot(
       query(collection(db, "matches"), where("startAt", ">", Timestamp.now())),
       (snapshot) => setMatches(snapshot.docs.map((item) => item.data())),
-      (error) => console.error("Unable to load open games", error),
+      handleError,
     );
-  }, [user]);
+  }, [user, retryKey, handleError]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 30_000);
     return () => window.clearInterval(timer);
   }, []);
 
-  return useMemo(
+  const activity = useMemo(
     () => summarizeActivity(checkins, reports, matches, now),
     [checkins, reports, matches, now],
   );
+
+  return { activity, error: errored, retry };
 }

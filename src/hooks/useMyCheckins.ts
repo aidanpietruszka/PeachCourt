@@ -2,13 +2,20 @@ import { useEffect, useState } from "react";
 import { collection, documentId, getDocs, query, where } from "firebase/firestore";
 import { db } from "../services/firebase";
 import { CheckinService, type PastCheckin } from "../services/CheckinService";
+import { useListenerError } from "./useListenerError";
 
 export interface CheckinWithCourt extends PastCheckin {
   courtName: string;
 }
 
-export function useMyCheckins(uid: string | null): CheckinWithCourt[] {
+export function useMyCheckins(uid: string | null): {
+  checkins: CheckinWithCourt[];
+  error: boolean;
+  retry: () => void;
+} {
   const [checkins, setCheckins] = useState<CheckinWithCourt[]>([]);
+  const { errored, retryKey, handleError, retry } =
+    useListenerError("my-checkins");
 
   useEffect(() => {
     if (!uid) {
@@ -45,15 +52,11 @@ export function useMyCheckins(uid: string | null): CheckinWithCourt[] {
               raw.map((c) => ({ ...c, courtName: nameMap[c.courtId] ?? c.courtId })),
             );
           })
-          .catch((err: unknown) => {
-            console.error("Unable to load court names", err);
-          });
+          .catch(handleError);
       },
-      (err) => {
-        console.error("Unable to load check-ins", err);
-      },
+      handleError,
     );
-  }, [uid]);
+  }, [uid, retryKey, handleError]);
 
-  return checkins;
+  return { checkins, error: errored, retry };
 }

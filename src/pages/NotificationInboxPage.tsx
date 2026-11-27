@@ -1,7 +1,14 @@
-import { IonContent, IonPage, useIonRouter } from "@ionic/react";
+import {
+  IonContent,
+  IonPage,
+  IonRefresher,
+  IonRefresherContent,
+  useIonRouter,
+} from "@ionic/react";
 import { useAuth } from "../hooks/useAuth";
 import { useAlerts } from "../hooks/useAlerts";
 import { AlertService, type Alert, type AlertType } from "../services/AlertService";
+import LiveErrorBanner from "../components/LiveErrorBanner";
 import type { Timestamp } from "firebase/firestore";
 import "./NotificationInboxPage.css";
 
@@ -107,7 +114,7 @@ function isToday(d: Date, now: Date): boolean {
 const NotificationInboxPage: React.FC = () => {
   const ionRouter = useIonRouter();
   const { user } = useAuth();
-  const { alerts, unreadCount } = useAlerts(user?.uid ?? null);
+  const { alerts, unreadCount, error, retry } = useAlerts(user?.uid ?? null);
   const now = new Date();
 
   const todayAlerts = alerts.filter(
@@ -138,6 +145,9 @@ const NotificationInboxPage: React.FC = () => {
   return (
     <IonPage>
       <IonContent>
+        <IonRefresher slot="fixed" onIonRefresh={(e) => { retry(); void e.detail.complete(); }}>
+          <IonRefresherContent />
+        </IonRefresher>
         <div className="inbox">
           <div className="inbox__header">
             <button
@@ -170,7 +180,11 @@ const NotificationInboxPage: React.FC = () => {
 
           <h1 className="inbox__title">Notifications</h1>
 
-          {alerts.length === 0 && (
+          {error && (
+            <LiveErrorBanner message="Couldn't load. Pull down to try again." />
+          )}
+
+          {!error && alerts.length === 0 && (
             <div className="inbox__empty">
               <p className="inbox__empty-title">No notifications yet</p>
               <p className="inbox__empty-sub">

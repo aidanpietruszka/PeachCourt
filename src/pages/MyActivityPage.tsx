@@ -1,11 +1,20 @@
 import { useEffect, useState } from "react";
-import { IonContent, IonModal, IonPage, useIonRouter } from "@ionic/react";
+import {
+  IonContent,
+  IonModal,
+  IonPage,
+  IonRefresher,
+  IonRefresherContent,
+  useIonRouter,
+} from "@ionic/react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../services/firebase";
 import { useAuth } from "../hooks/useAuth";
 import { useMyActivityGames } from "../hooks/useMyActivityGames";
 import { useMyCheckins } from "../hooks/useMyCheckins";
 import { CheckinService, type ActiveCheckIn } from "../services/CheckinService";
+import { ErrorService } from "../services/ErrorService";
+import LiveErrorBanner from "../components/LiveErrorBanner";
 import { CROWD_RANGES, CROWD_RANGE_MINS, type RangeMin } from "../utils/crowdRange";
 import { formatStart } from "../utils/time";
 import type { MatchFormat, Sport } from "../types/types";
@@ -95,8 +104,15 @@ const MyActivityPage: React.FC = () => {
   const [selectedCount, setSelectedCount] = useState<RangeMin>(1);
   const [isSaving, setIsSaving] = useState(false);
 
-  const games = useMyActivityGames(uid);
-  const checkins = useMyCheckins(uid);
+  const { games, error: gamesError, retry: retryGames } =
+    useMyActivityGames(uid);
+  const { checkins, error: checkinsError, retry: retryCheckins } =
+    useMyCheckins(uid);
+  const liveError = gamesError || checkinsError;
+  const refresh = () => {
+    retryGames();
+    retryCheckins();
+  };
 
   const now = Date.now();
   const upcoming = [...games]
@@ -110,9 +126,9 @@ const MyActivityPage: React.FC = () => {
 
   useEffect(() => {
     if (!uid) return;
-    return CheckinService.subscribeToActiveCheckIn(uid, setActiveCheckin, (err) => {
-      console.error("Unable to load active check-in", err);
-    });
+    return CheckinService.subscribeToActiveCheckIn(uid, setActiveCheckin, (err) =>
+      void ErrorService.logListener("my-activity-active-checkin", err),
+    );
   }, [uid]);
 
   useEffect(() => {
@@ -168,8 +184,15 @@ const MyActivityPage: React.FC = () => {
   return (
     <IonPage>
       <IonContent>
+        <IonRefresher slot="fixed" onIonRefresh={(e) => { refresh(); void e.detail.complete(); }}>
+          <IonRefresherContent />
+        </IonRefresher>
         <div className="my-activity">
           <h1 className="my-activity__title">My Activity</h1>
+
+          {liveError && (
+            <LiveErrorBanner message="Couldn't load. Pull down to try again." />
+          )}
 
           {activeCheckin && (
             <div className="my-activity__active-card">
@@ -204,7 +227,7 @@ const MyActivityPage: React.FC = () => {
             </div>
           )}
 
-          {isEmpty ? (
+          {!liveError && isEmpty ? (
             <div className="my-activity__empty">
               <div className="my-activity__empty-icon" aria-hidden="true">
                 <svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">

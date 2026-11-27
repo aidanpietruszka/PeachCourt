@@ -1,9 +1,16 @@
-import { IonContent, IonPage, useIonRouter } from "@ionic/react";
+import {
+  IonContent,
+  IonPage,
+  IonRefresher,
+  IonRefresherContent,
+  useIonRouter,
+} from "@ionic/react";
 import type { Timestamp } from "firebase/firestore";
 import { useAuth } from "../hooks/useAuth";
 import { useAlerts } from "../hooks/useAlerts";
 import { useChatList } from "../hooks/useChatList";
 import NotificationBell from "../components/NotificationBell";
+import LiveErrorBanner from "../components/LiveErrorBanner";
 import type { Chat, Sport } from "../types/types";
 import "./ChatsPage.css";
 
@@ -60,13 +67,16 @@ const ChatsPage: React.FC = () => {
   const ionRouter = useIonRouter();
   const { user } = useAuth();
   const uid = user?.uid ?? null;
-  const { chats } = useChatList(uid);
+  const { chats, error, retry } = useChatList(uid);
   const { unreadCount: alertUnreadCount } = useAlerts(uid);
   const now = Date.now();
 
   return (
     <IonPage>
       <IonContent>
+        <IonRefresher slot="fixed" onIonRefresh={(e) => { retry(); void e.detail.complete(); }}>
+          <IonRefresherContent />
+        </IonRefresher>
         <div className="chats-page">
           <div className="chats-page__header">
             <h1 className="chats-page__title">Chats</h1>
@@ -76,7 +86,9 @@ const ChatsPage: React.FC = () => {
             />
           </div>
 
-          {chats.length === 0 ? (
+          {error ? (
+            <LiveErrorBanner message="Couldn't load. Pull down to try again." />
+          ) : chats.length === 0 ? (
             <div className="chats-empty">
               <svg
                 className="chats-empty__icon"
