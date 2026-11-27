@@ -1,13 +1,17 @@
 import {
   AuthError,
   createUserWithEmailAndPassword,
+  getRedirectResult,
   GoogleAuthProvider,
   signInWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
   signOut,
   updateProfile,
 } from 'firebase/auth';
 import { auth } from './firebase';
+import { ErrorService } from './ErrorService';
+import { isStandaloneDisplay } from '../utils/notifications';
 
 export async function signUpWithEmail(name: string, email: string, password: string) {
   const user = (await createUserWithEmailAndPassword(auth, email, password)).user;
@@ -22,7 +26,26 @@ export async function signInWithEmail(email: string, password: string) {
 
 export async function signInWithGoogle() {
   const provider = new GoogleAuthProvider();
+  if (isStandaloneDisplay()) {
+    await signInWithRedirect(auth, provider);
+    return;
+  }
   await signInWithPopup(auth, provider);
+}
+
+export interface RedirectSignInResult {
+  signedIn: boolean;
+  error: string;
+}
+
+export async function completeRedirectSignIn(): Promise<RedirectSignInResult> {
+  try {
+    const result = await getRedirectResult(auth);
+    return { signedIn: result !== null, error: '' };
+  } catch (e) {
+    void ErrorService.logSignInFailed(e);
+    return { signedIn: false, error: authErrorMessage(e) };
+  }
 }
 
 export async function logout() {

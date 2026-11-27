@@ -19,10 +19,12 @@ import {
 import { auth } from "../services/firebase";
 import { ErrorService } from "../services/ErrorService";
 import { UserService } from "../services/UserService";
+import { useRedirectSignIn } from "../hooks/useRedirectSignIn";
 import "./AuthPages.css";
 
 const LoginPage: React.FC = () => {
   const ionRouter = useIonRouter();
+  const redirectError = useRedirectSignIn();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -93,7 +95,9 @@ const LoginPage: React.FC = () => {
               />
             </div>
 
-            {error && <div className="auth-error">{error}</div>}
+            {(error || redirectError) && (
+              <div className="auth-error">{error || redirectError}</div>
+            )}
 
             <IonButton expand="block" type="submit" disabled={busy}>
               {busy ? <IonSpinner name="dots" /> : "Log in"}
