@@ -1,0 +1,9 @@
+.live-error-banner {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #fdecec;
+  color: #c0392b;
+  font-size: 14px;
+  font-weight: 500;
+}

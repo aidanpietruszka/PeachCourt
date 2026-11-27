@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { MatchService } from "../services/MatchService";
+import { ErrorService } from "../services/ErrorService";
 import type { PlayerGame } from "../utils/gameOverlap";
 
 export function useMyGames(uid: string | null): PlayerGame[] {
@@ -10,9 +11,9 @@ export function useMyGames(uid: string | null): PlayerGame[] {
       setGames([]);
       return;
     }
-    return MatchService.subscribeToMyGames(uid, setGames, (error) => {
-      console.error("Unable to load your games", error);
-    });
+    return MatchService.subscribeToMyGames(uid, setGames, (error) =>
+      void ErrorService.logListener("my-games", error),
+    );
   }, [uid]);
 
   return games;

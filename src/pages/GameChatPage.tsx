@@ -1,16 +1,27 @@
 import { useEffect, useRef, useState } from "react";
-import { IonContent, IonPage, useIonRouter } from "@ionic/react";
+import {
+  IonContent,
+  IonPage,
+  IonRefresher,
+  IonRefresherContent,
+  useIonRouter,
+} from "@ionic/react";
 import { useLocation, useParams } from "react-router-dom";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "../services/firebase";
 import { useAuth } from "../hooks/useAuth";
 import { UserService } from "../services/UserService";
 import { useChatMessages } from "../hooks/useChatMessages";
+import { useListenerError } from "../hooks/useListenerError";
 import { ChatService } from "../services/ChatService";
+import { ErrorService } from "../services/ErrorService";
 import { EventService } from "../services/EventService";
+import LiveErrorBanner from "../components/LiveErrorBanner";
 import { consumeNotificationOpen, parseJoinSource } from "../utils/notifications";
 import type { Chat } from "../types/types";
 import "./GameChatPage.css";
+
+const CHAT_ERROR = "Couldn't load. Pull down to try again.";
 
 const FORMAT_LABEL: Record<string, string> = {
   singles: "Singles",
@@ -42,18 +53,30 @@ const GameChatPage: React.FC = () => {
   const [senderName, setSenderName] = useState("");
   const [text, setText] = useState("");
   const [isSending, setIsSending] = useState(false);
-  const messages = useChatMessages(matchId ?? null);
+  const { messages, error: messagesError, retry: retryMessages } =
+    useChatMessages(matchId ?? null);
+  const chatDoc = useListenerError("game-chat");
   const bottomRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLIonContentElement>(null);
   const now = Date.now();
 
+  const liveError = messagesError || chatDoc.errored;
+  const refresh = () => {
+    retryMessages();
+    chatDoc.retry();
+  };
+
   useEffect(() => {
     if (!matchId) return;
-    const unsub = onSnapshot(doc(db, "chats", matchId), (snap) => {
-      setChat(snap.exists() ? ({ id: snap.id, ...snap.data() } as Chat) : null);
-    });
+    const unsub = onSnapshot(
+      doc(db, "chats", matchId),
+      (snap) => {
+        setChat(snap.exists() ? ({ id: snap.id, ...snap.data() } as Chat) : null);
+      },
+      chatDoc.handleError,
+    );
     return unsub;
-  }, [matchId]);
+  }, [matchId, chatDoc.retryKey, chatDoc.handleError]);
 
   useEffect(() => {
     if (!matchId || !uid || joinSource !== "push") return;
@@ -70,7 +93,7 @@ const GameChatPage: React.FC = () => {
     return UserService.subscribeToProfile(
       uid,
       (p) => setSenderName(p?.firstName ?? ""),
-      () => {},
+      (err) => void ErrorService.logListener("game-chat-profile", err),
     );
   }, [uid]);
 
@@ -103,7 +126,30 @@ const GameChatPage: React.FC = () => {
     }
   };
 
-  if (!chat) return null;
+  if (!chat) {
+    if (!liveError) return null;
+    return (
+      <IonPage>
+        <IonContent>
+          <IonRefresher slot="fixed" onIonRefresh={(e) => { refresh(); void e.detail.complete(); }}>
+            <IonRefresherContent />
+          </IonRefresher>
+          <div className="game-chat">
+            <div className="game-chat__back-row">
+              <button
+                type="button"
+                className="game-chat__back"
+                onClick={() => ionRouter.goBack()}
+              >
+                Chats
+              </button>
+            </div>
+            <LiveErrorBanner message={CHAT_ERROR} />
+          </div>
+        </IonContent>
+      </IonPage>
+    );
+  }
 
   const players = chat.playerNames.join(", ");
   const startStr = formatChatTime(chat.startAt.toDate(), now);
@@ -111,7 +157,11 @@ const GameChatPage: React.FC = () => {
   return (
     <IonPage>
       <IonContent ref={contentRef}>
+        <IonRefresher slot="fixed" onIonRefresh={(e) => { refresh(); void e.detail.complete(); }}>
+          <IonRefresherContent />
+        </IonRefresher>
         <div className="game-chat">
+          {liveError && <LiveErrorBanner message={CHAT_ERROR} />}
           <div className="game-chat__back-row">
             <button
               type="button"

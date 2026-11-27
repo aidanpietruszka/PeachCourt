@@ -13,6 +13,8 @@ import {
   IonList,
   IonModal,
   IonPage,
+  IonRefresher,
+  IonRefresherContent,
   IonText,
   IonToast,
   IonToolbar,
@@ -21,12 +23,15 @@ import { Geolocation } from "@capacitor/geolocation";
 import { useLocation, useParams } from "react-router-dom";
 import MatchBoard from "../components/MatchBoard";
 import RealCountSheet from "../components/RealCountSheet";
+import LiveErrorBanner from "../components/LiveErrorBanner";
 import { useAuth } from "../hooks/useAuth";
 import { useFlags } from "../hooks/useFlags";
 import { useIsTeamMember } from "../hooks/useIsTeamMember";
 import { EMPTY_ACTIVITY, useLiveCourtData } from "../hooks/useLiveCourtData";
+import { useListenerError } from "../hooks/useListenerError";
 import { CheckinService, type ActiveCheckIn } from "../services/CheckinService";
 import { CourtService } from "../services/CourtService";
+import { ErrorService } from "../services/ErrorService";
 import { EventService } from "../services/EventService";
 import type { Court } from "../types/types";
 import {
@@ -107,7 +112,13 @@ const CourtDetailPage: React.FC = () => {
   const uid = user?.uid ?? null;
   const isTeamMember = useIsTeamMember(uid);
   const flags = useFlags();
-  const activity = useLiveCourtData();
+  const { activity, error: countsError, retry: retryCounts } = useLiveCourtData();
+  const gamesError = useListenerError("court-detail-games");
+  const liveError = countsError || gamesError.errored;
+  const refreshLiveData = () => {
+    retryCounts();
+    gamesError.retry();
+  };
   const [court, setCourt] = useState<Court | null | undefined>(undefined);
   const [activeCheckIn, setActiveCheckIn] = useState<ActiveCheckIn | null>(
     null,
@@ -165,7 +176,7 @@ const CourtDetailPage: React.FC = () => {
 
     setCourt(undefined);
     return CourtService.subscribeToCourt(courtId, setCourt, (error) => {
-      console.error("Unable to load this court", error);
+      void ErrorService.logListener("court-detail-court", error);
       setCourt(null);
     });
   }, [courtId]);
@@ -179,9 +190,8 @@ const CourtDetailPage: React.FC = () => {
     return CheckinService.subscribeToActiveCheckIn(
       uid,
       setActiveCheckIn,
-      (error) => {
-        console.error("Unable to load your active check-in", error);
-      },
+      (error) =>
+        void ErrorService.logListener("court-detail-active-checkin", error),
     );
   }, [uid]);
 
@@ -246,8 +256,8 @@ const CourtDetailPage: React.FC = () => {
     if (now - lastPromptMs < STILL_HERE_DELAY_MS) return;
     try {
       sessionStorage.setItem(STILL_HERE_KEY, String(now));
-    } catch {
-      /* ignore */
+    } catch (error) {
+      console.warn("Unable to save still-here timestamp", error);
     }
     setIsStillHereOpen(true);
   }, [flags.stillHere, checkedInHere, reportedAtMs, now]);
@@ -463,8 +473,9 @@ const CourtDetailPage: React.FC = () => {
       })()
     : "";
 
-  const reportedLabel =
-    courtActivity.reported === null
+  const reportedLabel = countsError
+    ? "—"
+    : courtActivity.reported === null
       ? "No recent reports"
       : displayRange(courtActivity.reported);
 
@@ -478,6 +489,9 @@ const CourtDetailPage: React.FC = () => {
         </IonToolbar>
       </IonHeader>
       <IonContent>
+        <IonRefresher slot="fixed" onIonRefresh={(e) => { refreshLiveData(); void e.detail.complete(); }}>
+          <IonRefresherContent />
+        </IonRefresher>
         <div className="pc-screen">
           {court === undefined ? (
             <p className="pc-subtitle">Loading court…</p>
@@ -493,6 +507,9 @@ const CourtDetailPage: React.FC = () => {
                   Directions
                 </button>
               </div>
+              {liveError && (
+                <LiveErrorBanner message="Live count and games couldn't load. Pull down to try again." />
+              )}
               <p className="pc-subtitle">
                 {court.address}
                 {distance !== null ? ` · ${formatDistance(distance)}` : ""}
@@ -501,8 +518,8 @@ const CourtDetailPage: React.FC = () => {
               <section className="live-card" aria-live="polite">
                 <p className="live-card__count">{reportedLabel}</p>
                 <p className="live-card__updated">
-                  {courtActivity.checkedIn} checked in
-                  {courtActivity.reportedAt
+                  {countsError ? "—" : `${courtActivity.checkedIn} checked in`}
+                  {!countsError && courtActivity.reportedAt
                     ? ` · ${formatMinutesAgo(courtActivity.reportedAt, now)}`
                     : ""}
                 </p>
@@ -609,6 +626,8 @@ const CourtDetailPage: React.FC = () => {
                 isPostOpen={isPostOpen}
                 onClosePost={() => setIsPostOpen(false)}
                 joinSource={joinSource}
+                onLiveError={gamesError.handleError}
+                retryKey={gamesError.retryKey}
               />
             </>
           ) : (

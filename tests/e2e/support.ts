@@ -42,6 +42,43 @@ export async function stubMapTiles(target: BrowserContext | Page) {
   );
 }
 
+const APP_COLLECTIONS = [
+  "users",
+  "courts",
+  "courtStatus",
+  "checkins",
+  "matches",
+  "alerts",
+  "config",
+  "clientErrors",
+];
+
+export async function blockLiveData(denied: string[]) {
+  const allowTop = APP_COLLECTIONS.filter((c) => !denied.includes(c))
+    .map((c) => `    match /${c}/{doc} { allow read, write: if true; }`)
+    .join("\n");
+  const chatsDenied = denied.includes("chats");
+  const messagesDenied = denied.includes("messages");
+  const messageRule = messagesDenied
+    ? "match /messages/{m} { allow read, write: if false; }"
+    : "match /messages/{m} { allow read, write: if true; }";
+  const chatsBlock = chatsDenied
+    ? `    match /chats/{id} {\n      ${messageRule}\n    }`
+    : `    match /chats/{id} {\n      allow read, write: if true;\n      ${messageRule}\n    }`;
+  await setFirestoreRules(
+    `rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n${allowTop}\n${chatsBlock}\n  }\n}`,
+  );
+}
+
+export async function pullToRefresh(page: Page) {
+  await page.evaluate(() => {
+    const refresher = document.querySelector("ion-refresher");
+    refresher?.dispatchEvent(
+      new CustomEvent("ionRefresh", { detail: { complete: () => {} } }),
+    );
+  });
+}
+
 const PROJECT_ID = "demo-peachcourt";
 const FIRESTORE = `http://127.0.0.1:${process.env.E2E_FIRESTORE_PORT ?? "8080"}`;
 const AUTH = `http://127.0.0.1:${process.env.E2E_AUTH_PORT ?? "9099"}`;
