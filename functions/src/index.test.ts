@@ -925,6 +925,201 @@ describe("alert setting gating (F6)", () => {
   });
 });
 
+describe("alert payload fields (F6 regression)", () => {
+  it("F-77 game_deleted alert carries every display field unread with createdAt", async () => {
+    const db = makeAlertDb();
+    const data = {
+      ...baseMatch,
+      courtId: "court-7",
+      playerUids: ["bob"],
+      playerNames: ["Bob"],
+    };
+    await handleMatchDeleted("m1", data, db, profileDefaults);
+    expect(db.addedAlerts).toHaveLength(1);
+    expect(db.addedAlerts[0]).toMatchObject({
+      recipientUid: "bob",
+      type: "game_deleted",
+      gameId: "m1",
+      gameCourtId: "court-7",
+      gameCourtName: "City Park",
+      gameSport: "tennis",
+      gameFormat: "doubles",
+      gameStartAt: { seconds: 9999999 },
+      actorName: "Alice",
+      read: false,
+    });
+    expect(db.addedAlerts[0].createdAt).toBeInstanceOf(Date);
+  });
+
+  it("F-78 game_deleted defaults missing court fields to empty strings", async () => {
+    const db = makeAlertDb();
+    const data = {
+      hostUid: "alice",
+      hostName: "Alice",
+      playerUids: ["bob"],
+      playerNames: ["Bob"],
+      sport: "tennis",
+      format: "doubles",
+      startAt: { seconds: 9999999 },
+    };
+    await handleMatchDeleted("m1", data, db, profileDefaults);
+    expect(db.addedAlerts[0]).toMatchObject({
+      gameCourtId: "",
+      gameCourtName: "",
+    });
+  });
+
+  it("F-79 player_joined carries full payload and court fallbacks", async () => {
+    const db = makeAlertDb();
+    const before = {
+      hostUid: "alice",
+      hostName: "Alice",
+      sport: "pickleball",
+      format: "singles",
+      startAt: { seconds: 123 },
+      playerUids: [],
+      playerNames: [],
+    };
+    const after = { ...before, playerUids: ["bob"], playerNames: ["Bob"] };
+    await handleMatchUpdated("m1", before, after, db, profileDefaults);
+    expect(db.addedAlerts[0]).toMatchObject({
+      recipientUid: "alice",
+      type: "player_joined",
+      gameId: "m1",
+      gameCourtId: "",
+      gameCourtName: "",
+      gameSport: "pickleball",
+      gameFormat: "singles",
+      gameStartAt: { seconds: 123 },
+      actorName: "Bob",
+      read: false,
+    });
+    expect(db.addedAlerts[0].createdAt).toBeInstanceOf(Date);
+  });
+
+  it("F-80 player_joined uses the joined player's name, not another player's", async () => {
+    const db = makeAlertDb();
+    const before = { ...baseMatch, playerUids: ["bob"], playerNames: ["Bob"] };
+    const after = {
+      ...baseMatch,
+      playerUids: ["bob", "cara"],
+      playerNames: ["Bob", "Cara"],
+    };
+    await handleMatchUpdated("m1", before, after, db, profileDefaults);
+    expect(db.addedAlerts[0]).toMatchObject({
+      type: "player_joined",
+      actorName: "Cara",
+    });
+  });
+
+  it("F-81 player_left uses the player who left, aligned by index", async () => {
+    const db = makeAlertDb();
+    const before = {
+      ...baseMatch,
+      playerUids: ["bob", "cara"],
+      playerNames: ["Bob", "Cara"],
+    };
+    const after = { ...baseMatch, playerUids: ["bob"], playerNames: ["Bob"] };
+    await handleMatchUpdated("m1", before, after, db, profileDefaults);
+    expect(db.addedAlerts[0]).toMatchObject({
+      type: "player_left",
+      actorName: "Cara",
+    });
+  });
+
+  it("F-82 player_left carries full payload with court fallbacks", async () => {
+    const db = makeAlertDb();
+    const before = {
+      hostUid: "alice",
+      hostName: "Alice",
+      sport: "tennis",
+      format: "doubles",
+      startAt: { seconds: 55 },
+      playerUids: ["bob"],
+      playerNames: ["Bob"],
+    };
+    const after = { ...before, playerUids: [], playerNames: [] };
+    await handleMatchUpdated("m1", before, after, db, profileDefaults);
+    expect(db.addedAlerts[0]).toMatchObject({
+      recipientUid: "alice",
+      type: "player_left",
+      gameCourtId: "",
+      gameCourtName: "",
+      gameSport: "tennis",
+      gameFormat: "doubles",
+      gameStartAt: { seconds: 55 },
+      actorName: "Bob",
+      read: false,
+    });
+  });
+
+  it("F-83 player_removed carries full payload with court fallbacks", async () => {
+    const db = makeAlertDb();
+    const before = {
+      hostUid: "alice",
+      hostName: "Alice",
+      sport: "tennis",
+      format: "doubles",
+      startAt: { seconds: 77 },
+      playerUids: ["bob"],
+      playerNames: ["Bob"],
+      removedUids: [],
+    };
+    const after = {
+      ...before,
+      playerUids: [],
+      playerNames: [],
+      removedUids: ["bob"],
+    };
+    await handleMatchUpdated("m1", before, after, db, profileDefaults);
+    expect(db.addedAlerts[0]).toMatchObject({
+      recipientUid: "bob",
+      type: "player_removed",
+      gameCourtId: "",
+      gameCourtName: "",
+      gameSport: "tennis",
+      gameFormat: "doubles",
+      gameStartAt: { seconds: 77 },
+      actorName: "Alice",
+      read: false,
+    });
+  });
+
+  it("F-84 host_transferred carries full payload with court fallbacks", async () => {
+    const db = makeAlertDb();
+    const before = {
+      hostUid: "alice",
+      hostName: "Alice",
+      sport: "tennis",
+      format: "doubles",
+      startAt: { seconds: 88 },
+      playerUids: ["bob"],
+      playerNames: ["Bob"],
+    };
+    const after = { ...before, hostUid: "bob", hostName: "Bob", playerUids: [], playerNames: [] };
+    await handleMatchUpdated("m1", before, after, db, profileDefaults);
+    expect(db.addedAlerts[0]).toMatchObject({
+      recipientUid: "bob",
+      type: "host_transferred",
+      gameCourtId: "",
+      gameCourtName: "",
+      gameSport: "tennis",
+      gameFormat: "doubles",
+      gameStartAt: { seconds: 88 },
+      actorName: "Alice",
+      read: false,
+    });
+  });
+
+  it("F-85 no removal alert fires when removedUids is absent on both sides", async () => {
+    const db = makeAlertDb();
+    const before = { ...baseMatch, removedUids: undefined };
+    const after = { ...baseMatch, removedUids: undefined, status: "full" };
+    await handleMatchUpdated("m1", before, after, db, profileDefaults);
+    expect(db.addedAlerts).toHaveLength(0);
+  });
+});
+
 describe("chatMembersFromMatch", () => {
   it("F-58 includes the host first, then players, deduped", () => {
     expect(
