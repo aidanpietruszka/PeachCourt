@@ -13,6 +13,7 @@ import { useAuth } from "../hooks/useAuth";
 import { UserService } from "../services/UserService";
 import { useChatMessages } from "../hooks/useChatMessages";
 import { useListenerError } from "../hooks/useListenerError";
+import { useVisualViewportHeight } from "../hooks/useVisualViewportHeight";
 import { ChatService } from "../services/ChatService";
 import { ErrorService } from "../services/ErrorService";
 import { EventService } from "../services/EventService";
@@ -58,6 +59,7 @@ const GameChatPage: React.FC = () => {
   const chatDoc = useListenerError("game-chat");
   const bottomRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLIonContentElement>(null);
+  const viewportHeight = useVisualViewportHeight();
   const now = Date.now();
 
   const liveError = messagesError || chatDoc.errored;
@@ -160,7 +162,7 @@ const GameChatPage: React.FC = () => {
         <IonRefresher slot="fixed" onIonRefresh={(e) => { refresh(); void e.detail.complete(); }}>
           <IonRefresherContent />
         </IonRefresher>
-        <div className="game-chat">
+        <div className="game-chat" style={{ height: viewportHeight }}>
           {liveError && <LiveErrorBanner message={CHAT_ERROR} />}
           <div className="game-chat__back-row">
             <button
