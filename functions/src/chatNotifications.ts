@@ -1,4 +1,5 @@
-import type { AlertDb } from "./matchNotifications";
+import type { AlertDb, GetUser } from "./matchNotifications";
+import { addIfEnabled } from "./matchNotifications";
 
 export type ChatDb = {
   collection: (name: string) => {
@@ -26,6 +27,7 @@ export async function handleMessageCreated(
   msgData: Record<string, unknown>,
   chatData: Record<string, unknown>,
   db: AlertDb,
+  getUser: GetUser,
 ): Promise<void> {
   const senderUid = msgData.senderUid as string;
   const senderName = msgData.senderName as string;
@@ -33,7 +35,7 @@ export async function handleMessageCreated(
 
   for (const uid of memberUids) {
     if (uid === senderUid) continue;
-    await db.collection("alerts").add({
+    await addIfEnabled(db, getUser, {
       recipientUid: uid,
       type: "new_message",
       gameId: matchId,

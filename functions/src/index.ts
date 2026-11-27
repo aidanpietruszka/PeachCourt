@@ -204,8 +204,12 @@ export const onMatchUpdated = onDocumentUpdated(
     const after = event.data?.after.data() as Record<string, unknown> | undefined;
     if (!before || !after) return;
     const db = getFirestore();
+    const getUser = async (uid: string) => {
+      const snap = await db.collection("users").doc(uid).get();
+      return snap.exists ? (snap.data() as Record<string, unknown>) : null;
+    };
     await Promise.all([
-      handleMatchUpdated(event.params.matchId, before, after, db),
+      handleMatchUpdated(event.params.matchId, before, after, db, getUser),
       db.collection("chats").doc(event.params.matchId).set(
         {
           hostUid: after.hostUid,
@@ -226,8 +230,12 @@ export const onMatchDeleted = onDocumentDeleted(
     const data = event.data?.data() as Record<string, unknown> | undefined;
     if (!data) return;
     const db = getFirestore();
+    const getUser = async (uid: string) => {
+      const snap = await db.collection("users").doc(uid).get();
+      return snap.exists ? (snap.data() as Record<string, unknown>) : null;
+    };
     await Promise.all([
-      handleMatchDeleted(event.params.matchId, data, db),
+      handleMatchDeleted(event.params.matchId, data, db, getUser),
       db.recursiveDelete(db.collection("chats").doc(event.params.matchId)),
     ]);
   },
@@ -243,6 +251,10 @@ export const onChatMessageCreated = onDocumentCreated(
     const chatSnap = await db.collection("chats").doc(matchId).get();
     const chatData = chatSnap.data() as Record<string, unknown> | undefined;
     if (!chatData) return;
+    const getUser = async (uid: string) => {
+      const snap = await db.collection("users").doc(uid).get();
+      return snap.exists ? (snap.data() as Record<string, unknown>) : null;
+    };
     await Promise.all([
       db.collection("chats").doc(matchId).set(
         {
@@ -253,7 +265,7 @@ export const onChatMessageCreated = onDocumentCreated(
         },
         { merge: true },
       ),
-      handleMessageCreated(matchId, msgData, chatData, db),
+      handleMessageCreated(matchId, msgData, chatData, db, getUser),
       db.collection("events").add({
         eventName: "chat_message_sent",
         uid: msgData.senderUid ?? null,
