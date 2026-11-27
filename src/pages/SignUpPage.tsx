@@ -13,10 +13,12 @@ import {
 } from '@ionic/react';
 import { authErrorMessage, signInWithGoogle, signUpWithEmail } from '../services/auth';
 import { ErrorService } from '../services/ErrorService';
+import { useRedirectSignIn } from '../hooks/useRedirectSignIn';
 import './AuthPages.css';
 
 const SignUpPage: React.FC = () => {
   const ionRouter = useIonRouter();
+  const redirectError = useRedirectSignIn();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -111,7 +113,9 @@ const SignUpPage: React.FC = () => {
               />
             </div>
 
-            {error && <div className="auth-error">{error}</div>}
+            {(error || redirectError) && (
+              <div className="auth-error">{error || redirectError}</div>
+            )}
 
             <IonButton expand="block" type="submit" disabled={busy}>
               {busy ? <IonSpinner name="dots" /> : 'Sign up'}
