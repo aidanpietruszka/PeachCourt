@@ -6,6 +6,7 @@ import {
   shouldCutoff,
 } from "./index";
 import { handleDeleteAccount } from "./deleteAccount";
+import { cleanupDeletedAccount, cleanupDeletedAccounts } from "./cleanupDeletedAccounts";
 import { handleMatchUpdated, handleMatchDeleted } from "./matchNotifications";
 import { handleGameCreated } from "./gameAlerts";
 import {
@@ -187,10 +188,15 @@ describe("billingCutoff handler", () => {
 type MockRef = {
   delete: ReturnType<typeof vi.fn>;
   update: ReturnType<typeof vi.fn>;
+  get: ReturnType<typeof vi.fn>;
 };
 
-function makeRef(): MockRef {
-  return { delete: vi.fn().mockResolvedValue(undefined), update: vi.fn().mockResolvedValue(undefined) };
+function makeRef(data: Record<string, unknown> = {}, exists = true): MockRef {
+  return {
+    delete: vi.fn().mockResolvedValue(undefined),
+    update: vi.fn().mockResolvedValue(undefined),
+    get: vi.fn().mockResolvedValue({ data: () => data, exists }),
+  };
 }
 
 function makeSnap(data: Record<string, unknown>, ref?: MockRef) {
@@ -198,20 +204,53 @@ function makeSnap(data: Record<string, unknown>, ref?: MockRef) {
   return { ref: r, data: () => data };
 }
 
-function makeDb(collections: Record<string, { whereDocs?: ReturnType<typeof makeSnap>[]; docRef?: MockRef }> = {}) {
-  const callCounts: Record<string, number> = {};
+type DeleteDbConfig = {
+  matches?: { whereDocs?: ReturnType<typeof makeSnap>[] };
+  matchesJoined?: ReturnType<typeof makeSnap>[];
+  checkins?: { whereDocs?: ReturnType<typeof makeSnap>[] };
+  activeCheckins?: { docRef?: MockRef };
+  users?: { docRef?: MockRef };
+  teamRef?: MockRef;
+  alerts?: ReturnType<typeof makeSnap>[];
+  events?: ReturnType<typeof makeSnap>[];
+  clientErrors?: ReturnType<typeof makeSnap>[];
+  inPersonCounts?: ReturnType<typeof makeSnap>[];
+  messages?: ReturnType<typeof makeSnap>[];
+  chats?: ReturnType<typeof makeSnap>[];
+};
+
+function makeDb(cfg: DeleteDbConfig = {}) {
+  const recursiveDelete = vi.fn().mockResolvedValue(undefined);
+  const batchCommit = vi.fn().mockResolvedValue(undefined);
+  const matchesHosted = cfg.matches?.whereDocs ?? [];
+  const matchesJoined = cfg.matchesJoined ?? [];
+  const whereDocs = (name: string, field: string) => {
+    if (name === "matches") return field === "hostUid" ? matchesHosted : matchesJoined;
+    if (name === "checkins") return cfg.checkins?.whereDocs ?? [];
+    return (cfg[name as keyof DeleteDbConfig] as ReturnType<typeof makeSnap>[]) ?? [];
+  };
   return {
-    collection: (name: string) => {
-      if (!(name in callCounts)) callCounts[name] = 0;
-      const cfg = collections[name] ?? {};
-      return {
-        where: () => {
-          const docs = callCounts[name]++ === 0 ? (cfg.whereDocs ?? []) : [];
-          return { get: () => Promise.resolve({ docs }) };
-        },
-        doc: () => cfg.docRef ?? makeRef(),
-      };
-    },
+    collection: (name: string) => ({
+      where: (field: string) => ({
+        get: () => Promise.resolve({ docs: whereDocs(name, field) }),
+      }),
+      doc: () => {
+        if (name === "activeCheckins") return cfg.activeCheckins?.docRef ?? makeRef();
+        if (name === "users") return cfg.users?.docRef ?? makeRef();
+        if (name === "config") return cfg.teamRef ?? makeRef();
+        return makeRef();
+      },
+    }),
+    collectionGroup: () => ({
+      where: () => ({ get: () => Promise.resolve({ docs: cfg.messages ?? [] }) }),
+    }),
+    recursiveDelete,
+    batchCommit,
+    batch: () => ({
+      delete: (ref: MockRef) => ref.delete(),
+      update: (ref: MockRef, data: Record<string, unknown>) => ref.update(data),
+      commit: batchCommit,
+    }),
   };
 }
 
@@ -231,7 +270,7 @@ describe("handleDeleteAccount", () => {
       users: { docRef: usersDocRef },
     });
     await handleDeleteAccount("uid1", db, makeAuth(deleteUser));
-    expect(usersDocRef.delete).toHaveBeenCalledOnce();
+    expect(db.recursiveDelete).toHaveBeenCalledWith(usersDocRef);
     expect(activeCheckinsRef.delete).toHaveBeenCalledOnce();
     expect(deleteUser).toHaveBeenCalledWith("uid1");
   });
@@ -308,21 +347,7 @@ describe("handleDeleteAccount", () => {
       },
       joinedRef,
     );
-    let matchesCallCount = 0;
-    const db = {
-      collection: (name: string) => {
-        if (name === "matches") {
-          return {
-            where: () => {
-              const docs = matchesCallCount++ === 0 ? [] : [joinedSnap];
-              return { get: () => Promise.resolve({ docs }) };
-            },
-            doc: () => makeRef(),
-          };
-        }
-        return makeDb({ [name]: { whereDocs: [], docRef: makeRef() } }).collection(name);
-      },
-    };
+    const db = makeDb({ matchesJoined: [joinedSnap] });
     await handleDeleteAccount("uid1", db, makeAuth());
     expect(joinedRef.update).toHaveBeenCalledOnce();
     const updateArg = joinedRef.update.mock.calls[0][0] as Record<string, unknown>;
@@ -371,6 +396,297 @@ describe("handleDeleteAccount", () => {
     expect(emptyRef.delete).toHaveBeenCalledOnce();
     expect(fullRef.update).toHaveBeenCalledOnce();
     expect(fullRef.delete).not.toHaveBeenCalled();
+  });
+
+  it("F-86 deletes alerts, events, clientErrors and inPersonCounts for the uid", async () => {
+    const alertRef = makeRef();
+    const eventRef = makeRef();
+    const errorRef = makeRef();
+    const countRef = makeRef();
+    const db = makeDb({
+      alerts: [makeSnap({ recipientUid: "uid1" }, alertRef)],
+      events: [makeSnap({ uid: "uid1" }, eventRef)],
+      clientErrors: [makeSnap({ uid: "uid1" }, errorRef)],
+      inPersonCounts: [makeSnap({ uid: "uid1" }, countRef)],
+    });
+    await handleDeleteAccount("uid1", db, makeAuth());
+    expect(alertRef.delete).toHaveBeenCalledOnce();
+    expect(eventRef.delete).toHaveBeenCalledOnce();
+    expect(errorRef.delete).toHaveBeenCalledOnce();
+    expect(countRef.delete).toHaveBeenCalledOnce();
+  });
+
+  it("F-87 deletes chat messages found by the senderUid collection-group query", async () => {
+    const msgRef = makeRef();
+    const db = makeDb({ messages: [makeSnap({ senderUid: "uid1" }, msgRef)] });
+    await handleDeleteAccount("uid1", db, makeAuth());
+    expect(msgRef.delete).toHaveBeenCalledOnce();
+  });
+
+  it("F-88 removes the uid from a chat's memberUids and readAt but leaves other members", async () => {
+    const chatRef = makeRef();
+    const db = makeDb({
+      chats: [
+        makeSnap({ memberUids: ["uid1", "uid2"], readAt: { uid1: 1, uid2: 2 } }, chatRef),
+      ],
+    });
+    await handleDeleteAccount("uid1", db, makeAuth());
+    expect(chatRef.update).toHaveBeenCalledOnce();
+    const arg = chatRef.update.mock.calls[0][0] as {
+      readAt: Record<string, unknown>;
+      memberUids: string[];
+    };
+    expect(arg.readAt).toEqual({ uid2: 2 });
+    expect(arg.memberUids).toEqual(["uid2"]);
+  });
+
+  it("F-89 strips memberUids but leaves readAt when the uid has no readAt entry", async () => {
+    const chatRef = makeRef();
+    const db = makeDb({
+      chats: [makeSnap({ memberUids: ["uid1", "uid2"], readAt: { uid2: 2 } }, chatRef)],
+    });
+    await handleDeleteAccount("uid1", db, makeAuth());
+    expect(chatRef.update).toHaveBeenCalledOnce();
+    const arg = chatRef.update.mock.calls[0][0] as Record<string, unknown>;
+    expect(arg.memberUids).toEqual(["uid2"]);
+    expect("readAt" in arg).toBe(false);
+  });
+
+  it("F-100 clears the chat's last-message fields when the deleted user was the last sender", async () => {
+    const chatRef = makeRef();
+    const db = makeDb({
+      chats: [
+        makeSnap(
+          {
+            memberUids: ["uid1", "uid2"],
+            lastMessage: "Court 2?",
+            lastSenderUid: "uid1",
+            lastSenderName: "Me",
+          },
+          chatRef,
+        ),
+      ],
+    });
+    await handleDeleteAccount("uid1", db, makeAuth());
+    const arg = chatRef.update.mock.calls[0][0] as Record<string, unknown>;
+    expect(arg.lastMessage).toBeNull();
+    expect(arg.lastSenderName).toBeNull();
+    expect(arg.lastSenderUid).toBeNull();
+    expect(arg.memberUids).toEqual(["uid2"]);
+  });
+
+  it("F-101 leaves the last-message fields when someone else sent the last message", async () => {
+    const chatRef = makeRef();
+    const db = makeDb({
+      chats: [
+        makeSnap(
+          {
+            memberUids: ["uid1", "uid2"],
+            lastMessage: "See you there",
+            lastSenderUid: "uid2",
+            lastSenderName: "Bob",
+          },
+          chatRef,
+        ),
+      ],
+    });
+    await handleDeleteAccount("uid1", db, makeAuth());
+    const arg = chatRef.update.mock.calls[0][0] as Record<string, unknown>;
+    expect("lastMessage" in arg).toBe(false);
+    expect(arg.memberUids).toEqual(["uid2"]);
+  });
+
+  it("F-90 removes the uid from config/teamAccounts uids", async () => {
+    const teamRef = makeRef({ uids: ["uid1", "uid2"] });
+    const db = makeDb({ teamRef });
+    await handleDeleteAccount("uid1", db, makeAuth());
+    expect(teamRef.update).toHaveBeenCalledOnce();
+    const arg = teamRef.update.mock.calls[0][0] as { uids: string[] };
+    expect(arg.uids).toEqual(["uid2"]);
+  });
+
+  it("F-91 does not touch teamAccounts when the uid is not a team member", async () => {
+    const teamRef = makeRef({ uids: ["uid2", "uid3"] });
+    const db = makeDb({ teamRef });
+    await handleDeleteAccount("uid1", db, makeAuth());
+    expect(teamRef.update).not.toHaveBeenCalled();
+  });
+
+  it("F-92 recursively deletes the user document so the fcmTokens subcollection goes too", async () => {
+    const usersRef = makeRef();
+    const db = makeDb({ users: { docRef: usersRef } });
+    await handleDeleteAccount("uid1", db, makeAuth());
+    expect(db.recursiveDelete).toHaveBeenCalledWith(usersRef);
+  });
+
+  it("F-93 deletes more than 500 events in batches", async () => {
+    const eventRef = makeRef();
+    const events = Array.from({ length: 600 }, () =>
+      makeSnap({ uid: "uid1" }, eventRef),
+    );
+    const db = makeDb({ events });
+    await handleDeleteAccount("uid1", db, makeAuth());
+    expect(eventRef.delete).toHaveBeenCalledTimes(600);
+    expect(db.batchCommit.mock.calls.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("F-94 deletes all data before Auth, so an Auth failure leaves the data deleted", async () => {
+    const usersRef = makeRef();
+    const alertRef = makeRef();
+    const db = makeDb({
+      users: { docRef: usersRef },
+      alerts: [makeSnap({ recipientUid: "uid1" }, alertRef)],
+    });
+    const deleteUser = vi.fn().mockRejectedValue(new Error("auth down"));
+    await expect(
+      handleDeleteAccount("uid1", db, { deleteUser }),
+    ).rejects.toThrow("auth down");
+    expect(alertRef.delete).toHaveBeenCalledOnce();
+    expect(db.recursiveDelete).toHaveBeenCalledWith(usersRef);
+  });
+
+  it("F-95 a retry after an Auth failure finishes and deletes Auth", async () => {
+    const db = makeDb({});
+    const deleteUser = vi.fn().mockResolvedValue(undefined);
+    await handleDeleteAccount("uid1", db, { deleteUser });
+    expect(deleteUser).toHaveBeenCalledWith("uid1");
+  });
+});
+
+describe("cleanupDeletedAccount", () => {
+  const goneAuth = { getUser: vi.fn().mockRejectedValue(new Error("not found")) };
+  const liveAuth = { getUser: vi.fn().mockResolvedValue({ uid: "uid1" }) };
+
+  it("F-96 cleans an account with no users doc and no Auth account", async () => {
+    const alertRef = makeRef();
+    const usersRef = makeRef({}, false);
+    const db = makeDb({
+      users: { docRef: usersRef },
+      alerts: [makeSnap({ recipientUid: "uid1" }, alertRef)],
+    });
+    const cleaned = await cleanupDeletedAccount("uid1", db, goneAuth);
+    expect(cleaned).toBe(true);
+    expect(alertRef.delete).toHaveBeenCalledOnce();
+  });
+
+  it("F-97 leaves an F1-bug account (Auth exists, no users doc) alone", async () => {
+    const alertRef = makeRef();
+    const usersRef = makeRef({}, false);
+    const db = makeDb({
+      users: { docRef: usersRef },
+      alerts: [makeSnap({ recipientUid: "uid1" }, alertRef)],
+    });
+    const cleaned = await cleanupDeletedAccount("uid1", db, liveAuth);
+    expect(cleaned).toBe(false);
+    expect(alertRef.delete).not.toHaveBeenCalled();
+  });
+
+  it("F-98 leaves an active account (users doc exists) alone", async () => {
+    const alertRef = makeRef();
+    const usersRef = makeRef({}, true);
+    const db = makeDb({
+      users: { docRef: usersRef },
+      alerts: [makeSnap({ recipientUid: "uid1" }, alertRef)],
+    });
+    const cleaned = await cleanupDeletedAccount("uid1", db, goneAuth);
+    expect(cleaned).toBe(false);
+    expect(alertRef.delete).not.toHaveBeenCalled();
+  });
+
+  it("F-99 a second run on already-cleaned data changes nothing", async () => {
+    const usersRef = makeRef({}, false);
+    const db = makeDb({ users: { docRef: usersRef } });
+    await cleanupDeletedAccount("uid1", db, goneAuth);
+    expect(db.batchCommit).not.toHaveBeenCalled();
+  });
+});
+
+describe("cleanupDeletedAccounts orchestrator", () => {
+  function makeOrchestratorDb(opts: {
+    events?: ReturnType<typeof makeSnap>[];
+    alerts?: ReturnType<typeof makeSnap>[];
+    clientErrors?: ReturnType<typeof makeSnap>[];
+    inPersonCounts?: ReturnType<typeof makeSnap>[];
+    messages?: ReturnType<typeof makeSnap>[];
+    userDocs?: Record<string, MockRef>;
+  }) {
+    const batchCommit = vi.fn().mockResolvedValue(undefined);
+    const scanDocs = (name: string) => {
+      if (name === "events") return opts.events ?? [];
+      if (name === "alerts") return opts.alerts ?? [];
+      if (name === "clientErrors") return opts.clientErrors ?? [];
+      if (name === "inPersonCounts") return opts.inPersonCounts ?? [];
+      return [];
+    };
+    return {
+      collection: (name: string) => ({
+        where: () => ({
+          get: () =>
+            Promise.resolve({
+              docs:
+                name === "alerts" || name === "events"
+                  ? scanDocs(name)
+                  : [],
+            }),
+        }),
+        get: () => Promise.resolve({ docs: scanDocs(name) }),
+        doc: (id: string) => {
+          if (name === "users")
+            return opts.userDocs?.[id] ?? makeRef({}, false);
+          return makeRef();
+        },
+      }),
+      collectionGroup: () => ({
+        where: () => ({ get: () => Promise.resolve({ docs: opts.messages ?? [] }) }),
+        get: () => Promise.resolve({ docs: opts.messages ?? [] }),
+      }),
+      recursiveDelete: vi.fn().mockResolvedValue(undefined),
+      batchCommit,
+      batch: () => ({
+        delete: (ref: MockRef) => ref.delete(),
+        update: (ref: MockRef, data: Record<string, unknown>) => ref.update(data),
+        commit: batchCommit,
+      }),
+    };
+  }
+
+  it("F-102 discovers a uid only from chat messages (senderUid) and cleans it", async () => {
+    const msgRef = makeRef();
+    const db = makeOrchestratorDb({
+      messages: [makeSnap({ senderUid: "ghost" }, msgRef)],
+    });
+    const goneAuth = { getUser: vi.fn().mockRejectedValue(new Error("gone")) };
+    const result = await cleanupDeletedAccounts(db, goneAuth);
+    expect(result).toEqual({ scanned: 1, cleaned: 1 });
+    expect(msgRef.delete).toHaveBeenCalled();
+  });
+
+  it("F-103 cleans a deleted account but leaves an F1-bug account (Auth still exists) alone", async () => {
+    const deletedEvent = makeRef();
+    const bugEvent = makeRef();
+    const db = makeOrchestratorDb({
+      events: [
+        makeSnap({ uid: "deleted" }, deletedEvent),
+        makeSnap({ uid: "f1bug" }, bugEvent),
+      ],
+    });
+    const auth = {
+      getUser: vi.fn((uid: string) =>
+        uid === "f1bug"
+          ? Promise.resolve({ uid })
+          : Promise.reject(new Error("gone")),
+      ),
+    };
+    const result = await cleanupDeletedAccounts(db, auth);
+    expect(result).toEqual({ scanned: 2, cleaned: 1 });
+  });
+
+  it("F-104 a second orchestrator run over empty data cleans nothing", async () => {
+    const db = makeOrchestratorDb({});
+    const goneAuth = { getUser: vi.fn().mockRejectedValue(new Error("gone")) };
+    const result = await cleanupDeletedAccounts(db, goneAuth);
+    expect(result).toEqual({ scanned: 0, cleaned: 0 });
+    expect(db.batchCommit).not.toHaveBeenCalled();
   });
 });
 

@@ -383,7 +383,7 @@ const SettingsPage: React.FC = () => {
           isOpen={showDeleteAlert}
           onDidDismiss={() => setShowDeleteAlert(false)}
           header="Delete your account?"
-          message="This permanently deletes your profile and check-ins, and removes you from your games, handing off any you host. This can't be undone."
+          message="This permanently deletes your profile, check-ins, chat messages, alerts and activity history, and removes you from your games, handing off any you host. This can't be undone."
           buttons={[
             { text: "Cancel", role: "cancel" },
             {

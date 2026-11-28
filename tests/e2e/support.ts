@@ -1041,6 +1041,35 @@ export async function freshContext(
   return context;
 }
 
+export async function docExists(path: string): Promise<boolean> {
+  const response = await fetch(
+    `${FIRESTORE}/v1/projects/${PROJECT_ID}/databases/(default)/documents/${path}`,
+    { headers: { Authorization: "Bearer owner" } },
+  );
+  return response.ok;
+}
+
+export async function readCollection(
+  collection: string,
+): Promise<Array<Record<string, ReadValue>>> {
+  const response = await fetch(
+    `${FIRESTORE}/v1/projects/${PROJECT_ID}/databases/(default)/documents/${collection}?pageSize=500`,
+    { headers: { Authorization: "Bearer owner" } },
+  );
+  if (!response.ok) return [];
+  const body = (await response.json()) as {
+    documents?: Array<{ fields: Record<string, StoredValue> }>;
+  };
+  return (body.documents ?? []).map(({ fields }) =>
+    Object.fromEntries(
+      Object.entries(fields).map(([key, value]) => [
+        key,
+        readStoredValue(value),
+      ]),
+    ),
+  );
+}
+
 export async function waitForDocument(
   path: string,
   timeoutMs = 10_000,
