@@ -1,79 +1,12 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
-
-type DocRef = {
-  delete: () => Promise<unknown>;
-  update: (data: Record<string, unknown>) => Promise<unknown>;
-};
-
-type DocSnap = { ref: DocRef; data: () => Record<string, unknown> };
-
-type DbLike = {
-  collection: (name: string) => {
-    where: (
-      field: string,
-      op: string,
-      val: unknown,
-    ) => { get: () => Promise<{ docs: DocSnap[] }> };
-    doc: (id: string) => DocRef;
-  };
-};
-
-type AuthLike = { deleteUser: (uid: string) => Promise<void> };
+import { deleteUserData, type DbLike, type AuthLike } from "./accountData";
 
 export async function handleDeleteAccount(
   uid: string,
   db: DbLike,
   adminAuth: AuthLike,
 ): Promise<void> {
-  const hostedSnap = await db
-    .collection("matches")
-    .where("hostUid", "==", uid)
-    .get();
-
-  for (const d of hostedSnap.docs) {
-    const playerUids: string[] = (d.data().playerUids as string[]) ?? [];
-    const playerNames: string[] = (d.data().playerNames as string[]) ?? [];
-    if (playerUids.length > 0) {
-      await d.ref.update({
-        hostUid: playerUids[0],
-        hostName: playerNames[0] ?? "",
-        playerUids: playerUids.slice(1),
-        playerNames: playerNames.slice(1),
-      });
-    } else {
-      await d.ref.delete();
-    }
-  }
-
-  const joinedSnap = await db
-    .collection("matches")
-    .where("playerUids", "array-contains", uid)
-    .get();
-
-  for (const d of joinedSnap.docs) {
-    const playerUids: string[] = (d.data().playerUids as string[]) ?? [];
-    const playerNames: string[] = (d.data().playerNames as string[]) ?? [];
-    const index = playerUids.indexOf(uid);
-    if (index === -1) {
-      continue;
-    }
-    await d.ref.update({
-      playerUids: playerUids.filter((_, i) => i !== index),
-      playerNames: playerNames.filter((_, i) => i !== index),
-    });
-  }
-
-  const checkinsSnap = await db
-    .collection("checkins")
-    .where("uid", "==", uid)
-    .get();
-
-  for (const d of checkinsSnap.docs) {
-    await d.ref.delete();
-  }
-
-  await db.collection("activeCheckins").doc(uid).delete();
-  await db.collection("users").doc(uid).delete();
+  await deleteUserData(uid, db);
   await adminAuth.deleteUser(uid);
 }
 
